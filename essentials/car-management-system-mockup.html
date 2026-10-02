@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CAR Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg:#ffffff; --bg2:#f7f6f3; --bg3:#eeede9;
+    --text:#1c1c1a; --text2:#6b6b67; --text3:#a0a09b;
+    --border: rgba(0,0,0,.09); --border2: rgba(0,0,0,.16);
+
+    --accent-bg:#e7f7f5; --accent:#0f766e; --accent-bd: rgba(15,118,110,.28);
+    --green-bg:#e8f5ee; --green:#1a6e3a; --green-bd: rgba(26,110,58,.28);
+    --red-bg:#fdeaea; --red:#a32020; --red-bd: rgba(163,32,32,.28);
+    --amber-bg:#fef3e2; --amber:#8a5a00; --amber-bd: rgba(138,90,0,.28);
+    --violet-bg:#f1eafe; --violet:#6d28d9; --violet-bd: rgba(109,40,217,.28);
+    --blue-bg:#e8f0fb; --blue:#1a4fa0; --blue-bd: rgba(26,79,160,.28);
+    --slate-bg:#eceff3; --slate:#475467; --slate-bd: rgba(71,84,103,.28);
+
+    --shadow: 0 14px 36px rgba(15,23,42,.12);
+    --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'Roboto Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12161d; --bg2:#1a2029; --bg3:#0d1117;
+      --text:#edf2f7; --text2:#96a3b6; --text3:#5c6779;
+      --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.17);
+
+      --accent-bg: rgba(45,212,191,.13); --accent:#2dd4bf; --accent-bd: rgba(45,212,191,.32);
+      --green-bg: rgba(74,222,128,.13); --green:#4ade80; --green-bd: rgba(74,222,128,.32);
+      --red-bg: rgba(248,113,113,.15); --red:#f87171; --red-bd: rgba(248,113,113,.34);
+      --amber-bg: rgba(251,191,36,.15); --amber:#fbbf24; --amber-bd: rgba(251,191,36,.34);
+      --violet-bg: rgba(167,139,250,.15); --violet:#a78bfa; --violet-bd: rgba(167,139,250,.34);
+      --blue-bg: rgba(96,165,250,.15); --blue:#60a5fa; --blue-bd: rgba(96,165,250,.34);
+      --slate-bg: rgba(148,163,184,.15); --slate:#cbd5e1; --slate-bd: rgba(148,163,184,.34);
+      --shadow: 0 14px 36px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12161d; --bg2:#1a2029; --bg3:#0d1117;
+    --text:#edf2f7; --text2:#96a3b6; --text3:#5c6779;
+    --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.17);
+
+    --accent-bg: rgba(45,212,191,.13); --accent:#2dd4bf; --accent-bd: rgba(45,212,191,.32);
+    --green-bg: rgba(74,222,128,.13); --green:#4ade80; --green-bd: rgba(74,222,128,.32);
+    --red-bg: rgba(248,113,113,.15); --red:#f87171; --red-bd: rgba(248,113,113,.34);
+    --amber-bg: rgba(251,191,36,.15); --amber:#fbbf24; --amber-bd: rgba(251,191,36,.34);
+    --violet-bg: rgba(167,139,250,.15); --violet:#a78bfa; --violet-bd: rgba(167,139,250,.34);
+    --blue-bg: rgba(96,165,250,.15); --blue:#60a5fa; --blue-bd: rgba(96,165,250,.34);
+    --slate-bg: rgba(148,163,184,.15); --slate:#cbd5e1; --slate-bd: rgba(148,163,184,.34);
+    --shadow: 0 14px 36px rgba(0,0,0,.5);
+  }
+
+  /* ============ BASE ============ */
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg2); color:var(--text); font-family:var(--font-ui);
+    font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .tnum{ font-variant-numeric:tabular-nums; font-family:var(--font-mono); }
+  button, input, select, textarea{ font-family:inherit; font-size:inherit; color:inherit; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  [hidden]{ display:none !important; }
+
+  a{ color:var(--accent); }
+
+  /* ============ LOGIN ============ */
+  .login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .login-wrap{ width:100%; max-width:960px; }
+  .login-head{ text-align:center; margin-bottom:24px; }
+  .login-head .mark{
+    display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:11px;
+    background:var(--accent-bg); color:var(--accent); border:.5px solid var(--accent-bd); margin-bottom:12px;
+  }
+  .login-head h1{ margin:0 0 5px; font-size:19px; font-weight:700; letter-spacing:-.01em; }
+  .login-head p{ margin:0; font-size:12px; color:var(--text2); }
+  .role-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+  .role-card{
+    text-align:left; cursor:pointer; padding:15px; display:flex; flex-direction:column; gap:9px;
+    width:100%; font-family:inherit;
+  }
+  .role-card:hover{ border-color:var(--border2); background:var(--bg2); }
+  .role-top{ display:flex; align-items:center; gap:10px; }
+  .role-avatar{
+    width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:12px; flex-shrink:0;
+  }
+  .role-name{ font-size:12.5px; font-weight:700; }
+  .role-scope{ font-size:10.5px; color:var(--text3); margin-top:1px; }
+  .role-blurb{ font-size:11.5px; color:var(--text2); line-height:1.55; }
+  .role-title-pill{ align-self:flex-start; }
+  .login-foot{ text-align:center; margin-top:18px; font-size:10.5px; color:var(--text3); }
+
+  /* ============ SHELL ============ */
+  .shell{ display:flex; min-height:100vh; }
+
+  .sidebar{
+    width:224px; flex-shrink:0; display:flex; flex-direction:column;
+    background:var(--bg2); border-right:.5px solid var(--border);
+    position:sticky; top:0; height:100vh; align-self:flex-start;
+  }
+  .brand{ padding:18px 16px 14px; border-bottom:.5px solid var(--border); }
+  .brand h1{ margin:0; font-size:15px; font-weight:700; letter-spacing:-.01em; }
+  .brand p{ margin:3px 0 0; font-size:10px; color:var(--text3); }
+  .brand .tag{
+    display:inline-block; margin-top:8px; font-size:9px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--accent); background:var(--accent-bg);
+    border:.5px solid var(--accent-bd); padding:2px 7px; border-radius:5px;
+  }
+  nav{ flex:1; padding:12px 10px; overflow-y:auto; }
+  .nav-label{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); padding:6px 8px 4px; }
+  .nav-item{
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:7px 9px; border-radius:7px; font-size:12.5px; color:var(--text2);
+    background:transparent; border:.5px solid transparent; cursor:pointer; margin-bottom:1px;
+  }
+  .nav-item svg{ width:15px; height:15px; flex-shrink:0; }
+  .nav-item:hover{ background:var(--bg); color:var(--text); }
+  .nav-item.active{ background:var(--bg); color:var(--text); font-weight:600; border-color:var(--border2); }
+  .nav-count{ margin-left:auto; font-size:10px; background:var(--bg3); color:var(--text2); padding:1px 6px; border-radius:999px; }
+  .nav-count.warn{ background:var(--red-bg); color:var(--red); }
+
+  .sidebar-foot{ padding:12px 14px; border-top:.5px solid var(--border); display:flex; align-items:center; gap:9px; }
+  .sidebar-foot .avatar{ width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .sidebar-foot .id-block{ min-width:0; flex:1; }
+  .sidebar-foot .who{ font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sidebar-foot .role{ font-size:10px; color:var(--text2); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .switch-btn{
+    flex-shrink:0; border:.5px solid var(--border2); background:var(--bg); color:var(--text2);
+    border-radius:6px; padding:5px 7px; cursor:pointer; display:flex; align-items:center;
+  }
+  .switch-btn:hover{ color:var(--text); background:var(--bg3); }
+  .switch-btn svg{ width:13px; height:13px; }
+
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg); }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:13px 22px; border-bottom:.5px solid var(--border); flex-shrink:0; flex-wrap:wrap;
+  }
+  .topbar h2{ margin:0; font-size:14.5px; font-weight:600; }
+  .topbar p{ margin:2px 0 0; font-size:11.5px; color:var(--text2); }
+  .content{ flex:1; padding:22px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ============ PRIMITIVES ============ */
+  .card{ background:var(--bg); border:.5px solid var(--border); border-radius:12px; }
+  .surface{ background:var(--bg2); border:.5px solid var(--border); border-radius:12px; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; border-radius:8px; font-size:12px; font-weight:600;
+    padding:7px 15px; cursor:pointer; border:.5px solid transparent; white-space:nowrap;
+  }
+  .btn-accent{ background:var(--accent-bg); color:var(--accent); border-color:var(--accent-bd); }
+  .btn-accent:hover{ filter:brightness(0.97); }
+  .btn-secondary{ background:var(--bg2); color:var(--text); border-color:var(--border2); }
+  .btn-secondary:hover{ background:var(--bg3); }
+  .btn-ghost{ background:transparent; color:var(--text2); border-color:transparent; }
+  .btn-ghost:hover{ color:var(--text); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .pill{ display:inline-flex; align-items:center; font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+
+  .field label{ display:block; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text2); margin-bottom:6px; }
+  .field input, .field select, .field textarea{
+    width:100%; border-radius:8px; border:.5px solid var(--border2); background:var(--bg);
+    padding:8px 10px; min-height:34px;
+  }
+  .field select:disabled, .field input:disabled{ background:var(--bg2); color:var(--text2); }
+  .field textarea{ min-height:80px; resize:vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg);
+  }
+  .field .hint{ font-size:10.5px; color:var(--text3); margin-top:5px; }
+  .field-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (max-width:640px){ .field-grid{ grid-template-columns:1fr; } }
+
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  th{ text-align:left; padding:9px 12px; font-size:10.5px; font-weight:600; color:var(--text2); background:var(--bg2); white-space:nowrap; }
+  td{ padding:10px 12px; border-top:.5px solid var(--border); vertical-align:middle; }
+  tr.row-click{ cursor:pointer; }
+  tr.row-click:hover td{ background:var(--bg2); }
+
+  .table-scroll{ overflow-x:auto; }
+  .empty-row{ padding:26px 14px; text-align:center; color:var(--text3); font-size:12px; }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media (max-width:900px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
+  .stat-tile{ padding:16px 18px; }
+  .stat-tile .num{ font-size:26px; font-weight:700; font-family:var(--font-mono); font-variant-numeric:tabular-nums; line-height:1; }
+  .stat-tile .lbl{ font-size:11px; color:var(--text2); margin-top:7px; }
+  .stat-tile .delta{ font-size:10.5px; margin-top:6px; display:inline-block; padding:1px 7px; border-radius:999px; }
+
+  .section-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); margin:0 0 10px; }
+
+  .bar-chart{ display:flex; align-items:flex-end; gap:10px; height:120px; padding:6px 4px 0; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .bar-col .bar{ width:100%; max-width:34px; border-radius:5px 5px 2px 2px; background:var(--accent); opacity:.85; }
+  .bar-col .bar-num{ font-size:10px; color:var(--text2); }
+  .bar-col .bar-lbl{ font-size:10px; color:var(--text3); }
+
+  .timeline{ display:flex; flex-direction:column; gap:8px; }
+  .tl-entry{ border-radius:10px; padding:10px 12px; background:var(--bg2); border:.5px solid var(--border); }
+  .tl-entry.tone-green{ background:var(--green-bg); border-color:var(--green-bd); }
+  .tl-entry.tone-red{ background:var(--red-bg); border-color:var(--red-bd); }
+  .tl-entry.tone-amber{ background:var(--amber-bg); border-color:var(--amber-bd); }
+  .tl-head{ display:flex; justify-content:space-between; gap:10px; font-size:11.5px; font-weight:600; }
+  .tl-date{ font-size:10px; color:var(--text2); font-weight:500; flex-shrink:0; }
+  .tl-body{ font-size:11.5px; color:var(--text2); margin-top:4px; line-height:1.55; }
+
+  .kv{ display:flex; flex-direction:column; gap:2px; }
+  .kv .k{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); }
+  .kv .v{ font-size:12.5px; color:var(--text); font-weight:500; }
+
+  .detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:760px){ .detail-grid{ grid-template-columns:1fr; } }
+
+  .phase-head{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:.5px solid var(--border); }
+  .phase-num{
+    width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; flex-shrink:0;
+  }
+  .phase-body{ padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+  .phase-owner{ margin-left:auto; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text2); cursor:pointer; margin-bottom:12px; }
+  .back-link:hover{ color:var(--text); }
+
+  .deadline-preview{ display:flex; gap:12px; }
+  .deadline-preview .box{ flex:1; padding:12px 14px; }
+  .deadline-preview .box .lbl{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); }
+  .deadline-preview .box .date{ font-size:15px; font-weight:700; margin-top:4px; font-family:var(--font-mono); }
+
+  .dropzone{ border:1.5px dashed var(--border2); border-radius:10px; padding:22px; text-align:center; color:var(--text3); font-size:11.5px; }
+
+  .action-bar{ padding:14px 16px; margin-bottom:14px; }
+  .action-bar .note{ font-size:11.5px; margin-bottom:10px; }
+  .action-bar .who{ font-size:10.5px; color:var(--text2); margin-bottom:2px; }
+
+  footer.note{ margin-top:26px; font-size:11px; color:var(--text3); border-top:.5px solid var(--border); padding-top:14px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-head">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </span>
+      <h1>CAR Management System</h1>
+      <p>Brookside Group of Companies — sign in to see the workflow from your role's side</p>
+    </div>
+    <div class="role-grid" id="roleGrid"></div>
+    <div class="login-foot">Simulation only — pick any role, no password needed. Each role sees a different queue and different actions on the same CARs.</div>
+  </div>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div class="shell" id="appShell" hidden>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>CAR Management System</h1>
+      <p>Brookside Group of Companies</p>
+      <span class="tag">Table Egg &amp; DOP</span>
+    </div>
+    <nav id="navList"></nav>
+    <div class="sidebar-foot">
+      <div class="avatar" id="footAvatar"></div>
+      <div class="id-block">
+        <div class="who" id="footWho"></div>
+        <div class="role" id="footRole"></div>
+      </div>
+      <button class="switch-btn" id="switchRoleBtn" title="Switch role / sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view" id="view-dashboard">
+      <div class="topbar">
+        <div>
+          <h2>Dashboard</h2>
+          <p>Repeat offenses, response &amp; resolution time, open/closed status — Sept 1–17, 2026</p>
+        </div>
+        <button class="btn btn-accent" id="dashboardNewBtn" data-goto="new">+ New CAR</button>
+      </div>
+      <div class="content">
+
+        <div class="stat-grid">
+          <div class="card stat-tile">
+            <div class="num tnum" id="statOpen">—</div>
+            <div class="lbl">Open CARs</div>
+            <span class="delta" style="background:var(--blue-bg);color:var(--blue)" id="statOpenNote"></span>
+          </div>
+          <div class="card stat-tile">
+            <div class="num tnum" style="color:var(--red)" id="statOverdue">—</div>
+            <div class="lbl">Overdue (response or implementation)</div>
+            <span class="delta" style="background:var(--red-bg);color:var(--red)">needs attention</span>
+          </div>
+          <div class="card stat-tile">
+            <div class="num tnum">1.8<span style="font-size:13px;color:var(--text3)"> d</span></div>
+            <div class="lbl">Avg. response time</div>
+            <span class="delta" style="background:var(--green-bg);color:var(--green)">within target</span>
+          </div>
+          <div class="card stat-tile">
+            <div class="num tnum">7.2<span style="font-size:13px;color:var(--text3)"> d</span></div>
+            <div class="lbl">Avg. resolution time</div>
+            <span class="delta" style="background:var(--amber-bg);color:var(--amber)">+0.6d vs Aug</span>
+          </div>
+        </div>
+
+        <div class="detail-grid" style="margin-top:14px;">
+          <div class="card" style="padding:16px 18px;">
+            <div class="section-title">CARs issued, last 6 months</div>
+            <div class="bar-chart" id="barChart"></div>
+          </div>
+
+          <div class="card" style="padding:16px 18px;">
+            <div class="section-title">Repeat offenses by category / sub-category</div>
+            <div style="display:flex; flex-direction:column; gap:9px; margin-top:4px;" id="repeatOffenders"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <div style="padding:14px 18px 4px;"><div class="section-title" style="margin:0;">Needs attention</div></div>
+          <div class="table-scroll">
+            <table id="attentionTable"></table>
+          </div>
+        </div>
+
+        <footer class="note">Mockup dataset — 10 sample CARs, TABLE EGG &amp; DOP scope only, per the Aug 19 2026 digitalization requirement.</footer>
+      </div>
+    </section>
+
+    <!-- ===== LIST ===== -->
+    <section class="view" id="view-list">
+      <div class="topbar">
+        <div>
+          <h2 id="listTitle">Corrective Action Requests</h2>
+          <p id="listSub">All CARs across TABLE EGG and DOP operations</p>
+        </div>
+        <button class="btn btn-accent" id="listNewBtn" data-goto="new">+ New CAR</button>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="table-scroll">
+            <table id="carTable"></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DETAIL ===== -->
+    <section class="view" id="view-detail">
+      <div class="topbar">
+        <div>
+          <h2 id="detailTitle">CAR detail</h2>
+          <p id="detailSub"></p>
+        </div>
+        <div id="detailStatusPill"></div>
+      </div>
+      <div class="content" id="detailContent"></div>
+    </section>
+
+    <!-- ===== NEW CAR ===== -->
+    <section class="view" id="view-new">
+      <div class="topbar">
+        <div>
+          <h2>New CAR — Phase I: Initiation &amp; Submission</h2>
+          <p>Reference number is generated automatically on submit — the Requestor Approver reviews it before it is released to the Responder</p>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card" style="padding:20px 22px; max-width:760px;">
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <span class="pill" style="background:var(--bg2); color:var(--text2); border:.5px solid var(--border2);">CAR reference: <span class="tnum" style="margin-left:4px;" id="nextRef">CAR-2026-0146</span></span>
+            <span class="pill" style="background:var(--bg2); color:var(--text2); border:.5px solid var(--border2);">Issued date: <span class="tnum" style="margin-left:4px;">Sep 17, 2026</span></span>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="f-farm">Farm / site</label>
+              <select id="f-farm">
+                <option>PFC</option>
+                <option>HATCHERY</option>
+                <option>BROOKDALE</option>
+                <option>RH/BBGC</option>
+                <option>BFC</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-issuedto">Issued to (operational unit)</label>
+              <select id="f-issuedto"></select>
+              <div class="hint" id="businessLineHint"></div>
+            </div>
+          </div>
+
+          <div class="field-grid" style="margin-top:14px;">
+            <div class="field">
+              <label for="f-category">Category</label>
+              <select id="f-category"></select>
+            </div>
+            <div class="field">
+              <label for="f-subcategory">Sub-category</label>
+              <select id="f-subcategory"></select>
+            </div>
+          </div>
+
+          <div class="field-grid" style="margin-top:14px;">
+            <div class="field">
+              <label for="f-issuedby">Issued by</label>
+              <input id="f-issuedby" />
+            </div>
+            <div class="field">
+              <label for="f-complainant">Complainant</label>
+              <input id="f-complainant" placeholder="e.g. Distributor / Retail Partner / Internal Audit" />
+            </div>
+          </div>
+
+          <div class="surface deadline-preview" style="margin-top:16px;">
+            <div class="box">
+              <div class="lbl">Response deadline (auto)</div>
+              <div class="date tnum" id="previewResponse">—</div>
+            </div>
+            <div class="box" style="border-left:.5px solid var(--border);">
+              <div class="lbl">Implementation deadline (auto)</div>
+              <div class="date tnum" id="previewImplementation">—</div>
+            </div>
+          </div>
+          <div class="hint" style="margin-top:6px;">Computed from Issued Date + the Response / CA Implementation Timeline for the selected category and sub-category.</div>
+
+          <div class="field" style="margin-top:16px;">
+            <label for="f-problem">Details of the problem</label>
+            <textarea id="f-problem" placeholder="Describe what was observed, when, and by whom..."></textarea>
+          </div>
+
+          <div class="field" style="margin-top:14px;">
+            <label>File attachments (optional)</label>
+            <div class="dropzone">Drop photos or documents here, or click to browse — evidence supporting the complaint</div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:16px; border-top:.5px solid var(--border);">
+            <button class="btn btn-secondary" data-goto="list">Cancel</button>
+            <button class="btn btn-accent" id="submitCar">Submit CAR</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ADMIN: USERS & ROLES ===== -->
+    <section class="view" id="view-users">
+      <div class="topbar">
+        <div>
+          <h2>Users &amp; Roles</h2>
+          <p>Assign each person a function and the farm or unit they belong to — CARs are routed by these two fields</p>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card" style="padding:16px 18px; margin-bottom:14px;">
+          <div class="section-title">Add user</div>
+          <div class="field-grid" style="grid-template-columns:2fr 1.4fr 1.2fr auto; align-items:end;">
+            <div class="field"><label for="u-name">Full name</label><input id="u-name" placeholder="e.g. Juan Dela Cruz"></div>
+            <div class="field"><label for="u-role">Role</label><select id="u-role"></select></div>
+            <div class="field"><label for="u-scope">Farm / unit</label><select id="u-scope"></select></div>
+            <button class="btn btn-accent" id="u-add" style="margin-bottom:1px;">Add user</button>
+          </div>
+        </div>
+        <div class="card"><div class="table-scroll"><table id="userTable"></table></div></div>
+        <footer class="note">Mockup only — changes live in memory. In production: an approver chain per Responder, deactivate instead of delete (CAR history keeps names), and an audit log of every change.</footer>
+      </div>
+    </section>
+
+    <!-- ===== ADMIN: CATEGORY MATRIX ===== -->
+    <section class="view" id="view-matrix">
+      <div class="topbar">
+        <div>
+          <h2>Category Matrix</h2>
+          <p>Response and CA implementation timelines (days) per category — drives the automatic deadlines</p>
+        </div>
+      </div>
+      <div class="content" id="matrixContent"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+
+  /* ============ ICONS ============ */
+  const ICONS = {
+    dashboard: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 13h4v8H3zM10 3h4v18h-4zM17 8h4v13h-4z"/>',
+    list:      '<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h9"/>',
+    plus:      '<path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>',
+    alert:     '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+    users:     '<path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+    sliders:   '<path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    inbox:     '<path stroke-linecap="round" stroke-linejoin="round" d="M4 12h4.3l1.2 2.5h5l1.2-2.5H20M5 12 4 5h16l-1 7M4 12v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/>',
+  };
+  function svg(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[name]}</svg>`; }
+
+  /* ============ ROLES ============ */
+  const ROLE_COLOR = { requestor:'green', reqapprover:'violet', responder:'blue', respapprover:'amber', monitor:'accent', admin:'slate' };
+
+  const ROLES = {
+    requestor: {
+      id:'requestor', name:'Gab Maglalang', title:'Requestor', scope:'Sales',
+      blurb:'Files the CAR for the customer or complainant (Phase I) and sends it to the Requestor Approver for release. Fixes anything that comes back.',
+      nav:[
+        { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
+        { view:'new', label:'New CAR', icon:'plus' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+      ],
+    },
+    reqapprover: {
+      id:'reqapprover', name:'Stephanie Flores', title:'Requestor Approver', scope:'Sales',
+      blurb:'Approves or rejects a CAR before it is released to the Responder, and gives the final acceptance that closes it.',
+      nav:[
+        { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+      ],
+    },
+    responder: {
+      id:'responder', name:'Roi Andre D. Capiz', title:'Responder', scope:'PFC',
+      blurb:'Enters the containment, root cause and corrective action (Phase II), then uploads the implementation evidence (Phase III).',
+      nav:[
+        { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+      ],
+    },
+    respapprover: {
+      id:'respapprover', name:'Reneliza M. Yusi', title:'Responder Approver', scope:'PFC',
+      blurb:'Approves the root cause and corrective action, then validates whether the implemented action was effective.',
+      nav:[
+        { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+        { view:'list', label:'Overdue', icon:'alert', filter:'overdue' },
+      ],
+    },
+    monitor: {
+      id:'monitor', name:'QA Monitor', title:'Monitor', scope:'All farms',
+      blurb:'Read-only dashboard — repeat offenses, open/closed, response and resolution time, frequency of CAR issuance.',
+      nav:[
+        { view:'dashboard', label:'Dashboard', icon:'dashboard' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+        { view:'list', label:'Overdue', icon:'alert', filter:'overdue' },
+      ],
+    },
+    admin: {
+      id:'admin', name:'IT Admin', title:'IT Admin', scope:'IT',
+      blurb:'Maintains users, roles and the category / deadline matrix. Does not act on CARs — read-only access to every CAR for support.',
+      nav:[
+        { view:'users', label:'Users & Roles', icon:'users' },
+        { view:'matrix', label:'Category Matrix', icon:'sliders' },
+        { view:'list', label:'All CARs', icon:'list', filter:null },
+        { view:'list', label:'Overdue', icon:'alert', filter:'overdue' },
+      ],
+    },
+  };
+  const ROLE_ORDER = ['requestor','reqapprover','responder','respapprover','monitor','admin'];
+
+  /* Responder / Responder Approver are tied to a farm; the others are not. */
+  function SCOPED(id){ return id === 'responder' || id === 'respapprover'; }
+  function scopeSuffix(){ return SCOPED(currentUser.id) ? ' · ' + currentUser.scope : ''; }
+  function isoLocal(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  let currentUser = null;
+
+  /* ============ REFERENCE DATA (from the Aug 19 2026 requirement doc) ============ */
+  const TODAY = new Date('2026-09-17');
+
+  const ISSUED_TO_UNITS = [
+    { unit:'Eggroom',            line:'TABLE EGG' },
+    { unit:'Egg Grading',        line:'TABLE EGG' },
+    { unit:'PFC Sales',          line:'TABLE EGG' },
+    { unit:'PFC Production',     line:'TABLE EGG' },
+    { unit:'Table Egg Logistics',line:'TABLE EGG' },
+    { unit:'Hatchery',           line:'DOP' },
+    { unit:'DOP Logistics',      line:'DOP' },
+  ];
+
+  const MATRIX = {
+    'TABLE EGG': {
+      'Production Related': { response:3, implementation:10,
+        subcats:['Shell Quality Defects','Internal Quality Defects','Production / Flock-Related Quality'] },
+      'Compliance & Standards': { response:1, implementation:5,
+        subcats:['Size / Weight & Grading Discrepancy','Packaging & Labeling','Storage & Handling','Sanitation and Maintenance'] },
+      'Logistics & Distribution Transport': { response:1, implementation:5,
+        subcats:['Issuance & Delivery Errors'] },
+    },
+    'DOP': {
+      'Production Related': { response:3, implementation:10,
+        subcats:['Hatchery Production & Hatch Rates','Biosecurity & Flock Health'] },
+      'Compliance & Standards': { response:1, implementation:3,
+        subcats:['Chick Quality & Uniformity','Sexing & Strain Accuracy','Vaccination & Health Protocols','Sanitation and Maintenance','Documentation & Certification Readiness'] },
+      'Preparation & Distribution Transport': { response:1, implementation:5,
+        subcats:['Preparation & Shipment Readiness','Issuance & Delivery Errors'] },
+      'Sales & Order Management': { response:1, implementation:5,
+        subcats:['Booking & Sales Cancellations'] },
+    }
+  };
+
+  const STATUS_TONE = {
+    'Awaiting Release':             'violet',
+    'Returned to Requestor':        'red',
+    'Awaiting Responder':           'blue',
+    'Returned to Responder':        'red',
+    'Awaiting Responder Approval':  'violet',
+    'Awaiting Implementation':      'amber',
+    'Awaiting Effectiveness Check': 'amber',
+    'Awaiting Requestor Approval':  'violet',
+    'Closed — Accepted':            'green',
+    'Open — Not Accepted':          'red',
+  };
+
+  /* Who owns a CAR right now — mirrors current_owner_role/current_owner_id. */
+  function ownerOf(car){
+    switch (car.status){
+      case 'Awaiting Release':
+        return { role:'reqapprover', label:'Requestor Approver' };
+      case 'Returned to Requestor':
+        return { role:'requestor', label:'Requestor' };
+      case 'Awaiting Responder':
+      case 'Returned to Responder':
+      case 'Awaiting Implementation':
+      case 'Open — Not Accepted':
+        return { role:'responder', label:`${car.farm} Responder` };
+      case 'Awaiting Responder Approval':
+      case 'Awaiting Effectiveness Check':
+        return { role:'respapprover', label:`${car.farm} Resp. Approver` };
+      case 'Awaiting Requestor Approval':
+        return { role:'reqapprover', label:'Requestor Approver' };
+      default:
+        return { role:null, label:'No further action' };
+    }
+  }
+  function phaseOf(status){
+    if (['Awaiting Release','Returned to Requestor','Awaiting Responder'].includes(status)) return 1;
+    if (['Awaiting Responder Approval','Returned to Responder'].includes(status)) return 2;
+    return 3;
+  }
+
+  /* ============ SAMPLE CARs (each carries its own history log) ============ */
+  let cars = [
+    { ref:'CAR-2026-0138', farm:'PFC', unit:'PFC Production', line:'TABLE EGG', category:'Production Related', subcategory:'Shell Quality Defects',
+      issued:'2026-08-28', complainant:'QA Sampling Team', status:'Closed — Accepted',
+      history:[
+        { date:'2026-08-28', who:'QA Sampling Team', what:'CAR issued — Shell Quality Defects', tone:'default' },
+        { date:'2026-08-29', who:'PFC Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-08-30', who:'PFC Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-03', who:'PFC Responder', what:'Implementation evidence uploaded.', tone:'default' },
+        { date:'2026-09-04', who:'Responder Approver', what:'Corrective action validated as effective — forwarded to Issuing Department.', tone:'green' },
+        { date:'2026-09-05', who:'Requestor Approver', what:'Final acceptance approved — CAR closed.', tone:'green' },
+      ]},
+    { ref:'CAR-2026-0139', farm:'PFC', unit:'Table Egg Logistics', line:'TABLE EGG', category:'Logistics & Distribution Transport', subcategory:'Issuance & Delivery Errors',
+      issued:'2026-09-02', complainant:'SM Hypermarket Distribution Desk', status:'Open — Not Accepted', newEnd:'2026-09-20',
+      history:[
+        { date:'2026-09-02', who:'SM Hypermarket Distribution Desk', what:'CAR issued — Issuance & Delivery Errors', tone:'default' },
+        { date:'2026-09-02', who:'PFC Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-09-03', who:'PFC Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-05', who:'PFC Responder', what:'Implementation evidence uploaded.', tone:'default' },
+        { date:'2026-09-06', who:'Responder Approver', what:'Corrective action validated as effective — forwarded to Issuing Department.', tone:'green' },
+        { date:'2026-09-07', who:'Requestor Approver', what:'Not accepted — new end date requested, looped back for re-implementation.', tone:'red' },
+      ]},
+    { ref:'CAR-2026-0140', farm:'BROOKDALE', unit:'Eggroom', line:'TABLE EGG', category:'Compliance & Standards', subcategory:'Sanitation and Maintenance',
+      issued:'2026-09-05', complainant:'Internal Audit', status:'Awaiting Responder Approval',
+      history:[
+        { date:'2026-09-05', who:'Internal Audit', what:'CAR issued — Sanitation and Maintenance', tone:'default' },
+        { date:'2026-09-06', who:'BROOKDALE Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+      ]},
+    { ref:'CAR-2026-0141', farm:'HATCHERY', unit:'Hatchery', line:'DOP', category:'Production Related', subcategory:'Hatchery Production & Hatch Rates',
+      issued:'2026-09-08', complainant:'Hatchery Shift Supervisor', status:'Awaiting Implementation',
+      history:[
+        { date:'2026-09-08', who:'Hatchery Shift Supervisor', what:'CAR issued — Hatchery Production & Hatch Rates', tone:'default' },
+        { date:'2026-09-09', who:'HATCHERY Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-09-10', who:'HATCHERY Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+      ]},
+    { ref:'CAR-2026-0142', farm:'PFC', unit:'Egg Grading', line:'TABLE EGG', category:'Compliance & Standards', subcategory:'Size / Weight & Grading Discrepancy',
+      issued:'2026-09-11', complainant:'Retail Partner Complaint Desk', status:'Awaiting Responder',
+      history:[
+        { date:'2026-09-11', who:'Retail Partner Complaint Desk', what:'CAR issued — Size / Weight & Grading Discrepancy', tone:'default' },
+      ]},
+    { ref:'CAR-2026-0143', farm:'RH/BBGC', unit:'DOP Logistics', line:'DOP', category:'Preparation & Distribution Transport', subcategory:'Issuance & Delivery Errors',
+      issued:'2026-09-13', complainant:'Grower Farm Partner', status:'Awaiting Effectiveness Check',
+      history:[
+        { date:'2026-09-13', who:'Grower Farm Partner', what:'CAR issued — Issuance & Delivery Errors', tone:'default' },
+        { date:'2026-09-13', who:'RH/BBGC Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-09-14', who:'RH/BBGC Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-16', who:'RH/BBGC Responder', what:'Implementation evidence uploaded.', tone:'default' },
+      ]},
+    { ref:'CAR-2026-0144', farm:'PFC', unit:'PFC Sales', line:'TABLE EGG', category:'Logistics & Distribution Transport', subcategory:'Issuance & Delivery Errors',
+      issued:'2026-09-14', complainant:'Distributor Account', status:'Awaiting Responder',
+      history:[
+        { date:'2026-09-14', who:'Distributor Account', what:'CAR issued — Issuance & Delivery Errors', tone:'default' },
+      ]},
+    { ref:'CAR-2026-0145', farm:'HATCHERY', unit:'DOP Logistics', line:'DOP', category:'Sales & Order Management', subcategory:'Booking & Sales Cancellations',
+      issued:'2026-09-16', complainant:'Grower Booking Desk', status:'Awaiting Requestor Approval',
+      history:[
+        { date:'2026-09-16', who:'Grower Booking Desk', what:'CAR issued — Booking & Sales Cancellations', tone:'default' },
+        { date:'2026-09-16', who:'HATCHERY Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-09-16', who:'HATCHERY Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-16', who:'HATCHERY Responder', what:'Implementation evidence uploaded (minor issue, fast turnaround).', tone:'default' },
+        { date:'2026-09-17', who:'Responder Approver', what:'Corrective action validated as effective — forwarded to Issuing Department.', tone:'green' },
+      ]},
+    { ref:'CAR-2026-0146', farm:'BROOKDALE', unit:'Eggroom', line:'TABLE EGG', category:'Compliance & Standards', subcategory:'Storage & Handling',
+      issued:'2026-09-17', complainant:'Internal Audit', status:'Awaiting Responder',
+      history:[
+        { date:'2026-09-17', who:'Internal Audit', what:'CAR issued — Storage & Handling', tone:'default' },
+      ]},
+    { ref:'CAR-2026-0147', farm:'PFC', unit:'PFC Production', line:'TABLE EGG', category:'Production Related', subcategory:'Internal Quality Defects',
+      issued:'2026-09-17', complainant:'Rollie Funa (customer)', status:'Awaiting Release',
+      history:[
+        { date:'2026-09-17', who:'Gab Maglalang — Requestor', what:'CAR issued — Internal Quality Defects (submitted for release by Gab Maglalang)', tone:'default' },
+      ]},
+  ];
+  let nextRefNum = 148;
+
+  /* ============ HELPERS ============ */
+  function addDays(dateStr, n){
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+  function fmt(d){
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+  function todayISO(){ return TODAY.toISOString().slice(0,10); }
+  function matrixFor(car){ return MATRIX[car.line][car.category]; }
+  function deadlines(car){
+    const m = matrixFor(car);
+    return {
+      response: addDays(car.issued, m.response),
+      implementation: addDays(car.issued, m.implementation),
+      due: car.newEnd ? new Date(car.newEnd + 'T00:00:00') : addDays(car.issued, m.implementation),
+      responseDays: m.response,
+      implementationDays: m.implementation,
+    };
+  }
+  function isOverdue(car){
+    if (car.status.startsWith('Closed')) return false;
+    const dl = deadlines(car);
+    const phase = phaseOf(car.status);
+    const activeDeadline = phase === 1 ? dl.response : dl.due;
+    return activeDeadline < TODAY;
+  }
+  function pill(status){
+    const tone = STATUS_TONE[status] || 'blue';
+    return `<span class="pill" style="background:var(--${tone}-bg); color:var(--${tone})">${status}</span>`;
+  }
+  function ownerPill(car){
+    const o = ownerOf(car);
+    if (!o.role) return `<span class="pill" style="background:var(--bg3); color:var(--text3);">—</span>`;
+    const tone = ROLE_COLOR[o.role];
+    return `<span class="pill" style="background:var(--${tone}-bg); color:var(--${tone})">${o.label}</span>`;
+  }
+  function overdueBadge(car){
+    if (!isOverdue(car)) return '';
+    return `<span class="pill" style="background:var(--red-bg); color:var(--red); margin-left:6px;">overdue</span>`;
+  }
+  function roleAvatarStyle(id){
+    const tone = ROLE_COLOR[id];
+    return `background:var(--${tone}-bg); color:var(--${tone});`;
+  }
+  function initials(name){
+    return name.split(' ').map(w => w.replace('.','')).join('').slice(0,2).toUpperCase();
+  }
+
+  /* ============ ROLE / OWNERSHIP FILTERS ============ */
+  function filterMine(list){
+    return list.filter(car => {
+      const o = ownerOf(car);
+      if (o.role !== currentUser.id) return false;
+      if (SCOPED(currentUser.id) && car.farm !== currentUser.scope) return false;
+      return true;
+    });
+  }
+  function countForNavItem(item){
+    if (item.view === 'new' || item.view === 'users' || item.view === 'matrix') return null;
+    if (item.filter === 'overdue') return cars.filter(isOverdue).length;
+    if (item.filter === 'mine') return filterMine(cars).length;
+    return cars.length;
+  }
+
+  /* ============ RENDER: CAR TABLE (shared by list + dashboard) ============ */
+  function renderCarTable(el, list){
+    if (list.length === 0){
+      el.innerHTML = `<tbody><tr><td class="empty-row">Nothing here right now.</td></tr></tbody>`;
+      return;
+    }
+    const rows = list.map(car => {
+      const dl = deadlines(car);
+      const phase = phaseOf(car.status);
+      const activeLabel = phase === 1 ? 'Response' : (car.newEnd ? 'Revised implementation' : 'Implementation');
+      const activeDate = phase === 1 ? dl.response : dl.due;
+      return `
+        <tr class="row-click" data-ref="${car.ref}">
+          <td class="tnum">${car.ref}</td>
+          <td>${car.farm}<div style="font-size:10px;color:var(--text3)">${car.unit}</div></td>
+          <td>${car.category}<div style="font-size:10px;color:var(--text3)">${car.subcategory}</div></td>
+          <td>${pill(car.status)}${overdueBadge(car)}</td>
+          <td>${ownerPill(car)}</td>
+          <td class="tnum">${fmt(activeDate)}<div style="font-size:10px;color:var(--text3)">${activeLabel} deadline</div></td>
+        </tr>`;
+    }).join('');
+    el.innerHTML = `
+      <thead><tr>
+        <th>Reference</th><th>Farm / unit</th><th>Category</th><th>Status</th><th>Owner</th><th>Deadline</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>`;
+    el.querySelectorAll('tr.row-click').forEach(tr => {
+      tr.addEventListener('click', () => openDetail(tr.dataset.ref));
+    });
+  }
+
+  /* ============ DASHBOARD (QA only) ============ */
+  function renderDashboard(){
+    document.getElementById('dashboardNewBtn').hidden = !currentUser.nav.some(n => n.view === 'new');
+    const openCount = cars.filter(c => !c.status.startsWith('Closed')).length;
+    const phase1Count = cars.filter(c => phaseOf(c.status) === 1).length;
+    document.getElementById('statOpen').textContent = openCount;
+    document.getElementById('statOpenNote').textContent = `${phase1Count} in Phase I`;
+    document.getElementById('statOverdue').textContent = cars.filter(isOverdue).length;
+
+    const bar = document.getElementById('barChart');
+    const months = [['Apr',9],['May',11],['Jun',7],['Jul',14],['Aug',10],['Sep',8]];
+    const max = Math.max(...months.map(m=>m[1]));
+    bar.innerHTML = months.map(([lbl,v]) => `
+      <div class="bar-col">
+        <div class="bar-num tnum">${v}</div>
+        <div class="bar" style="height:${(v/max*100).toFixed(0)}%"></div>
+        <div class="bar-lbl">${lbl}</div>
+      </div>`).join('');
+
+    const offenders = [
+      ['Logistics & Distribution Transport','Issuance & Delivery Errors', 6],
+      ['Production Related','Shell Quality Defects', 4],
+      ['Compliance & Standards','Storage & Handling', 3],
+      ['Compliance & Standards','Sanitation and Maintenance', 3],
+      ['Production Related','Hatchery Production & Hatch Rates', 2],
+    ];
+    const maxO = Math.max(...offenders.map(o=>o[2]));
+    document.getElementById('repeatOffenders').innerHTML = offenders.map(([cat,sub,n]) => `
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px;">
+          <span>${sub} <span style="color:var(--text3)">— ${cat}</span></span>
+          <span class="tnum" style="font-weight:600;">${n}</span>
+        </div>
+        <div style="height:6px; border-radius:4px; background:var(--bg2); overflow:hidden;">
+          <div style="height:100%; width:${(n/maxO*100).toFixed(0)}%; background:var(--accent); opacity:.75;"></div>
+        </div>
+      </div>`).join('');
+
+    renderCarTable(document.getElementById('attentionTable'), cars.filter(isOverdue));
+  }
+
+  /* ============ DETAIL ============ */
+  function openDetail(ref){
+    const car = cars.find(c => c.ref === ref);
+    if (!car) return;
+    const dl = deadlines(car);
+    const phase = phaseOf(car.status);
+    const owner = ownerOf(car);
+
+    document.getElementById('detailTitle').textContent = `${car.ref} — ${car.subcategory}`;
+    document.getElementById('detailSub').textContent = `${car.farm} · ${car.unit} · ${car.line} · issued ${fmt(new Date(car.issued+'T00:00:00'))}`;
+    document.getElementById('detailStatusPill').innerHTML = pill(car.status) + overdueBadge(car);
+
+    const phase1 = `
+      <div class="card">
+        <div class="phase-head">
+          <div class="phase-num" style="background:var(--blue-bg); color:var(--blue)">I</div>
+          <strong>Initiation &amp; Submission</strong>
+        </div>
+        <div class="phase-body">
+          <div class="field-grid">
+            <div class="kv"><span class="k">Issued to</span><span class="v">${car.unit} (${car.line})</span></div>
+            <div class="kv"><span class="k">Complainant</span><span class="v">${car.complainant}</span></div>
+            <div class="kv"><span class="k">Category</span><span class="v">${car.category}</span></div>
+            <div class="kv"><span class="k">Sub-category</span><span class="v">${car.subcategory}</span></div>
+          </div>
+          <div class="deadline-preview surface" style="margin-top:2px;">
+            <div class="box"><div class="lbl">Response deadline</div><div class="date tnum" style="font-size:13px;">${fmt(dl.response)} <span style="font-weight:400;color:var(--text3)">(+${dl.responseDays}d)</span></div></div>
+            <div class="box" style="border-left:.5px solid var(--border);"><div class="lbl">Implementation deadline</div><div class="date tnum" style="font-size:13px;">${fmt(dl.implementation)} <span style="font-weight:400;color:var(--text3)">(+${dl.implementationDays}d)</span></div></div>
+          </div>
+        </div>
+      </div>`;
+
+    const phase2Active = phase >= 2;
+    const phase2Note = car.status === 'Awaiting Responder Approval' ? `Awaiting ${car.farm} Responder Approver sign-off`
+      : car.status === 'Returned to Responder' ? 'Returned for revision — Responder needs to resubmit'
+      : phase2Active ? 'Approved — routed to Phase III' : '';
+    const phase2 = `
+      <div class="card" style="opacity:${phase2Active ? 1 : .5}">
+        <div class="phase-head">
+          <div class="phase-num" style="background:var(--violet-bg); color:var(--violet)">II</div>
+          <strong>Response, Root Cause &amp; Action Planning</strong>
+          ${phase === 2 ? `<span class="phase-owner">${ownerPill(car)}</span>` : ''}
+        </div>
+        <div class="phase-body">
+          ${phase2Active ? `
+            <div class="kv"><span class="k">Interim containment</span><span class="v">Segregated affected batch; supervisor notified within 4 hrs</span></div>
+            <div class="kv"><span class="k">Root cause</span><span class="v">Grading calibration drift on Line 2 — last verified 11 days prior</span></div>
+            <div class="kv"><span class="k">Corrective action</span><span class="v">Recalibrate grading line, retrain shift operators, add daily calibration check</span></div>
+            <div class="kv"><span class="k">Approval</span><span class="v">${phase2Note}</span></div>
+          ` : `<div style="color:var(--text3); font-size:11.5px;">Not started — Phase I response is still pending.</div>`}
+        </div>
+      </div>`;
+
+    const phase3Active = phase >= 3;
+    const validationNote = ['Closed — Accepted','Open — Not Accepted'].includes(car.status) || car.status === 'Awaiting Requestor Approval'
+      ? 'Effective — forwarded to Issuing Department' : 'Pending';
+    const acceptanceNote = car.status === 'Closed — Accepted' ? 'Accepted — CAR closed'
+      : car.status === 'Open — Not Accepted' ? `Not accepted — revised end date ${car.newEnd ? fmt(new Date(car.newEnd+'T00:00:00')) : 'requested'}, looped back to Step 11`
+      : 'Pending';
+    const phase3 = `
+      <div class="card" style="opacity:${phase3Active ? 1 : .5}">
+        <div class="phase-head">
+          <div class="phase-num" style="background:var(--green-bg); color:var(--green)">III</div>
+          <strong>Implementation, Verification &amp; Closure</strong>
+          ${phase === 3 && owner.role ? `<span class="phase-owner">${ownerPill(car)}</span>` : ''}
+        </div>
+        <div class="phase-body">
+          ${phase3Active ? `
+            <div class="kv"><span class="k">Evidence</span><span class="v">${car.status === 'Awaiting Implementation' ? 'Not yet uploaded' : 'Calibration log + photo evidence uploaded'}</span></div>
+            <div class="kv"><span class="k">Farm DH validation</span><span class="v">${validationNote}</span></div>
+            <div class="kv"><span class="k">Issuing Dept final acceptance</span><span class="v">${acceptanceNote}</span></div>
+          ` : `<div style="color:var(--text3); font-size:11.5px;">Not started.</div>`}
+        </div>
+      </div>`;
+
+    const historyHtml = car.history.map(e => `
+      <div class="tl-entry ${e.tone === 'default' ? '' : 'tone-'+e.tone}">
+        <div class="tl-head"><span>${e.who}</span><span class="tl-date tnum">${fmt(new Date(e.date+'T00:00:00'))}</span></div>
+        <div class="tl-body">${e.what}</div>
+      </div>`).join('');
+
+    document.getElementById('detailContent').innerHTML = `
+      <span class="back-link" id="backToList">&larr; Back</span>
+      ${renderActionBar(car)}
+      <div class="detail-grid">
+        ${phase1}
+        ${phase2}
+      </div>
+      <div style="margin-top:14px;">${phase3}</div>
+      <div class="card" style="margin-top:14px; padding:16px 18px;">
+        <div class="section-title">History</div>
+        <div class="timeline">${historyHtml}</div>
+      </div>`;
+
+    document.getElementById('backToList').addEventListener('click', () => showView('list'));
+    document.querySelectorAll('#detailContent [data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleAction(btn.dataset.action, car.ref));
+    });
+    showView('detail');
+  }
+
+  /* ============ ROLE-GATED ACTIONS ============
+   * Each role only gets the buttons for the step it owns:
+   *   Requestor          -> files / resubmits the CAR (Phase I)
+   *   Requestor Approver -> releases or rejects before it goes out; final acceptance (Step 13)
+   *   Responder          -> response (Steps 7-9) and implementation evidence (Step 11)
+   *   Responder Approver -> approves root cause & corrective action (Step 10); effectiveness check (Step 12)
+   *   Monitor            -> read-only
+   */
+  function renderActionBar(car){
+    if (SCOPED(currentUser.id) && car.farm !== currentUser.scope) return '';
+    const s = car.status, r = currentUser.id;
+
+    if (r === 'requestor' && s === 'Returned to Requestor'){
+      return actionBar('The Requestor Approver sent this back — it needs more investigation or clarity. Update the details, then resubmit for release.',
+        [{ label:'Resubmit for release', cls:'btn-accent', action:'resubmitCar' }]);
+    }
+    if (r === 'reqapprover'){
+      if (s === 'Awaiting Release'){
+        return actionBar('Investigation done? Release this CAR to the Responder, or return it to the Requestor for clarity.',
+          [{ label:'Approve & release', cls:'btn-accent', action:'releaseCar' },
+           { label:'Reject CAR', cls:'btn-secondary', action:'rejectRelease' }]);
+      }
+      if (s === 'Awaiting Requestor Approval'){
+        const def = isoLocal(addDays(todayISO(), 7));
+        const extra = `<div class="field" style="max-width:240px; margin-bottom:10px;">
+            <label for="newEndDate">New end date (only used if not accepted)</label>
+            <input type="date" id="newEndDate" value="${def}">
+          </div>`;
+        return actionBar('The Responder Approver confirmed the corrective action was effective. Give final acceptance to close this CAR, or send it back with a new end date.',
+          [{ label:'Accept — close CAR', cls:'btn-accent', action:'acceptClose' },
+           { label:'Not accepted', cls:'btn-secondary', action:'rejectClose' }], extra);
+      }
+    }
+    if (r === 'responder'){
+      if (s === 'Awaiting Responder' || s === 'Returned to Responder'){
+        return actionBar('Log the interim containment, root cause and corrective action, then send it to the Responder Approver.',
+          [{ label:'Submit response', cls:'btn-accent', action:'submitResponse' }]);
+      }
+      if (s === 'Awaiting Implementation'){
+        return actionBar('Upload proof that the corrective action was actually implemented.',
+          [{ label:'Upload implementation evidence', cls:'btn-accent', action:'uploadEvidence' }]);
+      }
+      if (s === 'Open — Not Accepted'){
+        const nd = car.newEnd ? fmt(new Date(car.newEnd + 'T00:00:00')) : 'the new end date';
+        return actionBar(`The Requestor Approver did not accept this CAR. Re-implement and upload new evidence by ${nd}.`,
+          [{ label:'Upload new evidence', cls:'btn-accent', action:'uploadEvidence' }]);
+      }
+    }
+    if (r === 'respapprover'){
+      if (s === 'Awaiting Responder Approval'){
+        return actionBar('Review the root cause and corrective action before this moves to implementation.',
+          [{ label:'Approve', cls:'btn-accent', action:'approvePhase2' },
+           { label:'Return for revision', cls:'btn-secondary', action:'rejectPhase2' }]);
+      }
+      if (s === 'Awaiting Effectiveness Check'){
+        return actionBar('Was the corrective action effective?',
+          [{ label:'Mark effective', cls:'btn-accent', action:'markEffective' },
+           { label:'Not effective', cls:'btn-secondary', action:'markNotEffective' }]);
+      }
+    }
+    return '';
+  }
+  function actionBar(note, buttons, extra){
+    return `<div class="card action-bar" style="background:var(--accent-bg); border-color:var(--accent-bd);">
+      <div class="who">Your action — ${currentUser.title}${scopeSuffix()}</div>
+      <div class="note">${note}</div>
+      ${extra || ''}
+      <div style="display:flex; gap:10px;">
+        ${buttons.map(b => `<button class="btn ${b.cls}" data-action="${b.action}">${b.label}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  function pushHistory(car, what, tone){
+    car.history.push({ date: todayISO(), who: `${currentUser.name} — ${currentUser.title}`, what, tone: tone || 'default' });
+  }
+
+  function handleAction(action, ref){
+    const car = cars.find(c => c.ref === ref);
+    if (!car) return;
+    switch (action){
+      case 'releaseCar':
+        car.status = 'Awaiting Responder';
+        pushHistory(car, `CAR approved and released — ${car.farm} Responder flagged to respond.`, 'green');
+        break;
+      case 'rejectRelease':
+        car.status = 'Returned to Requestor';
+        pushHistory(car, 'CAR rejected before release — returned to the Requestor for further investigation or clarity.', 'red');
+        break;
+      case 'resubmitCar':
+        car.status = 'Awaiting Release';
+        pushHistory(car, 'Updated and resubmitted for release.');
+        break;
+      case 'submitResponse':
+        car.status = 'Awaiting Responder Approval';
+        pushHistory(car, 'Interim containment logged; root cause and corrective action submitted for approval.');
+        break;
+      case 'approvePhase2':
+        car.status = 'Awaiting Implementation';
+        pushHistory(car, 'Root cause & corrective action approved — routed to Phase III.', 'green');
+        break;
+      case 'rejectPhase2':
+        car.status = 'Returned to Responder';
+        pushHistory(car, 'Returned for revision — needs a clearer root cause / corrective action.', 'red');
+        break;
+      case 'uploadEvidence':
+        pushHistory(car, car.status === 'Open — Not Accepted' ? 'New implementation evidence uploaded against the revised end date.' : 'Implementation evidence uploaded.');
+        car.status = 'Awaiting Effectiveness Check';
+        break;
+      case 'markEffective':
+        car.status = 'Awaiting Requestor Approval';
+        pushHistory(car, 'Corrective action validated as effective — forwarded to the Requestor Approver for final acceptance.', 'green');
+        break;
+      case 'markNotEffective':
+        car.status = 'Returned to Responder';
+        pushHistory(car, 'Not effective — returned to Phase II for revised action.', 'red');
+        break;
+      case 'acceptClose':
+        car.status = 'Closed — Accepted';
+        pushHistory(car, 'Final acceptance approved — CAR closed.', 'green');
+        break;
+      case 'rejectClose': {
+        const input = document.getElementById('newEndDate');
+        car.newEnd = (input && input.value) || isoLocal(addDays(todayISO(), 7));
+        car.status = 'Open — Not Accepted';
+        pushHistory(car, `Not accepted — new end date ${fmt(new Date(car.newEnd + 'T00:00:00'))}. Responder and Responder Approver flagged; looped back to Step 11.`, 'red');
+        break;
+      }
+      default: return;
+    }
+    renderNav();
+    renderCurrentListIfActive();
+    openDetail(ref);
+  }
+
+  /* ============ ADMIN ============ */
+  const USER_SCOPES = ['Sales','PFC','HATCHERY','BROOKDALE','RH/BBGC','BFC','All farms','IT'];
+  const USERS = [
+    { name:'Gab Maglalang',      role:'requestor',    scope:'Sales',     active:true },
+    { name:'Alvin G. Fabella',   role:'requestor',    scope:'Sales',     active:true },
+    { name:'Stephanie Flores',   role:'reqapprover',  scope:'Sales',     active:true },
+    { name:'Roi Andre D. Capiz', role:'responder',    scope:'PFC',       active:true },
+    { name:'Reneliza M. Yusi',   role:'respapprover', scope:'PFC',       active:true },
+    { name:'QA Monitor',         role:'monitor',      scope:'All farms', active:true },
+    { name:'IT Admin',           role:'admin',        scope:'IT',        active:true },
+  ];
+  function renderUsers(){
+    const roleOpts = sel => ROLE_ORDER.map(id => `<option value="${id}"${id===sel?' selected':''}>${ROLES[id].title}</option>`).join('');
+    const scopeOpts = sel => USER_SCOPES.map(sc => `<option${sc===sel?' selected':''}>${sc}</option>`).join('');
+    document.getElementById('u-role').innerHTML = roleOpts('requestor');
+    document.getElementById('u-scope').innerHTML = scopeOpts('Sales');
+    const rows = USERS.map((u,i) => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:9px;">
+          <div class="role-avatar" style="width:26px;height:26px;font-size:10.5px;${roleAvatarStyle(u.role)}">${initials(u.name)}</div>
+          <span style="${u.active?'':'color:var(--text3);text-decoration:line-through'}">${u.name}</span></div></td>
+        <td class="field"><select data-i="${i}" data-k="role" style="min-height:30px;padding:4px 8px;">${roleOpts(u.role)}</select></td>
+        <td class="field"><select data-i="${i}" data-k="scope" style="min-height:30px;padding:4px 8px;">${scopeOpts(u.scope)}</select></td>
+        <td><span class="pill" style="background:var(--${u.active?'green':'slate'}-bg);color:var(--${u.active?'green':'slate'})">${u.active?'Active':'Deactivated'}</span></td>
+        <td><button class="btn btn-ghost" data-toggle="${i}">${u.active?'Deactivate':'Reactivate'}</button></td>
+      </tr>`).join('');
+    const t = document.getElementById('userTable');
+    t.innerHTML = `<thead><tr><th>User</th><th>Role</th><th>Farm / unit</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+    t.querySelectorAll('select[data-i]').forEach(sel => sel.addEventListener('change', () => {
+      USERS[sel.dataset.i][sel.dataset.k] = sel.value; renderUsers();
+    }));
+    t.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
+      const u = USERS[b.dataset.toggle]; u.active = !u.active; renderUsers();
+    }));
+  }
+  document.getElementById('u-add').addEventListener('click', () => {
+    const name = document.getElementById('u-name').value.trim();
+    if (!name) return;
+    USERS.push({ name, role:document.getElementById('u-role').value, scope:document.getElementById('u-scope').value, active:true });
+    document.getElementById('u-name').value = '';
+    renderUsers();
+  });
+
+  function renderMatrix(){
+    document.getElementById('matrixContent').innerHTML = Object.keys(MATRIX).map(line => {
+      const rows = Object.entries(MATRIX[line]).map(([cat,m]) => `
+        <tr>
+          <td><strong>${cat}</strong><div style="font-size:10.5px;color:var(--text3);margin-top:2px;">${m.subcats.join(' · ')}</div></td>
+          <td class="field"><input type="number" min="0" style="width:70px;min-height:30px;padding:4px 8px;" data-line="${line}" data-cat="${cat}" data-k="response" value="${m.response}"></td>
+          <td class="field"><input type="number" min="0" style="width:70px;min-height:30px;padding:4px 8px;" data-line="${line}" data-cat="${cat}" data-k="implementation" value="${m.implementation}"></td>
+        </tr>`).join('');
+      return `<div class="card" style="margin-bottom:14px;">
+        <div style="padding:14px 18px 4px;"><div class="section-title" style="margin:0;">${line}</div></div>
+        <div class="table-scroll"><table><thead><tr><th>Category / sub-categories</th><th>Response (days)</th><th>CA implementation (days)</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>`;
+    }).join('') + `<footer class="note">Deadlines are recalculated live from this matrix in the mockup. In production, freeze each CAR's deadlines at its issued date so editing the matrix never moves deadlines on CARs already issued.</footer>`;
+    document.querySelectorAll('#matrixContent input[data-line]').forEach(inp => inp.addEventListener('change', () => {
+      const v = Math.max(0, parseInt(inp.value, 10) || 0);
+      MATRIX[inp.dataset.line][inp.dataset.cat][inp.dataset.k] = v;
+      inp.value = v;
+    }));
+  }
+
+  /* ============ NEW CAR FORM ============ */
+  function populateIssuedTo(){
+    const sel = document.getElementById('f-issuedto');
+    sel.innerHTML = ISSUED_TO_UNITS.map(u => `<option value="${u.unit}">${u.unit}</option>`).join('');
+  }
+  function currentLine(){
+    const unit = document.getElementById('f-issuedto').value;
+    return ISSUED_TO_UNITS.find(u => u.unit === unit).line;
+  }
+  function populateCategories(){
+    const line = currentLine();
+    document.getElementById('businessLineHint').textContent = `Business line: ${line}`;
+    const catSel = document.getElementById('f-category');
+    catSel.innerHTML = Object.keys(MATRIX[line]).map(c => `<option value="${c}">${c}</option>`).join('');
+    populateSubcategories();
+  }
+  function populateSubcategories(){
+    const line = currentLine();
+    const cat = document.getElementById('f-category').value;
+    const subSel = document.getElementById('f-subcategory');
+    subSel.innerHTML = MATRIX[line][cat].subcats.map(s => `<option value="${s}">${s}</option>`).join('');
+    updateDeadlinePreview();
+  }
+  function updateDeadlinePreview(){
+    const line = currentLine();
+    const cat = document.getElementById('f-category').value;
+    const m = MATRIX[line][cat];
+    document.getElementById('previewResponse').textContent = `${fmt(addDays(todayISO(), m.response))} (+${m.response}d)`;
+    document.getElementById('previewImplementation').textContent = `${fmt(addDays(todayISO(), m.implementation))} (+${m.implementation}d)`;
+  }
+  function setupNewCarForm(){
+    document.getElementById('f-issuedby').value = `${currentUser.name} — ${currentUser.title}`;
+    document.getElementById('f-farm').disabled = false;
+    document.getElementById('nextRef').textContent = `CAR-2026-${String(nextRefNum).padStart(4,'0')}`;
+  }
+
+  document.getElementById('f-issuedto').addEventListener('change', populateCategories);
+  document.getElementById('f-category').addEventListener('change', populateSubcategories);
+
+  document.getElementById('submitCar').addEventListener('click', () => {
+    const ref = `CAR-2026-${String(nextRefNum).padStart(4,'0')}`;
+    const complainant = document.getElementById('f-complainant').value || 'Not specified';
+    const newCar = {
+      ref, farm: document.getElementById('f-farm').value,
+      unit: document.getElementById('f-issuedto').value,
+      line: currentLine(),
+      category: document.getElementById('f-category').value,
+      subcategory: document.getElementById('f-subcategory').value,
+      issued: todayISO(),
+      complainant, status:'Awaiting Release',
+      history: [{ date: todayISO(), who: complainant, what: `CAR issued — ${document.getElementById('f-subcategory').value} (submitted for release by ${currentUser.name})`, tone:'default' }],
+    };
+    cars.unshift(newCar);
+    nextRefNum++;
+    renderNav();
+    document.getElementById('f-complainant').value = '';
+    document.getElementById('f-problem').value = '';
+    openDetail(newCar.ref);
+  });
+
+  /* ============ VIEW SWITCHING ============ */
+  let activeListFilter = null;
+
+  function showView(name){
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+  function renderListView(filter, label, desc){
+    activeListFilter = filter;
+    document.getElementById('listTitle').textContent = label;
+    document.getElementById('listSub').textContent = desc;
+    document.getElementById('listNewBtn').hidden = currentUser.id !== 'requestor';
+    let list = cars;
+    if (filter === 'overdue') list = cars.filter(isOverdue);
+    else if (filter === 'mine') list = filterMine(cars);
+    renderCarTable(document.getElementById('carTable'), list);
+    showView('list');
+  }
+  function renderCurrentListIfActive(){
+    if (document.getElementById('view-list').classList.contains('active')){
+      const item = currentUser.nav.find(n => n.view === 'list' && (n.filter || null) === activeListFilter);
+      if (item) renderListView(item.filter || null, item.label, navDesc(item));
+    }
+    renderDashboard();
+  }
+  function navDesc(item){
+    if (item.filter === 'overdue') return 'CARs past their response or implementation deadline.';
+    if (item.filter === 'mine') return `Items waiting on you — ${currentUser.title}${scopeSuffix()}.`;
+    return 'All CARs across TABLE EGG and DOP operations.';
+  }
+
+  function navigate(item){
+    if (item.view === 'dashboard') { renderDashboard(); showView('dashboard'); }
+    else if (item.view === 'users') { renderUsers(); showView('users'); }
+    else if (item.view === 'matrix') { renderMatrix(); showView('matrix'); }
+    else if (item.view === 'new') { setupNewCarForm(); showView('new'); }
+    else if (item.view === 'list') { renderListView(item.filter || null, item.label, navDesc(item)); }
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b === document.activeElement || b.dataset.active === '1'));
+  }
+
+  function renderNav(){
+    const navEl = document.getElementById('navList');
+    navEl.innerHTML = currentUser.nav.map((item, i) => {
+      const count = countForNavItem(item);
+      const overdueBadgeOn = item.filter === 'overdue' && count > 0;
+      const badge = count === null ? '' : `<span class="nav-count${overdueBadgeOn ? ' warn' : ''}">${count}</span>`;
+      return `<button class="nav-item" data-idx="${i}">${svg(item.icon)}${item.label}${badge}</button>`;
+    }).join('');
+    const btns = navEl.querySelectorAll('.nav-item');
+    btns.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => { b.classList.remove('active'); b.dataset.active = '0'; });
+        btn.classList.add('active'); btn.dataset.active = '1';
+        navigate(currentUser.nav[i]);
+      });
+    });
+    if (btns.length){
+      btns[0].classList.add('active'); btns[0].dataset.active = '1';
+      navigate(currentUser.nav[0]);
+    }
+  }
+
+  document.querySelectorAll('[data-goto]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.goto === 'new') setupNewCarForm();
+      if (btn.dataset.goto === 'list') renderListView(null, 'All CARs', 'All CARs across TABLE EGG and DOP operations.');
+      showView(btn.dataset.goto);
+    });
+  });
+
+  /* ============ LOGIN ============ */
+  function renderRoleGrid(){
+    const grid = document.getElementById('roleGrid');
+    grid.innerHTML = ROLE_ORDER.map(id => {
+      const r = ROLES[id];
+      const tone = ROLE_COLOR[id];
+      return `
+        <button class="card role-card" data-role="${id}">
+          <div class="role-top">
+            <div class="role-avatar" style="${roleAvatarStyle(id)}">${initials(r.name)}</div>
+            <div>
+              <div class="role-name">${r.name}</div>
+              <div class="role-scope">${r.scope}</div>
+            </div>
+          </div>
+          <span class="pill role-title-pill" style="background:var(--${tone}-bg); color:var(--${tone})">${r.title}</span>
+          <div class="role-blurb">${r.blurb}</div>
+        </button>`;
+    }).join('');
+    grid.querySelectorAll('.role-card').forEach(btn => {
+      btn.addEventListener('click', () => login(btn.dataset.role));
+    });
+  }
+
+  function login(roleId){
+    currentUser = ROLES[roleId];
+    document.getElementById('loginScreen').hidden = true;
+    document.getElementById('appShell').hidden = false;
+    document.getElementById('appShell').style.display = 'flex';
+
+    document.getElementById('footAvatar').textContent = initials(currentUser.name);
+    document.getElementById('footAvatar').setAttribute('style', roleAvatarStyle(currentUser.id));
+    document.getElementById('footWho').textContent = currentUser.name;
+    document.getElementById('footRole').textContent = `${currentUser.title} — ${currentUser.scope}`;
+
+    renderNav();
+    renderDashboard();
+  }
+
+  document.getElementById('switchRoleBtn').addEventListener('click', () => {
+    document.getElementById('appShell').hidden = true;
+    document.getElementById('appShell').style.display = 'none';
+    document.getElementById('loginScreen').hidden = false;
+    currentUser = null;
+  });
+
+  /* ============ INIT ============ */
+  populateIssuedTo();
+  populateCategories();
+  renderRoleGrid();
+
+})();
+</script>
+
+</body>
+</html>
