@@ -3,7 +3,7 @@
 **Stack baseline:** Laravel 13 (PHP 8.4) · Livewire *(to install in Phase 0)* · Tailwind 4 · Pest 5 · Pint · SQLite (local) → MySQL (production) · Vite 8
 **References:** `CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf` (behavior spec — 13 steps, flowchart, Table Egg / DOP matrices) · `car-management-system-mockup.html` (UI contract — every view in it becomes a real route; anything not in it is listed as "not in mockup" in §4) · `CAR_rolly funa_1.pdf`, `CAR_ELMER GALLARDO_2_1.pdf`, `CAR_JUN QUITEVIS 9-12-26 1.0.pdf` (real sample CARs — used as seed data and as the UAT script) · `development-playbook.md` (how we work through the stages)
 
-> **Status update (Oct 2, 2026):** the UI-scaffold pass (Playbook, Stage 2), **Phase 0 and Phase 1 are complete**. **Next: Phase 2** (core domain + state machine).
+> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0, 1 and 2 are complete**. **Next: Phase 3** (Phase I screens on real data: New CAR, release / reject, CAR list and detail).
 >
 > - **Stage 1 (UI concept):** `car-management-system-mockup.html` — six roles, full Phase I → III workflow, role-gated actions, Admin screens, sample data. It remains the UI contract and design-token source.
 > - **Phase 0 (foundation + scaffold port):**
@@ -54,6 +54,37 @@
 > - *(actual: an audit trail of admin changes is not built yet — still planned with the audit work in Phase 9.)*
 > - *(actual: Issued To units are not linked to farms — §7 #7 is still open.)*
 > - *(actual: the sample CARs in `ScaffoldData` keep a frozen copy of the original timelines, the way real CARs will snapshot theirs.)*
+>
+> **Phase 2 (core domain + state machine) — done (Oct 5, 2026):**
+>
+> - New tables: `cars`, `car_rounds`, `car_events` (append-only, enforced in the model) and `car_sequences`.
+> - New enums: `CarStatus`, `CarAction`, `ComplaintType`.
+> - Services:
+>   - `CarNumberGenerator` hands out `CAR-YYYY-NNNN` per year, with the sequence row locked.
+>   - `DeadlineCalculator` computes calendar-day deadlines.
+>   - `CarWorkflow` holds the transition table plus `submit`, `apply`, `can` and `availableActions`. Every move:
+>     - runs in a transaction with the CAR row locked;
+>     - re-checks the status under that lock;
+>     - writes a history row;
+>     - fires `CarTransitioned` after commit.
+> - `CarPolicy` exists. The Phase I lock is enforced in the model.
+> - `SampleCarSeeder` replays the mockup's ten CARs through the real workflow on their original dates. They keep references CAR-2026-0138 … 0147, and the next new CAR is 0148.
+> - 225 tests pass, including a role × status × action matrix written independently of the code.
+> - **The screens still read `ScaffoldData`; Phase 3 switches them to the database.**
+>
+> **Deviations during Phase 2:**
+>
+> - *(actual: there is no separate `CarEventType` — history rows are typed by `CarAction`, including `submit`.)*
+> - *(actual: added a `Voided` status. The IT Admin can void any open CAR, and must give a reason.)*
+> - *(actual: rounds.)* Only "not effective" and "not accepted" open a new round. "Return for revision" (Step 10) stays in the same round, with its reason in the history.
+> - *(actual: required inputs.)* Reject, return, not effective and void need a reason. "Not accepted" needs a new end date after today.
+> - *(actual: who may act.)*
+>   - Anyone holding the owning role may act on a CAR — for Responder roles, on the CAR's farm.
+>   - Only the Requestor who filed a CAR may resubmit it.
+>   - The approver chain does not restrict routing yet; Step 10 escalation is still §7 #1.
+> - *(actual: `complaint_type` and `complaint_received_on` are on `cars`; the form fields arrive in Phase 3.)*
+> - *(actual: `corrective_actions`, `verifications` and `attachments` are not created yet; they come with the Phase 4–5 forms.)*
+> - *(actual: assumptions now in code.)* Deadlines count calendar days (§7 #4), and every active user can view every CAR (§7 #5).
 >
 > **Deviations from the requirements document made during the scaffold** — log further ones here as *(actual: …)*:
 >
