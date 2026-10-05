@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\Role;
+use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -31,25 +32,23 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => Role::Requestor,
-            'scope' => 'Sales',
+            'farm_id' => null,
             'is_active' => true,
             'remember_token' => Str::random(10),
         ];
     }
 
     /**
-     * Give the user a role. Farm-scoped roles default to PFC unless a scope is passed.
+     * Give the user a role. Farm-scoped roles (Responder, Responder Approver) are attached to the
+     * named farm — PFC unless another is passed — which is created if it does not exist yet.
      */
-    public function role(Role $role, ?string $scope = null): static
+    public function role(Role $role, ?string $farmName = null): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => $role,
-            'scope' => $scope ?? match ($role) {
-                Role::Requestor, Role::RequestorApprover => 'Sales',
-                Role::Responder, Role::ResponderApprover => 'PFC',
-                Role::Monitor => 'All farms',
-                Role::Admin => 'IT',
-            },
+            'farm_id' => $role->isFarmScoped()
+                ? Farm::firstOrCreate(['name' => $farmName ?? 'PFC'])->id
+                : null,
         ]);
     }
 

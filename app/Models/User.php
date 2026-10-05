@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'scope', 'approver_id', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'farm_id', 'approver_id', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -33,6 +33,16 @@ class User extends Authenticatable
             'role' => Role::class,
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * The farm a Responder or Responder Approver belongs to; null for every other role.
+     *
+     * @return BelongsTo<Farm, $this>
+     */
+    public function farm(): BelongsTo
+    {
+        return $this->belongsTo(Farm::class);
     }
 
     /**
@@ -63,12 +73,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Where the user works, as shown under their name: the farm for Responder roles, otherwise
+     * the side of the workflow they sit on.
+     */
+    public function workplaceLabel(): string
+    {
+        return match ($this->role) {
+            Role::Requestor, Role::RequestorApprover => 'Issuing department',
+            Role::Responder, Role::ResponderApprover => $this->farm?->name ?? 'No farm assigned',
+            Role::Monitor => 'All farms',
+            Role::Admin => 'IT',
+        };
+    }
+
+    /**
      * "Responder · PFC" for farm-scoped roles, just the role label otherwise.
      */
     public function roleWithScope(): string
     {
-        return $this->role->isFarmScoped() && $this->scope
-            ? "{$this->role->label()} · {$this->scope}"
+        return $this->role->isFarmScoped() && $this->farm
+            ? "{$this->role->label()} · {$this->farm->name}"
             : $this->role->label();
     }
 }

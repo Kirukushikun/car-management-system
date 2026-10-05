@@ -12,7 +12,7 @@ use Carbon\CarbonImmutable;
  * This is a straight port of `essentials/car-management-system-mockup.html`. It contains
  * no persistence and no real workflow — every action button is a stub. Each later phase
  * replaces one part of it with real models, and the class is deleted once nothing uses it:
- * matrix/units → Phase 1, cars/owners/deadlines → Phase 2, actions → Phases 3–5,
+ * farms/units/matrix moved to the database in Phase 1; cars/owners/deadlines → Phase 2, actions → Phases 3–5,
  * dashboard figures → Phase 7.
  */
 class ScaffoldData
@@ -23,19 +23,11 @@ class ScaffoldData
     public const TODAY = '2026-09-17';
 
     /**
-     * @return list<string>
-     */
-    public static function farms(): array
-    {
-        return ['PFC', 'HATCHERY', 'BROOKDALE', 'RH/BBGC', 'BFC'];
-    }
-
-    /**
-     * Issued-to units from the requirements flowchart, with the business line each belongs to.
+     * Business line of each unit used by the sample CARs. The real list lives in issued_to_units.
      *
      * @return array<string, string>
      */
-    public static function units(): array
+    private static function sampleUnitLines(): array
     {
         return [
             'Eggroom' => 'TABLE EGG',
@@ -49,11 +41,12 @@ class ScaffoldData
     }
 
     /**
-     * Table Egg and DOP CAR matrices from the 8.19.26 requirements document.
+     * Frozen copy of the matrix for the sample CARs' deadlines (like the snapshotted deadlines real
+     * CARs will carry). The editable matrix lives in the categories table since Phase 1.
      *
      * @return array<string, array<string, array{response: int, implementation: int, subcategories: list<string>}>>
      */
-    public static function matrix(): array
+    private static function sampleTimelines(): array
     {
         return [
             'TABLE EGG' => [
@@ -167,7 +160,7 @@ class ScaffoldData
             'ref' => $row[0],
             'farm' => $row[1],
             'unit' => $row[2],
-            'line' => self::units()[$row[2]],
+            'line' => self::sampleUnitLines()[$row[2]],
             'category' => $row[3],
             'subcategory' => $row[4],
             'issued' => $row[5],
@@ -230,7 +223,7 @@ class ScaffoldData
      */
     public static function deadlines(array $car): array
     {
-        $timeline = self::matrix()[$car['line']][$car['category']];
+        $timeline = self::sampleTimelines()[$car['line']][$car['category']];
         $issued = CarbonImmutable::parse($car['issued']);
         $implementation = $issued->addDays($timeline['implementation']);
 
@@ -277,7 +270,7 @@ class ScaffoldData
             return false;
         }
 
-        return ! $user->role->isFarmScoped() || $car['farm'] === $user->scope;
+        return ! $user->role->isFarmScoped() || $car['farm'] === $user->farm?->name;
     }
 
     /**

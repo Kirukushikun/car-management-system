@@ -3,7 +3,7 @@
 **Stack baseline:** Laravel 13 (PHP 8.4) · Livewire *(to install in Phase 0)* · Tailwind 4 · Pest 5 · Pint · SQLite (local) → MySQL (production) · Vite 8
 **References:** `CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf` (behavior spec — 13 steps, flowchart, Table Egg / DOP matrices) · `car-management-system-mockup.html` (UI contract — every view in it becomes a real route; anything not in it is listed as "not in mockup" in §4) · `CAR_rolly funa_1.pdf`, `CAR_ELMER GALLARDO_2_1.pdf`, `CAR_JUN QUITEVIS 9-12-26 1.0.pdf` (real sample CARs — used as seed data and as the UAT script) · `development-playbook.md` (how we work through the stages)
 
-> **Status update (Oct 2, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phase 0 are complete**. **Next: Phase 1.**
+> **Status update (Oct 2, 2026):** the UI-scaffold pass (Playbook, Stage 2), **Phase 0 and Phase 1 are complete**. **Next: Phase 2** (core domain + state machine).
 >
 > - **Stage 1 (UI concept):** `car-management-system-mockup.html` — six roles, full Phase I → III workflow, role-gated actions, Admin screens, sample data. It remains the UI contract and design-token source.
 > - **Phase 0 (foundation + scaffold port):**
@@ -24,6 +24,36 @@
 > - *(actual: area access uses gates (`view-dashboard`, `create-cars`, `view-queue`, `view-overdue`, `administer`) — per-CAR rules move to `CarPolicy` in Phase 2.)*
 > - *(actual: Users & Roles lists real accounts; only its add/edit/deactivate buttons are stubs.)*
 > - *(actual: `APP_NAME` is "CAR Management System"; Boost regenerated `CLAUDE.md` / `AGENTS.md` with project guidelines.)*
+>
+> **Phase 1 (reference data) — done:**
+>
+> - The reference data now lives in the database:
+>   - farms, business lines and Issued To units;
+>   - categories with response and implementation days;
+>   - sub-categories with the matrix's "what to report" text.
+> - `ReferenceDataSeeder` is safe to re-run in production: it creates missing rows and never overwrites days the Admin has edited.
+> - **Users & Roles** works end to end: create, edit, reset password, deactivate and reactivate, with the approver chain enforced.
+> - **Category Matrix** saves the day values.
+> - The New CAR form reads units, categories and sub-categories from the database and shows each sub-category's guidance.
+> - 124 Pest tests pass.
+>
+> **Deviations during Phase 1:**
+>
+> - *(actual: users carry a nullable `farm_id`, required only for Responder / Responder Approver. The other roles have no scope column; the UI shows "Issuing department", "All farms" or "IT" instead.)*
+> - *(actual: approver chain rules.)*
+>   - The approver must be active, must not be the user themselves, and must not lead back to the user through the chain.
+>   - The approver's role is fixed per role:
+>     - Requestor and Requestor Approver → a Requestor Approver;
+>     - Responder and Responder Approver → a Responder Approver on the same farm;
+>     - Monitor and Admin have none.
+>   - "An approver of the same kind" is a provisional answer to §7 #1. The approver is still optional per user.
+> - *(actual: admin safeguards.)* An admin cannot change their own role or deactivate themselves. A user that active people report to cannot be deactivated or change role until those people are reassigned.
+> - *(actual: the Admin types an initial password and shares it directly. An emailed invite waits for mail in Phase 6.)*
+> - *(actual: admin screens are protected by the `administer` gate rather than `UserPolicy` / `CategoryPolicy` — every action there is admin-only. Per-record policies start with `CarPolicy` in Phase 2.)*
+> - *(actual: the matrix screen edits days only — 1–60 response, 1–90 implementation, implementation ≥ response. Adding or renaming categories or sub-categories is not built.)*
+> - *(actual: an audit trail of admin changes is not built yet — still planned with the audit work in Phase 9.)*
+> - *(actual: Issued To units are not linked to farms — §7 #7 is still open.)*
+> - *(actual: the sample CARs in `ScaffoldData` keep a frozen copy of the original timelines, the way real CARs will snapshot theirs.)*
 >
 > **Deviations from the requirements document made during the scaffold** — log further ones here as *(actual: …)*:
 >

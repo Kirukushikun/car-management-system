@@ -62,6 +62,19 @@ enum Role: string
         return in_array($this, [self::Responder, self::ResponderApprover], true);
     }
 
+    /**
+     * The role allowed to act as this role's approver in the approver chain (Step 10).
+     * Approver roles escalate to another approver of the same kind; Monitor and Admin have none.
+     */
+    public function approverRole(): ?self
+    {
+        return match ($this) {
+            self::Requestor, self::RequestorApprover => self::RequestorApprover,
+            self::Responder, self::ResponderApprover => self::ResponderApprover,
+            self::Monitor, self::Admin => null,
+        };
+    }
+
     public function canViewDashboard(): bool
     {
         return $this === self::Monitor;

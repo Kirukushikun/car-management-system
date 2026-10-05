@@ -15,18 +15,18 @@
 
             <div class="field-grid">
                 <div class="field">
-                    <label for="farm">Farm / site</label>
-                    <select id="farm" wire:model="farm">
-                        @foreach ($farms as $option)
-                            <option value="{{ $option }}">{{ $option }}</option>
+                    <label for="farmId">Farm / site</label>
+                    <select id="farmId" wire:model="farmId">
+                        @foreach ($farms as $farm)
+                            <option value="{{ $farm->id }}" wire:key="farm-{{ $farm->id }}">{{ $farm->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="field">
-                    <label for="unit">Issued to (operational unit)</label>
-                    <select id="unit" wire:model.live="unit">
-                        @foreach ($units as $option)
-                            <option value="{{ $option }}">{{ $option }}</option>
+                    <label for="unitId">Issued to (operational unit)</label>
+                    <select id="unitId" wire:model.live="unitId">
+                        @foreach ($units as $unit)
+                            <option value="{{ $unit->id }}" wire:key="unit-{{ $unit->id }}">{{ $unit->name }}</option>
                         @endforeach
                     </select>
                     <div class="hint">Business line: {{ $line }}</div>
@@ -35,22 +35,27 @@
 
             <div class="field-grid" style="margin-top:14px;">
                 <div class="field">
-                    <label for="category">Category</label>
-                    <select id="category" wire:model.live="category">
+                    <label for="categoryId">Category</label>
+                    <select id="categoryId" wire:model.live="categoryId">
                         @foreach ($categories as $option)
-                            <option value="{{ $option }}">{{ $option }}</option>
+                            <option value="{{ $option->id }}" wire:key="category-{{ $option->id }}">{{ $option->name }}</option>
                         @endforeach
                     </select>
+                    @error('categoryId') <div class="error-text">{{ $message }}</div> @enderror
                 </div>
                 <div class="field">
-                    <label for="subcategory">Sub-category</label>
-                    <select id="subcategory" wire:model="subcategory">
+                    <label for="subcategoryId">Sub-category</label>
+                    <select id="subcategoryId" wire:model.live="subcategoryId">
                         @foreach ($subcategories as $option)
-                            <option value="{{ $option }}" wire:key="sub-{{ $option }}">{{ $option }}</option>
+                            <option value="{{ $option->id }}" wire:key="subcategory-{{ $option->id }}">{{ $option->name }}</option>
                         @endforeach
                     </select>
+                    @error('subcategoryId') <div class="error-text">{{ $message }}</div> @enderror
                 </div>
             </div>
+            @if ($subcategory?->description)
+                <div class="hint" style="margin-top:6px; font-size:10.5px; color:var(--text3);">What to report here: {{ $subcategory->description }}</div>
+            @endif
 
             <div class="field-grid" style="margin-top:14px;">
                 <div class="field">
@@ -67,11 +72,11 @@
             <div class="surface deadline-preview" style="margin-top:16px;">
                 <div class="box">
                     <div class="lbl">Response deadline (auto)</div>
-                    <div class="date tnum">{{ $responseDue->format('M j, Y') }} (+{{ $responseDays }}d)</div>
+                    <div class="date tnum">{{ $responseDue?->format('M j, Y') ?? '—' }} (+{{ $category?->response_days }}d)</div>
                 </div>
                 <div class="box" style="border-left:.5px solid var(--border);">
                     <div class="lbl">Implementation deadline (auto)</div>
-                    <div class="date tnum">{{ $implementationDue->format('M j, Y') }} (+{{ $implementationDays }}d)</div>
+                    <div class="date tnum">{{ $implementationDue?->format('M j, Y') ?? '—' }} (+{{ $category?->implementation_days }}d)</div>
                 </div>
             </div>
             <div class="hint" style="margin-top:6px; font-size:10.5px; color:var(--text3);">Computed from Issued Date + the Response / CA Implementation Timeline for the selected category.</div>

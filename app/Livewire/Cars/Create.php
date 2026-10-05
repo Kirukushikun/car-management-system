@@ -2,34 +2,38 @@
 
 namespace App\Livewire\Cars;
 
+use App\Models\Category;
+use App\Models\Farm;
+use App\Models\IssuedToUnit;
+use App\Models\Subcategory;
 use App\Services\ScaffoldData;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 /**
  * Phase I form: Issued To drives the business line, which drives the categories, which drive
- * the sub-categories and the auto-calculated deadlines. Submitting is a stub until Phase 3.
+ * the sub-categories and the auto-calculated deadlines. Reference data comes from the database
+ * (Phase 1); saving the CAR is a stub until Phase 3.
  */
 #[Title('New CAR')]
 class Create extends Component
 {
-    public string $farm = 'PFC';
+    public ?int $farmId = null;
 
-    public string $unit = '';
+    public ?int $unitId = null;
 
-    public string $category = '';
+    public ?int $categoryId = null;
 
-    public string $subcategory = '';
+    public ?int $subcategoryId = null;
 
     public string $issuedBy = '';
 
-    #[Validate('required|string|max:255')]
     public string $complainant = '';
 
-    #[Validate('required|string|min:10')]
     public string $problem = '';
 
     public ?string $notice = null;
@@ -39,18 +43,19 @@ class Create extends Component
         $this->authorize('create-cars');
 
         $this->issuedBy = auth()->user()->name.' — '.auth()->user()->role->label();
-        $this->unit = array_key_first(ScaffoldData::units());
+        $this->farmId = Farm::orderBy('id')->value('id');
+        $this->unitId = IssuedToUnit::orderBy('id')->value('id');
         $this->resetCategory();
     }
 
-    public function updatedUnit(): void
+    public function updatedUnitId(): void
     {
         $this->resetCategory();
     }
 
-    public function updatedCategory(): void
+    public function updatedCategoryId(): void
     {
-        $this->subcategory = $this->categories()[$this->category]['subcategories'][0];
+        $this->subcategoryId = $this->subcategories()->first()?->id;
     }
 
     public function submit(): void
@@ -61,42 +66,83 @@ class Create extends Component
         $this->notice = 'Validation passed. Saving and routing to the Requestor Approver is a stub in the UI scaffold — it is wired up in Phase 3. Nothing was saved.';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function rules(): array
+    {
+        return [
+            'farmId' => ['required', Rule::exists('farms', 'id')],
+            'unitId' => ['required', Rule::exists('issued_to_units', 'id')],
+            'categoryId' => ['required', Rule::exists('categories', 'id')->where('business_line_id', $this->unit()?->business_line_id)],
+            'subcategoryId' => ['required', Rule::exists('subcategories', 'id')->where('category_id', $this->categoryId)],
+            'complainant' => ['required', 'string', 'max:255'],
+            'problem' => ['required', 'string', 'min:10'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function messages(): array
+    {
+        return [
+            'categoryId.exists' => 'Pick a category that belongs to the selected unit\'s business line.',
+            'subcategoryId.exists' => 'Pick a sub-category that belongs to the selected category.',
+        ];
+    }
+
     public function render(): View
     {
-        $timeline = $this->categories()[$this->category];
+        $category = $this->category();
         $issuedOn = CarbonImmutable::today();
 
         return view('livewire.cars.create', [
-            'farms' => ScaffoldData::farms(),
-            'units' => array_keys(ScaffoldData::units()),
-            'line' => $this->line(),
-            'categories' => array_keys($this->categories()),
-            'subcategories' => $timeline['subcategories'],
+            'farms' => Farm::orderBy('id')->get(),
+            'units' => IssuedToUnit::orderBy('id')->get(),
+            'line' => $this->unit()?->businessLine->name,
+            'categories' => $this->categories(),
+            'subcategories' => $this->subcategories(),
+            'subcategory' => $this->subcategories()->firstWhere('id', $this->subcategoryId),
             'reference' => ScaffoldData::nextReference(),
             'issuedOn' => $issuedOn,
-            'responseDue' => $issuedOn->addDays($timeline['response']),
-            'responseDays' => $timeline['response'],
-            'implementationDue' => $issuedOn->addDays($timeline['implementation']),
-            'implementationDays' => $timeline['implementation'],
+            'category' => $category,
+            'responseDue' => $category ? $issuedOn->addDays($category->response_days) : null,
+            'implementationDue' => $category ? $issuedOn->addDays($category->implementation_days) : null,
         ]);
     }
 
     private function resetCategory(): void
     {
-        $this->category = array_key_first($this->categories());
-        $this->updatedCategory();
+        $this->categoryId = $this->categories()->first()?->id;
+        $this->updatedCategoryId();
     }
 
-    private function line(): string
+    private function unit(): ?IssuedToUnit
     {
-        return ScaffoldData::units()[$this->unit] ?? 'TABLE EGG';
+        return IssuedToUnit::with('businessLine')->find($this->unitId);
+    }
+
+    private function category(): ?Category
+    {
+        return $this->categories()->firstWhere('id', $this->categoryId);
     }
 
     /**
-     * @return array<string, array{response: int, implementation: int, subcategories: list<string>}>
+     * Categories of the selected unit's business line.
+     *
+     * @return Collection<int, Category>
      */
-    private function categories(): array
+    private function categories(): Collection
     {
-        return ScaffoldData::matrix()[$this->line()];
+        return Category::where('business_line_id', $this->unit()?->business_line_id)->orderBy('id')->get();
+    }
+
+    /**
+     * @return Collection<int, Subcategory>
+     */
+    private function subcategories(): Collection
+    {
+        return Subcategory::where('category_id', $this->categoryId)->orderBy('id')->get();
     }
 }

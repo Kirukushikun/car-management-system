@@ -39,7 +39,7 @@
                             <x-role-avatar :user="$demoUser" class="role-avatar" />
                             <div>
                                 <div class="role-name">{{ $demoUser->name }}</div>
-                                <div class="role-scope">{{ $demoUser->scope }}</div>
+                                <div class="role-scope">{{ $demoUser->workplaceLabel() }}</div>
                             </div>
                         </div>
                         <x-pill :tone="$demoUser->role->tone()" class="role-title-pill">{{ $demoUser->role->label() }}</x-pill>
