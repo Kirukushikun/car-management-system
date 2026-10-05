@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Cars;
 
-use App\Services\ScaffoldData;
+use App\Models\Car;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -17,6 +17,8 @@ class Index extends Component
 
     public function mount(): void
     {
+        $this->authorize('viewAny', Car::class);
+
         match ($this->view) {
             'mine' => $this->authorize('view-queue'),
             'overdue' => $this->authorize('view-overdue'),
@@ -36,7 +38,12 @@ class Index extends Component
                 'overdue' => 'CARs past their response or implementation deadline.',
                 default => 'All CARs across TABLE EGG and DOP operations.',
             },
-            'cars' => ScaffoldData::carsFor($this->view ?: 'all', $user),
+            'cars' => Car::query()
+                ->with(['farm', 'issuedToUnit', 'category', 'subcategory'])
+                ->forView($this->view, $user)
+                ->orderByDesc('issued_on')
+                ->orderByDesc('id')
+                ->get(),
         ])->title($title);
     }
 

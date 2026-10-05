@@ -2,26 +2,37 @@
 
 namespace App\Livewire\Cars;
 
+use App\Enums\CarAction;
+use App\Enums\ComplaintType;
+use App\Models\Attachment;
+use App\Models\Car;
 use App\Models\Category;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
-use App\Services\ScaffoldData;
+use App\Services\CarWorkflow;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 /**
- * Phase I form: Issued To drives the business line, which drives the categories, which drive
- * the sub-categories and the auto-calculated deadlines. Reference data comes from the database
- * (Phase 1); saving the CAR is a stub until Phase 3.
+ * Phase I form (Steps 1–6). Files a new CAR, or — on a CAR returned by the Requestor Approver —
+ * corrects its details and resubmits it for release. Issued To drives the business line, which
+ * drives the categories, sub-categories and the auto-calculated deadlines.
  */
-#[Title('New CAR')]
 class Create extends Component
 {
+    use WithFileUploads;
+
+    /**
+     * The returned CAR being corrected; null when filing a new one.
+     */
+    public ?Car $car = null;
+
     public ?int $farmId = null;
 
     public ?int $unitId = null;
@@ -30,18 +41,34 @@ class Create extends Component
 
     public ?int $subcategoryId = null;
 
+    public string $complaintType = '';
+
+    public ?string $complaintReceivedOn = null;
+
     public string $issuedBy = '';
 
     public string $complainant = '';
 
     public string $problem = '';
 
-    public ?string $notice = null;
+    /**
+     * @var array<int, TemporaryUploadedFile>
+     */
+    public array $attachments = [];
 
-    public function mount(): void
+    public function mount(?Car $car = null): void
     {
-        $this->authorize('create-cars');
+        if ($car?->exists) {
+            $this->authorize('act', [$car, CarAction::Resubmit]);
+            $this->fillFrom($car);
 
+            return;
+        }
+
+        $this->authorize('create', Car::class);
+
+        $this->car = null;
+        $this->complaintType = ComplaintType::Product->value;
         $this->issuedBy = auth()->user()->name.' — '.auth()->user()->role->label();
         $this->farmId = Farm::orderBy('id')->value('id');
         $this->unitId = IssuedToUnit::orderBy('id')->value('id');
@@ -58,12 +85,45 @@ class Create extends Component
         $this->subcategoryId = $this->subcategories()->first()?->id;
     }
 
-    public function submit(): void
+    public function removeAttachment(int $index): void
     {
-        $this->authorize('create-cars');
+        unset($this->attachments[$index]);
+        $this->attachments = array_values($this->attachments);
+    }
+
+    public function submit(CarWorkflow $workflow): void
+    {
+        $this->car
+            ? $this->authorize('act', [$this->car, CarAction::Resubmit])
+            : $this->authorize('create', Car::class);
+
         $this->validate();
 
-        $this->notice = 'Validation passed. Saving and routing to the Requestor Approver is a stub in the UI scaffold — it is wired up in Phase 3. Nothing was saved.';
+        $details = [
+            'farm_id' => $this->farmId,
+            'issued_to_unit_id' => $this->unitId,
+            'category_id' => $this->categoryId,
+            'subcategory_id' => $this->subcategoryId,
+            'complaint_type' => ComplaintType::from($this->complaintType),
+            'complaint_received_on' => $this->complaintReceivedOn ?: null,
+            'issued_by' => $this->issuedBy,
+            'complainant' => $this->complainant,
+            'problem_details' => $this->problem,
+        ];
+
+        $car = $this->car
+            ? $workflow->resubmit($this->car, auth()->user(), $details)
+            : $workflow->submit(auth()->user(), $details);
+
+        foreach ($this->attachments as $file) {
+            Attachment::store($car, $file, Attachment::PROBLEM_EVIDENCE, auth()->user());
+        }
+
+        session()->flash('status', $this->car
+            ? "{$car->reference} was resubmitted for release."
+            : "{$car->reference} was submitted. The Requestor Approver reviews it before it is released to the Responder.");
+
+        $this->redirectRoute('cars.show', $car, navigate: true);
     }
 
     /**
@@ -76,8 +136,13 @@ class Create extends Component
             'unitId' => ['required', Rule::exists('issued_to_units', 'id')],
             'categoryId' => ['required', Rule::exists('categories', 'id')->where('business_line_id', $this->unit()?->business_line_id)],
             'subcategoryId' => ['required', Rule::exists('subcategories', 'id')->where('category_id', $this->categoryId)],
+            'complaintType' => ['required', Rule::enum(ComplaintType::class)],
+            'complaintReceivedOn' => ['nullable', 'date', 'before_or_equal:today'],
+            'issuedBy' => ['required', 'string', 'max:255'],
             'complainant' => ['required', 'string', 'max:255'],
             'problem' => ['required', 'string', 'min:10'],
+            'attachments' => ['array', 'max:10'],
+            'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES, 'extensions:'.implode(',', Attachment::ALLOWED_EXTENSIONS)],
         ];
     }
 
@@ -89,13 +154,17 @@ class Create extends Component
         return [
             'categoryId.exists' => 'Pick a category that belongs to the selected unit\'s business line.',
             'subcategoryId.exists' => 'Pick a sub-category that belongs to the selected category.',
+            'complaintReceivedOn.before_or_equal' => 'The complaint cannot have been received in the future.',
+            'attachments.max' => 'Attach at most 10 files.',
+            'attachments.*.max' => 'Each file must be 50 MB or smaller.',
+            'attachments.*.extensions' => 'Use photos, videos (mp4, mov), PDF or Office files.',
         ];
     }
 
     public function render(): View
     {
         $category = $this->category();
-        $issuedOn = CarbonImmutable::today();
+        $issuedOn = $this->car?->issued_on ?? CarbonImmutable::today();
 
         return view('livewire.cars.create', [
             'farms' => Farm::orderBy('id')->get(),
@@ -104,12 +173,27 @@ class Create extends Component
             'categories' => $this->categories(),
             'subcategories' => $this->subcategories(),
             'subcategory' => $this->subcategories()->firstWhere('id', $this->subcategoryId),
-            'reference' => ScaffoldData::nextReference(),
+            'complaintTypes' => ComplaintType::cases(),
             'issuedOn' => $issuedOn,
             'category' => $category,
             'responseDue' => $category ? $issuedOn->addDays($category->response_days) : null,
             'implementationDue' => $category ? $issuedOn->addDays($category->implementation_days) : null,
-        ]);
+            'existingAttachments' => $this->car?->attachments ?? new Collection,
+            'returnReason' => $this->car?->events()->where('action', CarAction::Reject)->latest('id')->value('note'),
+        ])->title($this->car ? "Correct {$this->car->reference}" : 'New CAR');
+    }
+
+    private function fillFrom(Car $car): void
+    {
+        $this->farmId = $car->farm_id;
+        $this->unitId = $car->issued_to_unit_id;
+        $this->categoryId = $car->category_id;
+        $this->subcategoryId = $car->subcategory_id;
+        $this->complaintType = $car->complaint_type->value;
+        $this->complaintReceivedOn = $car->complaint_received_on?->toDateString();
+        $this->issuedBy = $car->issued_by;
+        $this->complainant = $car->complainant;
+        $this->problem = $car->problem_details;
     }
 
     private function resetCategory(): void

@@ -27,7 +27,7 @@
                         @php
                             $isActive = request()->routeIs($item['route'])
                                 && request()->query('view') === ($item['params']['view'] ?? null);
-                            $count = $item['count'] ? count(\App\Services\ScaffoldData::carsFor($item['count'], $user)) : null;
+                            $count = $item['count'] ? \App\Models\Car::forView($item['count'], $user)->count() : null;
                         @endphp
                         <a href="{{ route($item['route'], $item['params']) }}" wire:navigate
                            @class(['nav-item', 'active' => $isActive])>
@@ -56,7 +56,7 @@
             </aside>
 
             <main class="main">
-                <div class="scaffold-banner">UI scaffold — CAR data is sample data from the mockup and workflow buttons are stubs (development plan, Phase 0).</div>
+                <div class="scaffold-banner">In development — Phase I (filing, release, rejection) is live; Phase II/III buttons and the dashboard charts are placeholders.</div>
                 {{ $slot }}
             </main>
         </div>

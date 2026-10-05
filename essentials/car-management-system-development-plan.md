@@ -3,7 +3,7 @@
 **Stack baseline:** Laravel 13 (PHP 8.4) · Livewire *(to install in Phase 0)* · Tailwind 4 · Pest 5 · Pint · SQLite (local) → MySQL (production) · Vite 8
 **References:** `CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf` (behavior spec — 13 steps, flowchart, Table Egg / DOP matrices) · `car-management-system-mockup.html` (UI contract — every view in it becomes a real route; anything not in it is listed as "not in mockup" in §4) · `CAR_rolly funa_1.pdf`, `CAR_ELMER GALLARDO_2_1.pdf`, `CAR_JUN QUITEVIS 9-12-26 1.0.pdf` (real sample CARs — used as seed data and as the UAT script) · `development-playbook.md` (how we work through the stages)
 
-> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0, 1 and 2 are complete**. **Next: Phase 3** (Phase I screens on real data: New CAR, release / reject, CAR list and detail).
+> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0–3 are complete**. **Next: Phase 4** (Phase II: interim containment, root cause, corrective actions, Responder Approver approval).
 >
 > - **Stage 1 (UI concept):** `car-management-system-mockup.html` — six roles, full Phase I → III workflow, role-gated actions, Admin screens, sample data. It remains the UI contract and design-token source.
 > - **Phase 0 (foundation + scaffold port):**
@@ -85,6 +85,34 @@
 > - *(actual: `complaint_type` and `complaint_received_on` are on `cars`; the form fields arrive in Phase 3.)*
 > - *(actual: `corrective_actions`, `verifications` and `attachments` are not created yet; they come with the Phase 4–5 forms.)*
 > - *(actual: assumptions now in code.)* Deadlines count calendar days (§7 #4), and every active user can view every CAR (§7 #5).
+>
+> **Phase 3 (Phase I: initiation & release) — done (Oct 5, 2026):**
+>
+> - **New CAR** files through `CarWorkflow::submit`.
+>   - New fields: type of complaint, and an optional "complaint received on" date.
+>   - Up to 10 attachments, 50 MB each, stored privately: photos, mp4/mov videos, PDF, Office files.
+>   - The reference number is assigned on submit.
+> - **Detail page** reads from the database:
+>   - the Phase I card, attachments and history with actor names and reasons;
+>   - an action bar driven by `availableActions`.
+> - **Live actions:**
+>   - Release, and Reject with a required reason.
+>   - Correct & resubmit (`/cars/{ref}/edit`, which reuses the New CAR form).
+>   - Void by the IT Admin, with a required reason.
+>   - Phase II/III buttons say which phase wires them up.
+> - **On the database now:** the CAR list (My Queue / My Approvals / All / Overdue), the sidebar counts, and the dashboard's open / Phase I / overdue tiles and "needs attention" table.
+> - Attachments open through an authorized route (`/attachments/{id}`): inline for images, videos and PDFs, otherwise as a download.
+> - 248 tests pass.
+>
+> **Deviations during Phase 3:**
+>
+> - *(actual: the list, detail page, sidebar counts and dashboard counts moved to the database here rather than piecemeal. `ScaffoldData` now holds only the dashboard's time averages, monthly chart and repeat offenders, until Phase 7.)*
+> - *(actual: correcting a returned CAR reuses the New CAR component on a second route.)* The issued date is kept, and deadlines are recalculated from it if the category changes (`CarWorkflow::resubmit`).
+> - *(actual: Livewire's config is published so temporary uploads allow 50 MB — the samples include phone videos.)* Files over the limit are rejected as soon as they are picked.
+> - *(actual: attachments cannot be removed after submit, and downloads are not yet written to the access log — both kept for hardening.)*
+> - *(actual: voiding went live in Phase 3, not Phase 9, because it is a single action with a reason.)*
+> - *(actual: polymorphic types are pinned with a morph map — `car`, `user` — so stored attachment rows don't depend on class names.)*
+> - *(actual: nobody is notified yet.)* The Requestor Approver sees new CARs through the My Approvals count; flags and email arrive in Phase 6.
 >
 > **Deviations from the requirements document made during the scaffold** — log further ones here as *(actual: …)*:
 >

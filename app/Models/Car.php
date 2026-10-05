@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CarStatus;
 use App\Enums\ComplaintType;
+use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\CarFactory;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use LogicException;
 
 /**
@@ -139,11 +141,64 @@ class Car extends Model
     }
 
     /**
+     * @return MorphMany<Attachment, $this>
+     */
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable')->orderBy('id');
+    }
+
+    /**
      * @param  Builder<Car>  $query
      */
     public function scopeOpen(Builder $query): void
     {
         $query->whereIn('status', CarStatus::open());
+    }
+
+    /**
+     * CARs waiting on this user: their role owns the status, on their farm for Responder roles,
+     * and only their own CARs for a Requestor.
+     *
+     * @param  Builder<Car>  $query
+     */
+    public function scopeWaitingOn(Builder $query, User $user): void
+    {
+        $statuses = array_filter(CarStatus::cases(), fn (CarStatus $status): bool => $status->ownerRole() === $user->role);
+
+        $query->whereIn('status', $statuses)
+            ->when($user->role->isFarmScoped(), fn (Builder $query) => $query->where('farm_id', $user->farm_id))
+            ->when($user->role === Role::Requestor, fn (Builder $query) => $query->where('requestor_id', $user->id));
+    }
+
+    /**
+     * Open CARs whose active deadline (see activeDueOn) is before today.
+     *
+     * @param  Builder<Car>  $query
+     */
+    public function scopeOverdue(Builder $query, ?CarbonInterface $today = null): void
+    {
+        $today = ($today ?? CarbonImmutable::today())->toDateString();
+        $phaseOne = array_filter(CarStatus::cases(), fn (CarStatus $status): bool => $status->phase() === 1);
+        $later = array_filter(CarStatus::cases(), fn (CarStatus $status): bool => in_array($status->phase(), [2, 3], true));
+
+        $query->where(fn (Builder $query) => $query
+            ->where(fn (Builder $query) => $query->whereIn('status', $phaseOne)->where('response_due_on', '<', $today))
+            ->orWhere(fn (Builder $query) => $query->whereIn('status', $later)->whereRaw('coalesce(revised_due_on, implementation_due_on) < ?', [$today])));
+    }
+
+    /**
+     * The sidebar lists: "mine" (waiting on the user), "overdue", or everything.
+     *
+     * @param  Builder<Car>  $query
+     */
+    public function scopeForView(Builder $query, string $view, User $user): void
+    {
+        match ($view) {
+            'mine' => $query->waitingOn($user),
+            'overdue' => $query->overdue(),
+            default => null,
+        };
     }
 
     /**

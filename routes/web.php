@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Livewire\Admin;
@@ -25,7 +26,10 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 
     Route::livewire('/cars', Cars\Index::class)->name('cars.index');
     Route::livewire('/cars/create', Cars\Create::class)->middleware('can:create-cars')->name('cars.create');
-    Route::livewire('/cars/{reference}', Cars\Show::class)->name('cars.show');
+    Route::livewire('/cars/{car:reference}', Cars\Show::class)->name('cars.show');
+    Route::livewire('/cars/{car:reference}/edit', Cars\Create::class)->name('cars.edit');
+
+    Route::get('/attachments/{attachment}', AttachmentController::class)->name('attachments.show');
 
     Route::prefix('admin')->name('admin.')->middleware('can:administer')->group(function () {
         Route::livewire('/users', Admin\Users::class)->name('users');

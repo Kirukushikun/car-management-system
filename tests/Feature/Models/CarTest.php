@@ -72,6 +72,23 @@ it('names who must act next', function (CarStatus $status, ?string $label) {
     [CarStatus::ClosedAccepted, null],
 ]);
 
+it('finds the same overdue CARs in the database as isOverdue does', function () {
+    $today = CarbonImmutable::parse('2026-10-10');
+    $cars = collect([
+        Car::factory()->status(CarStatus::AwaitingResponder)->create(['response_due_on' => '2026-10-09', 'implementation_due_on' => '2026-10-20']),
+        Car::factory()->status(CarStatus::AwaitingResponder)->create(['response_due_on' => '2026-10-10', 'implementation_due_on' => '2026-10-20']),
+        Car::factory()->status(CarStatus::AwaitingImplementation)->create(['response_due_on' => '2026-10-01', 'implementation_due_on' => '2026-10-09']),
+        Car::factory()->status(CarStatus::AwaitingImplementation)->create(['response_due_on' => '2026-10-01', 'implementation_due_on' => '2026-10-11']),
+        Car::factory()->status(CarStatus::OpenNotAccepted)->create(['implementation_due_on' => '2026-10-01', 'revised_due_on' => '2026-10-15']),
+        Car::factory()->status(CarStatus::OpenNotAccepted)->create(['implementation_due_on' => '2026-10-20', 'revised_due_on' => '2026-10-05']),
+        Car::factory()->status(CarStatus::ClosedAccepted)->create(['implementation_due_on' => '2026-10-01']),
+    ]);
+
+    expect(Car::overdue($today)->orderBy('id')->pluck('id')->all())
+        ->toBe($cars->filter(fn (Car $car): bool => $car->fresh()->isOverdue($today))->pluck('id')->values()->all())
+        ->and(Car::overdue($today)->count())->toBe(3);
+});
+
 it('keeps history append-only', function () {
     $event = CarEvent::factory()->create(['created_at' => now()]);
 

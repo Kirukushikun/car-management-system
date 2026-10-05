@@ -1,5 +1,5 @@
 <section>
-    <x-page-header title="Dashboard" subtitle="Repeat offenses, response & resolution time, open/closed status — Sept 1–17, 2026 (sample data)" />
+    <x-page-header title="Dashboard" subtitle="Repeat offenses, response & resolution time, open/closed status" />
 
     <div class="content">
         <div class="stat-grid">
@@ -64,6 +64,6 @@
             </div>
         </div>
 
-        <footer class="note">Scaffold dataset — the stat tiles count the sample CARs; time averages, the monthly chart and repeat offenses are fixed values until Phase 7.</footer>
+        <footer class="note">Open, Phase I and overdue counts are live. Average response / resolution time, the monthly chart and repeat offenses are sample values until Phase 7.</footer>
     </div>
 </section>

@@ -2,62 +2,92 @@
 
 namespace App\Livewire\Cars;
 
-use App\Services\ScaffoldData;
+use App\Enums\CarAction;
+use App\Models\Car;
+use App\Services\CarWorkflow;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
  * CAR detail: the three phase cards, the role-gated action bar and the history timeline.
- * Action buttons are stubs until the CarWorkflow service exists (Phases 2–5).
+ * Phase I actions (release, reject, resubmit) and voiding are live; the Phase II/III buttons are
+ * stubs until their forms land in Phases 4–5.
  */
 class Show extends Component
 {
-    public string $reference;
+    /**
+     * Actions that run for real in this phase of the build.
+     *
+     * @var list<CarAction>
+     */
+    private const LIVE_ACTIONS = [CarAction::Release, CarAction::Reject, CarAction::Void];
+
+    public Car $car;
+
+    public string $note = '';
 
     public ?string $notice = null;
 
-    public string $newEndDate = '';
-
-    public function mount(string $reference): void
+    public function mount(Car $car): void
     {
-        abort_if(ScaffoldData::find($reference) === null, 404);
-
-        $this->reference = $reference;
-        $this->newEndDate = ScaffoldData::today()->addDays(7)->toDateString();
+        $this->authorize('view', $car);
     }
 
-    /**
-     * Stub handler: confirms the button is one the current user may press, then explains when it gets wired up.
-     */
-    public function runAction(string $label): void
+    public function act(string $action, CarWorkflow $workflow): void
     {
-        $actions = ScaffoldData::actionsFor($this->car(), auth()->user());
-        $button = collect($actions['buttons'] ?? [])->firstWhere('label', $label);
+        $action = CarAction::from($action);
+        $this->authorize('act', [$this->car, $action]);
 
-        abort_if($button === null, 403);
+        if (! in_array($action, self::LIVE_ACTIONS, true)) {
+            $this->notice = "“{$action->label()}” is wired up in Phase {$this->buildPhaseFor($action)} of the development plan. Nothing was changed.";
 
-        $this->notice = "“{$label}” is a stub in the UI scaffold — it is wired up in Phase {$button['phase']} of the development plan. Nothing was changed.";
+            return;
+        }
+
+        $workflow->apply($this->car, auth()->user(), $action, note: $action->requiresNote() ? $this->note : null);
+
+        $this->note = '';
+        $this->resetErrorBag();
+        $this->notice = "{$action->pastTense()}.";
     }
 
-    public function render(): View
+    public function render(CarWorkflow $workflow): View
     {
-        $car = $this->car();
+        $this->car->load(['farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'attachments', 'events.actor']);
+
+        $actions = $workflow->availableActions($this->car, auth()->user());
 
         return view('livewire.cars.show', [
-            'car' => $car,
-            'deadlines' => ScaffoldData::deadlines($car),
-            'phase' => ScaffoldData::phase($car['status']),
-            'owner' => ScaffoldData::owner($car),
-            'isOverdue' => ScaffoldData::isOverdue($car),
-            'actions' => ScaffoldData::actionsFor($car, auth()->user()),
-        ])->title($car['ref']);
+            'actions' => $actions,
+            'needsNote' => collect($actions)->contains(fn (CarAction $action): bool => $action->requiresNote()),
+            'actionNote' => $this->actionNote($actions),
+            'isOverdue' => $this->car->isOverdue(),
+        ])->title($this->car->reference);
     }
 
     /**
-     * @return array<string, mixed>
+     * One line telling the user what is expected of them on this CAR.
+     *
+     * @param  list<CarAction>  $actions
      */
-    private function car(): array
+    private function actionNote(array $actions): string
     {
-        return ScaffoldData::find($this->reference);
+        return match (true) {
+            $actions === [CarAction::Void] => 'As IT Admin you can void this CAR — for duplicates or CARs filed in error. A reason is required and kept in the history.',
+            in_array(CarAction::Release, $actions, true) => 'Investigation done? Release this CAR to the Responder, or reject it back to the Requestor for clarity.',
+            in_array(CarAction::Resubmit, $actions, true) => 'The Requestor Approver sent this back. Correct the details, then resubmit it for release.',
+            default => 'This CAR is waiting on you.',
+        };
+    }
+
+    /**
+     * Which build phase turns a stubbed action into a real one.
+     */
+    private function buildPhaseFor(CarAction $action): int
+    {
+        return match ($action) {
+            CarAction::SubmitResponse, CarAction::ApproveResponse, CarAction::ReturnResponse => 4,
+            default => 5,
+        };
     }
 }

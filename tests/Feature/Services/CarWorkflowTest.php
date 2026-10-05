@@ -184,6 +184,41 @@ describe('submitting a CAR', function () {
     });
 });
 
+describe('resubmitting a returned CAR', function () {
+    it('saves the corrections, recalculates deadlines from the issued date and goes back for release', function () {
+        $details = funaDetails();
+        $requestor = User::factory()->role(Role::Requestor)->create();
+        $car = $this->workflow->submit($requestor, $details);
+        $this->workflow->apply($car, User::factory()->role(Role::RequestorApprover)->create(), CarAction::Reject, note: 'Wrong category.');
+
+        Carbon::setTestNow('2026-10-07 09:00:00');
+        $compliance = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Compliance & Standards')->sole();
+        $this->workflow->resubmit($car, $requestor, [
+            ...$details,
+            'category_id' => $compliance->id,
+            'subcategory_id' => $compliance->subcategories()->where('name', 'Storage & Handling')->value('id'),
+        ]);
+
+        expect($car->fresh())
+            ->status->toBe(CarStatus::AwaitingRelease)
+            ->category_id->toBe($compliance->id)
+            ->issued_on->toDateString()->toBe('2026-10-05')
+            ->response_due_on->toDateString()->toBe('2026-10-06')
+            ->implementation_due_on->toDateString()->toBe('2026-10-10')
+            ->and($car->events()->pluck('action')->all())->toBe([CarAction::Submit, CarAction::Reject, CarAction::Resubmit]);
+    });
+
+    it('refuses anyone but the filing requestor and leaves the CAR untouched', function () {
+        $car = Car::factory()->status(CarStatus::ReturnedToRequestor)->create(['complainant' => 'Original']);
+
+        expect(fn () => $this->workflow->resubmit($car, User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complainant' => 'Changed']))
+            ->toThrow(AuthorizationException::class);
+        expect($car->fresh())
+            ->complainant->toBe('Original')
+            ->status->toBe(CarStatus::ReturnedToRequestor);
+    });
+});
+
 describe('the transition table', function () {
     it('allows exactly the expected role and action in every status', function () {
         foreach (CarStatus::cases() as $status) {

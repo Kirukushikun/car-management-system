@@ -103,6 +103,30 @@ class CarWorkflow
     }
 
     /**
+     * A returned CAR goes back for release with its corrected Phase I details. The issued date
+     * stays; deadlines are recalculated from it in case the category changed.
+     *
+     * @param  array{farm_id: int, issued_to_unit_id: int, category_id: int, subcategory_id: int, issued_by: string, complainant: string, complaint_type: ComplaintType|string, problem_details: string, complaint_received_on?: ?string}  $details
+     *
+     * @throws AuthorizationException when the user may not resubmit this CAR
+     * @throws ValidationException when the unit, category and sub-category do not belong together
+     */
+    public function resubmit(Car $car, User $user, array $details): Car
+    {
+        return DB::transaction(function () use ($car, $user, $details): Car {
+            if (! $this->can($car, $user, CarAction::Resubmit)) {
+                throw new AuthorizationException("You cannot resubmit {$car->reference}.");
+            }
+
+            [$category] = $this->resolveClassification($details);
+
+            $car->update([...$details, ...$this->deadlines->forCategory($category, $car->issued_on)]);
+
+            return $this->apply($car, $user, CarAction::Resubmit);
+        });
+    }
+
+    /**
      * Actions the user may take on the CAR right now, in transition-table order.
      *
      * @return list<CarAction>
