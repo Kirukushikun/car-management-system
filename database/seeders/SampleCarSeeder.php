@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\CarAction;
 use App\Enums\ComplaintType;
 use App\Enums\Role;
+use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\Category;
@@ -18,6 +19,8 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Demo data: the mockup's ten sample CARs (CAR-2026-0138 … 0147), replayed through CarWorkflow
@@ -169,6 +172,10 @@ class SampleCarSeeder extends Seeder
             $this->writeResponse($car);
         }
 
+        if ($action === CarAction::UploadEvidence) {
+            $this->writeEvidence($car);
+        }
+
         $actor = match ($action) {
             CarAction::Release, CarAction::Accept, CarAction::NotAccept => $requestorApprover,
             CarAction::SubmitResponse, CarAction::UploadEvidence => $this->farmUser($farm, Role::Responder),
@@ -207,6 +214,61 @@ class SampleCarSeeder extends Seeder
                 'ends_on' => $car->implementation_due_on,
             ]);
         }
+    }
+
+    /**
+     * Attach a one-page evidence PDF to the current round so the workflow accepts "Upload evidence".
+     */
+    private function writeEvidence(Car $car): void
+    {
+        $round = $car->currentRound()->firstOrFail();
+        $responder = $this->farmUser($car->farm, Role::Responder);
+        $path = "car_rounds/{$round->id}/".Str::uuid().'.pdf';
+
+        Storage::disk('local')->put($path, $this->evidencePdf("Implementation evidence - {$car->reference}"));
+
+        $round->update(['evidence_responsible' => $responder->name, 'evidence_notes' => 'Corrective actions carried out as planned; checklist attached.']);
+        $round->attachments()->create([
+            'collection' => Attachment::IMPLEMENTATION_EVIDENCE,
+            'disk' => 'local',
+            'path' => $path,
+            'original_name' => "{$car->reference}-evidence.pdf",
+            'mime_type' => 'application/pdf',
+            'size' => Storage::disk('local')->size($path),
+            'uploaded_by' => $responder->id,
+        ]);
+    }
+
+    /**
+     * A minimal valid one-page PDF showing a single line of text.
+     */
+    private function evidencePdf(string $text): string
+    {
+        $stream = "BT /F1 18 Tf 72 720 Td ({$text}) Tj ET";
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+            '<< /Length '.strlen($stream)." >>\nstream\n{$stream}\nendstream",
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+
+        foreach ($objects as $index => $object) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($index + 1)." 0 obj\n{$object}\nendobj\n";
+        }
+
+        $xref = strlen($pdf);
+        $pdf .= 'xref'."\n0 ".(count($objects) + 1)."\n0000000000 65535 f \n";
+
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        return $pdf.'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
     }
 
     /**

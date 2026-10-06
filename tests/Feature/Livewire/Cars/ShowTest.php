@@ -3,11 +3,13 @@
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
 use App\Enums\Role;
+use App\Livewire\Cars\EvidenceForm;
 use App\Livewire\Cars\ResponseForm;
 use App\Livewire\Cars\Show;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\User;
+use App\Services\CarWorkflow;
 use Livewire\Livewire;
 
 it('returns 404 for a reference that does not exist', function () {
@@ -118,16 +120,95 @@ it('lets the IT Admin void an open CAR with a reason', function () {
     expect($car->fresh()->status)->toBe(CarStatus::Voided);
 });
 
-it('explains which phase wires up a Phase III action without changing anything', function () {
+it('shows the responder the evidence form during implementation', function () {
     $car = Car::factory()->status(CarStatus::AwaitingImplementation)->create();
 
     Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
         ->test(Show::class, ['car' => $car])
+        ->assertSee(['Upload the evidence below', 'Upload files and photos proving'])
+        ->assertSeeLivewire(EvidenceForm::class)
         ->call('act', CarAction::UploadEvidence->value)
-        ->assertSee('wired up in Phase 5');
+        ->assertSee('Attach the evidence in the form below');
 
-    expect($car->fresh()->status)->toBe(CarStatus::AwaitingImplementation)
-        ->and($car->events()->count())->toBe(0);
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingImplementation);
+});
+
+it('marks the corrective action effective and forwards it for final acceptance', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingEffectivenessCheck)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car])
+        ->assertSee('Was the corrective action effective?')
+        ->call('act', CarAction::MarkEffective->value)
+        ->assertSee('Effective');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingRequestorApproval);
+});
+
+it('sends a not-effective action back to Phase II with a reason', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingEffectivenessCheck)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car])
+        ->set('note', 'Customer still reports spoiled eggs.')
+        ->call('act', CarAction::MarkNotEffective->value)
+        ->assertHasNoErrors();
+
+    expect($car->fresh())
+        ->status->toBe(CarStatus::ReturnedToResponder)
+        ->current_round->toBe(2);
+});
+
+it('closes the CAR on final acceptance', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSee('New end date (only used if not accepted)')
+        ->call('act', CarAction::Accept->value)
+        ->assertSee('Closed — accepted on');
+
+    expect($car->fresh()->status)->toBe(CarStatus::ClosedAccepted);
+});
+
+it('does not accept with a new end date and loops back to implementation', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+    $newDueOn = now()->addDays(10)->toDateString();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->set('newDueOn', $newDueOn)
+        ->call('act', CarAction::NotAccept->value)
+        ->assertHasNoErrors()
+        ->assertSee('Not accepted');
+
+    expect($car->fresh())
+        ->status->toBe(CarStatus::OpenNotAccepted)
+        ->revised_due_on->toDateString()->toBe($newDueOn);
+});
+
+it('rejects a new end date that is not in the future', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->set('newDueOn', now()->toDateString())
+        ->call('act', CarAction::NotAccept->value)
+        ->assertHasErrors('new_due_on');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingRequestorApproval);
+});
+
+it('shows the evidence, effectiveness check and acceptance per round in Phase III', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingImplementation)->withEvidence()->create();
+    $workflow = app(CarWorkflow::class);
+    $responder = User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]);
+    $workflow->apply($car, $responder, CarAction::UploadEvidence);
+    $workflow->apply($car, User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id, 'name' => 'Reneliza M. Yusi']), CarAction::MarkEffective);
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car->fresh()])
+        ->assertSee(['Step 11 · Implementation evidence', 'evidence.jpg', 'Step 12 · Effectiveness check', 'Effective', 'Reneliza M. Yusi', 'Step 13 · Final acceptance', 'Pending.']);
 });
 
 it('shows the responder the response form', function () {

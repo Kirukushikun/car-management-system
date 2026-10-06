@@ -215,6 +215,10 @@ class CarWorkflow
                 $this->stampResponse($locked, $user);
             }
 
+            if ($action === CarAction::UploadEvidence) {
+                $this->stampEvidence($locked, $user);
+            }
+
             $from = $locked->status;
             $round = $locked->current_round;
             $locked->status = $this->transitionFor($from, $action)['to'];
@@ -264,6 +268,24 @@ class CarWorkflow
         }
 
         $response->update(['prepared_by' => $user->id, 'submitted_at' => now()]);
+    }
+
+    /**
+     * Step 11: the round must carry at least one evidence file; uploading records who and when.
+     *
+     * @throws ValidationException when no evidence has been attached
+     */
+    private function stampEvidence(Car $car, User $user): void
+    {
+        $round = $car->currentRound()->firstOrFail();
+
+        if (! $round->hasEvidence()) {
+            throw ValidationException::withMessages([
+                'evidence' => 'Attach at least one file or photo proving the corrective actions were carried out.',
+            ]);
+        }
+
+        $round->update(['evidence_uploaded_by' => $user->id, 'evidence_uploaded_at' => now()]);
     }
 
     /**

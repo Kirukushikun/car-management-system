@@ -243,7 +243,10 @@ describe('the transition table', function () {
 
     it('moves the CAR to the next status and records who did it', function (CarStatus $from, CarAction $action, Role $role, CarStatus $to) {
         Event::fake([CarTransitioned::class]);
-        $car = Car::factory()->status($from)->when($action === CarAction::SubmitResponse, fn ($factory) => $factory->withResponse())->create();
+        $car = Car::factory()->status($from)
+            ->when($action === CarAction::SubmitResponse, fn ($factory) => $factory->withResponse())
+            ->when($action === CarAction::UploadEvidence, fn ($factory) => $factory->withEvidence())
+            ->create();
         $actor = actorFor($role, $car);
 
         $this->workflow->apply($car, $actor, $action, note: 'Reason given', newDueOn: CarbonImmutable::parse('2026-10-20'));
@@ -378,6 +381,35 @@ describe('Phase II responses', function () {
         $car = Car::factory()->forFarm($responder->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($responder, submitted: true)->create();
 
         expect($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeTrue();
+    });
+});
+
+describe('Phase III evidence', function () {
+    it('will not accept "upload evidence" without a file on the round', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingImplementation)->create();
+
+        expect(fn () => $this->workflow->apply($car, actorFor(Role::Responder, $car), CarAction::UploadEvidence))
+            ->toThrow(ValidationException::class, 'Attach at least one file or photo proving the corrective actions were carried out.');
+        expect($car->fresh()->status)->toBe(CarStatus::AwaitingImplementation);
+    });
+
+    it('records who uploaded the evidence and when', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingImplementation)->withEvidence()->create();
+        $responder = actorFor(Role::Responder, $car);
+
+        $this->workflow->apply($car, $responder, CarAction::UploadEvidence);
+
+        expect($car->currentRound()->first())
+            ->evidence_uploaded_by->toBe($responder->id)
+            ->evidence_uploaded_at->toDateTimeString()->toBe('2026-10-05 09:00:00');
+    });
+
+    it('needs fresh evidence in the new round after "not accepted"', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->withEvidence()->create();
+        $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, newDueOn: CarbonImmutable::parse('2026-10-20'));
+
+        expect(fn () => $this->workflow->apply($car->fresh(), actorFor(Role::Responder, $car), CarAction::UploadEvidence))
+            ->toThrow(ValidationException::class);
     });
 });
 

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\CarStatus;
 use App\Enums\ComplaintType;
 use App\Enums\Role;
+use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\Category;
@@ -90,6 +91,21 @@ class CarFactory extends Factory
                 'car_round_id' => $car->currentRound()->first()->id,
                 'prepared_by' => $preparedBy?->id,
                 'submitted_at' => $submitted ? now() : null,
+            ]);
+        });
+    }
+
+    /**
+     * Attach an implementation-evidence file record to the CAR's current round.
+     */
+    public function withEvidence(): static
+    {
+        return $this->afterCreating(function (Car $car): void {
+            Attachment::factory()->create([
+                'attachable_type' => 'car_round',
+                'attachable_id' => $car->currentRound()->first()->id,
+                'collection' => Attachment::IMPLEMENTATION_EVIDENCE,
+                'original_name' => 'evidence.jpg',
             ]);
         });
     }

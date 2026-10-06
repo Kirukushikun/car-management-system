@@ -4,37 +4,46 @@ namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
+use App\Models\Attachment;
 use App\Models\Car;
+use App\Models\CarEvent;
+use App\Models\CarRound;
 use App\Services\CarWorkflow;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 
 /**
  * CAR detail: the three phase cards, the role-gated action bar and the history timeline.
- * Phase I and II are live: release / reject / resubmit, the response form (ResponseForm) and its
- * approval or return, plus voiding. Phase III buttons stay stubs until Phase 5.
+ * Actions that need more than a click have their own forms on the page — the response
+ * (ResponseForm) and the implementation evidence (EvidenceForm); everything else runs here.
  */
 class Show extends Component
 {
     /**
-     * Actions that run for real in this phase of the build.
+     * Actions completed through a form on the page rather than a single button.
      *
-     * @var list<CarAction>
+     * @var array<string, string>
      */
-    private const LIVE_ACTIONS = [
-        CarAction::Release, CarAction::Reject, CarAction::Void,
-        CarAction::ApproveResponse, CarAction::ReturnResponse,
+    private const FORM_ACTIONS = [
+        'submit_response' => 'Fill in the response form below, then use “Submit for approval”.',
+        'upload_evidence' => 'Attach the evidence in the form below, then submit it for the effectiveness check.',
     ];
 
     public Car $car;
 
     public string $note = '';
 
+    public string $newDueOn = '';
+
     public ?string $notice = null;
 
     public function mount(Car $car): void
     {
         $this->authorize('view', $car);
+
+        $this->newDueOn = CarbonImmutable::today()->addDays(7)->toDateString();
     }
 
     public function act(string $action, CarWorkflow $workflow): void
@@ -42,19 +51,19 @@ class Show extends Component
         $action = CarAction::from($action);
         $this->authorize('act', [$this->car, $action]);
 
-        if ($action === CarAction::SubmitResponse) {
-            $this->notice = 'Fill in the response form below, then use “Submit for approval”.';
+        if (isset(self::FORM_ACTIONS[$action->value])) {
+            $this->notice = self::FORM_ACTIONS[$action->value];
 
             return;
         }
 
-        if (! in_array($action, self::LIVE_ACTIONS, true)) {
-            $this->notice = "“{$action->label()}” is wired up in Phase {$this->buildPhaseFor($action)} of the development plan. Nothing was changed.";
-
-            return;
-        }
-
-        $workflow->apply($this->car, auth()->user(), $action, note: $action->requiresNote() ? $this->note : null);
+        $workflow->apply(
+            $this->car,
+            auth()->user(),
+            $action,
+            note: $action->requiresNote() ? $this->note : null,
+            newDueOn: $action->requiresNewDueDate() && $this->newDueOn !== '' ? CarbonImmutable::parse($this->newDueOn) : null,
+        );
 
         $this->note = '';
         $this->resetErrorBag();
@@ -66,6 +75,7 @@ class Show extends Component
         $this->car->load([
             'farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'attachments', 'events.actor',
             'responses' => fn ($query) => $query->whereNotNull('submitted_at')->with(['round', 'correctiveActions', 'attachments', 'preparer']),
+            'rounds' => fn ($query) => $query->with(['attachments' => fn ($query) => $query->where('collection', Attachment::IMPLEMENTATION_EVIDENCE), 'evidenceUploader']),
         ]);
 
         $actions = $workflow->availableActions($this->car, auth()->user());
@@ -73,11 +83,37 @@ class Show extends Component
         return view('livewire.cars.show', [
             'actions' => $actions,
             'needsNote' => collect($actions)->contains(fn (CarAction $action): bool => $action->requiresNote()),
+            'needsNewDueDate' => in_array(CarAction::NotAccept, $actions, true),
             'actionNote' => $this->actionNote($actions),
             'canRespond' => in_array(CarAction::SubmitResponse, $actions, true),
+            'canUploadEvidence' => in_array(CarAction::UploadEvidence, $actions, true),
             'submittedResponses' => $this->car->responses->sortByDesc(fn ($response) => $response->round->number)->values(),
+            'verificationRounds' => $this->verificationRounds(),
             'isOverdue' => $this->car->isOverdue(),
         ])->title($this->car->reference);
+    }
+
+    /**
+     * Phase III per round, like Part VI of the paper form: the evidence, the effectiveness check
+     * and the final acceptance decision. Newest round first; rounds with nothing yet are skipped.
+     *
+     * @return list<array{round: CarRound, evidence: Collection<int, Attachment>, verification: ?CarEvent, acceptance: ?CarEvent}>
+     */
+    private function verificationRounds(): array
+    {
+        $events = $this->car->events->groupBy('round');
+
+        return $this->car->rounds
+            ->sortByDesc('number')
+            ->map(fn ($round): array => [
+                'round' => $round,
+                'evidence' => $round->attachments,
+                'verification' => ($events[$round->number] ?? collect())->last(fn ($event) => in_array($event->action, [CarAction::MarkEffective, CarAction::MarkNotEffective], true)),
+                'acceptance' => ($events[$round->number] ?? collect())->last(fn ($event) => in_array($event->action, [CarAction::Accept, CarAction::NotAccept], true)),
+            ])
+            ->filter(fn (array $row): bool => $row['round']->evidence_uploaded_at !== null || $row['verification'] || $row['acceptance'])
+            ->values()
+            ->all();
     }
 
     /**
@@ -92,21 +128,15 @@ class Show extends Component
             in_array(CarAction::Release, $actions, true) => 'Investigation done? Release this CAR to the Responder, or reject it back to the Requestor for clarity.',
             in_array(CarAction::Resubmit, $actions, true) => 'The Requestor Approver sent this back. Correct the details, then resubmit it for release.',
             in_array(CarAction::SubmitResponse, $actions, true) => $this->car->status === CarStatus::ReturnedToResponder
-                ? 'Your response was returned for revision — see the reason in the history, update the response below and submit it again.'
+                ? 'The response was returned or the action was not effective — see the reason in the history, update the response below and submit it again.'
                 : 'Record the interim containment, root cause and corrective actions below, then submit them for approval.',
             in_array(CarAction::ApproveResponse, $actions, true) => 'Review the root cause and corrective actions in Phase II. Approve to move to implementation, or return them for revision with a reason.',
+            in_array(CarAction::UploadEvidence, $actions, true) => $this->car->status === CarStatus::OpenNotAccepted
+                ? "Not accepted by the Requestor Approver — re-implement and upload new evidence by {$this->car->implementationDeadline()->format('M j, Y')}."
+                : 'Upload files and photos proving the corrective actions were carried out.',
+            in_array(CarAction::MarkEffective, $actions, true) => 'Review the implementation evidence in Phase III. Was the corrective action effective?',
+            in_array(CarAction::Accept, $actions, true) => 'The corrective action was validated as effective. Accept to close this CAR, or send it back with a new end date.',
             default => 'This CAR is waiting on you.',
-        };
-    }
-
-    /**
-     * Which build phase turns a stubbed action into a real one.
-     */
-    private function buildPhaseFor(CarAction $action): int
-    {
-        return match ($action) {
-            CarAction::SubmitResponse, CarAction::ApproveResponse, CarAction::ReturnResponse => 4,
-            default => 5,
         };
     }
 }

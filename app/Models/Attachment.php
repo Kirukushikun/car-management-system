@@ -37,6 +37,11 @@ class Attachment extends Model
     public const CORRECTIVE_ACTION = 'corrective_action';
 
     /**
+     * Step 11 files and photos proving the corrective actions were carried out, per round.
+     */
+    public const IMPLEMENTATION_EVIDENCE = 'implementation_evidence';
+
+    /**
      * File types accepted as CAR evidence: photos, phone videos, screenshots, PDFs, Office files.
      *
      * @var list<string>

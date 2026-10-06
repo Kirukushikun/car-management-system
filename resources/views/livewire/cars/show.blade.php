@@ -26,9 +26,17 @@
                 <div class="who">Your action — {{ auth()->user()->roleWithScope() }}</div>
                 <div class="note">{{ $actionNote }}</div>
 
+                @if ($needsNewDueDate)
+                    <div class="field" style="max-width:260px; margin-bottom:10px;">
+                        <label for="newDueOn">New end date (only used if not accepted)</label>
+                        <input type="date" id="newDueOn" wire:model="newDueOn" min="{{ now()->addDay()->toDateString() }}">
+                        @error('new_due_on') <div class="error-text">{{ $message }}</div> @enderror
+                    </div>
+                @endif
+
                 @if ($needsNote)
                     <div class="field" style="margin-bottom:10px;">
-                        <label for="note">Reason (required to reject, return or void)</label>
+                        <label for="note">Reason (required to reject, return, mark not effective or void)</label>
                         <textarea id="note" wire:model="note" style="min-height:60px;"></textarea>
                         @error('note') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -40,6 +48,8 @@
                             <a href="{{ route('cars.edit', $car) }}" wire:navigate class="btn btn-accent" style="text-decoration:none;">Correct &amp; resubmit</a>
                         @elseif ($action === CarAction::SubmitResponse)
                             <a href="#response-form" class="btn btn-accent" style="text-decoration:none;">Fill in the response below</a>
+                        @elseif ($action === CarAction::UploadEvidence)
+                            <a href="#evidence-form" class="btn btn-accent" style="text-decoration:none;">Upload the evidence below</a>
                         @else
                             <button type="button" wire:key="action-{{ $action->value }}"
                                     @class(['btn', 'btn-accent' => $loop->first && ! $action->requiresNote(), 'btn-secondary' => ! ($loop->first && ! $action->requiresNote())])
@@ -145,17 +155,79 @@
                 @endif
             </div>
             <div class="phase-body">
-                <div style="color:var(--text3); font-size:11.5px;">
-                    @if ($car->closed_at)
-                        Closed — accepted on {{ $car->closed_at->format('M j, Y') }}.
-                    @elseif ($car->voided_at)
-                        Voided on {{ $car->voided_at->format('M j, Y') }}.
-                    @else
-                        Evidence upload, effectiveness check and final acceptance are entered here from Phase 5 of the build.
-                    @endif
-                </div>
+                @if ($car->closed_at)
+                    <div class="flash" style="background:var(--green-bg); color:var(--green); border-color:var(--green-bd); margin:0;">Closed — accepted on {{ $car->closed_at->format('M j, Y') }}.</div>
+                @elseif ($car->voided_at)
+                    <div class="flash" style="margin:0;">Voided on {{ $car->voided_at->format('M j, Y') }}.</div>
+                @endif
+
+                @forelse ($verificationRounds as $row)
+                    <div wire:key="verification-{{ $row['round']->id }}" @style(['padding-top:12px; border-top:.5px solid var(--border)' => ! $loop->first])>
+                        @if (count($verificationRounds) > 1 || $row['round']->number > 1)
+                            <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); margin-bottom:8px;">Round {{ $row['round']->number }}</div>
+                        @endif
+                        <div class="field-grid">
+                            <div class="kv">
+                                <span class="k">Step 11 · Implementation evidence</span>
+                                @if ($row['round']->evidence_uploaded_at)
+                                    <span class="v" style="font-weight:400;">
+                                        {{ $row['round']->evidence_responsible }} · uploaded {{ $row['round']->evidence_uploaded_at->format('M j, Y') }}
+                                    </span>
+                                    @if ($row['round']->evidence_notes)
+                                        <span class="v" style="font-weight:400; white-space:pre-line; color:var(--text2);">{{ $row['round']->evidence_notes }}</span>
+                                    @endif
+                                    @foreach ($row['evidence'] as $file)
+                                        <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;">{{ $file->isVideo() ? '🎬' : ($file->isImage() ? '🖼' : '📄') }} {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
+                                    @endforeach
+                                @else
+                                    <span class="v" style="font-weight:400; color:var(--text3);">Not uploaded yet.</span>
+                                @endif
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <div class="kv">
+                                    <span class="k">Step 12 · Effectiveness check</span>
+                                    @if ($row['verification'])
+                                        <span class="v">
+                                            <x-pill :tone="$row['verification']->action === CarAction::MarkEffective ? 'green' : 'red'">{{ $row['verification']->action === CarAction::MarkEffective ? 'Effective' : 'Not effective' }}</x-pill>
+                                            <span style="font-weight:400; font-size:11.5px;">{{ $row['verification']->actor?->name }} · {{ $row['verification']->created_at->format('M j, Y') }}</span>
+                                        </span>
+                                        @if ($row['verification']->note)
+                                            <span class="v" style="font-weight:400; color:var(--text2);">“{{ $row['verification']->note }}”</span>
+                                        @endif
+                                    @else
+                                        <span class="v" style="font-weight:400; color:var(--text3);">Pending.</span>
+                                    @endif
+                                </div>
+                                <div class="kv">
+                                    <span class="k">Step 13 · Final acceptance</span>
+                                    @if ($row['acceptance'])
+                                        <span class="v">
+                                            <x-pill :tone="$row['acceptance']->action === CarAction::Accept ? 'green' : 'red'">{{ $row['acceptance']->action === CarAction::Accept ? 'Accepted — closed' : 'Not accepted' }}</x-pill>
+                                            <span style="font-weight:400; font-size:11.5px;">{{ $row['acceptance']->actor?->name }} · {{ $row['acceptance']->created_at->format('M j, Y') }}</span>
+                                        </span>
+                                        @if ($row['acceptance']->action === CarAction::NotAccept)
+                                            <span class="v" style="font-weight:400; color:var(--text2);">New end date: {{ $car->rounds->firstWhere('number', $row['round']->number + 1)?->due_on?->format('M j, Y') ?? '—' }}</span>
+                                        @endif
+                                    @else
+                                        <span class="v" style="font-weight:400; color:var(--text3);">Pending.</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div style="color:var(--text3); font-size:11.5px;">
+                        @if ($car->status->isOpen())
+                            Starts once the corrective actions are approved — the Responder uploads evidence, the Responder Approver checks effectiveness, and the Requestor Approver gives final acceptance.
+                        @endif
+                    </div>
+                @endforelse
             </div>
         </div>
+
+        @if ($canUploadEvidence)
+            <livewire:cars.evidence-form :car="$car" :key="'evidence-form-'.$car->id.'-'.$car->current_round" />
+        @endif
 
         <div class="card" style="margin-top:14px; padding:16px 18px;">
             <div class="section-title">History</div>
