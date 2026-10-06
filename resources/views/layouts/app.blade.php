@@ -38,6 +38,18 @@
                             @endif
                         </a>
                     @endforeach
+
+                    @php
+                        $unread = $user->unreadNotifications()->count();
+                    @endphp
+                    <div class="nav-label" style="margin-top:10px;">You</div>
+                    <a href="{{ route('notifications') }}" wire:navigate @class(['nav-item', 'active' => request()->routeIs('notifications')])>
+                        <x-icon name="bell" />
+                        Notifications
+                        @if ($unread > 0)
+                            <span class="nav-count warn">{{ $unread }}</span>
+                        @endif
+                    </a>
                 </nav>
 
                 <div class="sidebar-foot">

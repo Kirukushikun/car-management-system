@@ -7,6 +7,7 @@ use App\Livewire\Admin;
 use App\Livewire\Auth\Login;
 use App\Livewire\Cars;
 use App\Livewire\Dashboard;
+use App\Livewire\Notifications;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -30,6 +31,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::livewire('/cars/{car:reference}/edit', Cars\Create::class)->name('cars.edit');
 
     Route::get('/attachments/{attachment}', AttachmentController::class)->name('attachments.show');
+
+    Route::livewire('/notifications', Notifications\Index::class)->name('notifications');
 
     Route::prefix('admin')->name('admin.')->middleware('can:administer')->group(function () {
         Route::livewire('/users', Admin\Users::class)->name('users');
