@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\CarRound;
+use App\Models\Category;
+use App\Models\Subcategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
@@ -25,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Relation::enforceMorphMap(['car' => Car::class, 'car_response' => CarResponse::class, 'car_round' => CarRound::class, 'user' => User::class]);
+        Relation::enforceMorphMap(['car' => Car::class, 'car_response' => CarResponse::class, 'car_round' => CarRound::class, 'category' => Category::class, 'subcategory' => Subcategory::class, 'user' => User::class]);
 
         $this->defineRoleGates();
     }

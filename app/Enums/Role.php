@@ -116,13 +116,14 @@ enum Role: string
         $dashboard = ['label' => 'Dashboard', 'route' => 'dashboard', 'params' => [], 'icon' => 'dashboard', 'count' => null];
         $users = ['label' => 'Users & Roles', 'route' => 'admin.users', 'params' => [], 'icon' => 'users', 'count' => null];
         $matrix = ['label' => 'Category Matrix', 'route' => 'admin.matrix', 'params' => [], 'icon' => 'sliders', 'count' => null];
+        $audit = ['label' => 'Audit Log', 'route' => 'admin.audit', 'params' => [], 'icon' => 'list', 'count' => null];
 
         return match ($this) {
             self::Requestor => [$queue, $create, $all],
             self::RequestorApprover, self::Responder => [$queue, $all],
             self::ResponderApprover => [$queue, $all, $overdue],
             self::Monitor => [$dashboard, $all, $overdue],
-            self::Admin => [$users, $matrix, $all, $overdue],
+            self::Admin => [$users, $matrix, $audit, $all, $overdue],
         };
     }
 
