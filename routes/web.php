@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\CarExportController;
+use App\Http\Controllers\CarPrintController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Livewire\Admin;
 use App\Livewire\Auth\Login;
@@ -27,8 +29,10 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 
     Route::livewire('/cars', Cars\Index::class)->name('cars.index');
     Route::livewire('/cars/create', Cars\Create::class)->middleware('can:create-cars')->name('cars.create');
+    Route::get('/cars/export', CarExportController::class)->name('cars.export');
     Route::livewire('/cars/{car:reference}', Cars\Show::class)->name('cars.show');
     Route::livewire('/cars/{car:reference}/edit', Cars\Create::class)->name('cars.edit');
+    Route::get('/cars/{car:reference}/print', CarPrintController::class)->name('cars.print');
 
     Route::get('/attachments/{attachment}', AttachmentController::class)->name('attachments.show');
 

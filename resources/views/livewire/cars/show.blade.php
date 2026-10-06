@@ -3,7 +3,8 @@
 <section>
     <x-page-header :title="$car->reference.' — '.$car->subcategory->name"
                    :subtitle="$car->farm->name.' · '.$car->issuedToUnit->name.' · '.$car->issuedToUnit->businessLine->name.' · issued '.$car->issued_on->format('M j, Y')">
-        <div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <a href="{{ route('cars.print', $car) }}" target="_blank" class="btn btn-secondary" style="text-decoration:none;">Print form</a>
             <x-pill :tone="$car->status->tone()">{{ $car->status->label() }}</x-pill>
             @if ($isOverdue)
                 <x-pill tone="red" style="margin-left:6px;">overdue</x-pill>
