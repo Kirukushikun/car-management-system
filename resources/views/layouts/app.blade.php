@@ -68,7 +68,7 @@
             </aside>
 
             <main class="main">
-                <div class="scaffold-banner">In development — Phases I and II are live (filing, release, response, approval); Phase III buttons and the dashboard charts are placeholders.</div>
+                <div class="scaffold-banner">Pre-release build — the full CAR workflow, notifications and dashboard are live; awaiting user acceptance testing.</div>
                 {{ $slot }}
             </main>
         </div>
