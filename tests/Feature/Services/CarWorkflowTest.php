@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Events\CarTransitioned;
 use App\Models\Car;
 use App\Models\CarEvent;
+use App\Models\CarResponse;
 use App\Models\Category;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
@@ -57,9 +58,11 @@ function expectedTransitions(): array
         ],
         CarStatus::AwaitingResponder->value => [
             [CarAction::SubmitResponse, Role::Responder, CarStatus::AwaitingResponderApproval],
+            [CarAction::SubmitResponse, Role::ResponderApprover, CarStatus::AwaitingResponderApproval],
         ],
         CarStatus::ReturnedToResponder->value => [
             [CarAction::SubmitResponse, Role::Responder, CarStatus::AwaitingResponderApproval],
+            [CarAction::SubmitResponse, Role::ResponderApprover, CarStatus::AwaitingResponderApproval],
         ],
         CarStatus::AwaitingResponderApproval->value => [
             [CarAction::ApproveResponse, Role::ResponderApprover, CarStatus::AwaitingImplementation],
@@ -240,7 +243,7 @@ describe('the transition table', function () {
 
     it('moves the CAR to the next status and records who did it', function (CarStatus $from, CarAction $action, Role $role, CarStatus $to) {
         Event::fake([CarTransitioned::class]);
-        $car = Car::factory()->status($from)->create();
+        $car = Car::factory()->status($from)->when($action === CarAction::SubmitResponse, fn ($factory) => $factory->withResponse())->create();
         $actor = actorFor($role, $car);
 
         $this->workflow->apply($car, $actor, $action, note: 'Reason given', newDueOn: CarbonImmutable::parse('2026-10-20'));
@@ -321,6 +324,60 @@ describe('who may act', function () {
 
         expect($this->workflow->availableActions($car, actorFor(Role::RequestorApprover, $car)))
             ->toBe([CarAction::Release, CarAction::Reject]);
+    });
+});
+
+describe('Phase II responses', function () {
+    it('will not submit a response that has not been started', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
+
+        expect(fn () => $this->workflow->apply($car, actorFor(Role::Responder, $car), CarAction::SubmitResponse))
+            ->toThrow(ValidationException::class, 'Complete the interim containment, the root cause and at least one corrective action before submitting.');
+        expect($car->fresh()->status)->toBe(CarStatus::AwaitingResponder);
+    });
+
+    it('will not submit an incomplete draft', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
+        CarResponse::factory()->draft()->create(['car_id' => $car->id]);
+
+        expect(fn () => $this->workflow->apply($car, actorFor(Role::Responder, $car), CarAction::SubmitResponse))
+            ->toThrow(ValidationException::class);
+    });
+
+    it('records who submitted the response and when', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingResponder)->withResponse()->create();
+        $responder = actorFor(Role::Responder, $car);
+
+        $this->workflow->apply($car, $responder, CarAction::SubmitResponse);
+
+        expect($car->currentResponse())
+            ->prepared_by->toBe($responder->id)
+            ->submitted_at->toDateTimeString()->toBe('2026-10-05 09:00:00');
+    });
+
+    it('never lets someone review a response they prepared', function () {
+        $approver = User::factory()->role(Role::ResponderApprover)->create();
+        $car = Car::factory()->forFarm($approver->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($approver, submitted: true)->create();
+
+        expect($this->workflow->can($car, $approver, CarAction::ApproveResponse))->toBeFalse()
+            ->and($this->workflow->can($car, $approver, CarAction::ReturnResponse))->toBeFalse()
+            ->and($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeTrue();
+    });
+
+    it('sends a response prepared by a Responder Approver to that person\'s own approver', function () {
+        $senior = User::factory()->role(Role::ResponderApprover)->create();
+        $preparer = User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $senior->farm_id, 'approver_id' => $senior->id]);
+        $car = Car::factory()->forFarm($senior->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($preparer, submitted: true)->create();
+
+        expect($this->workflow->can($car, $senior, CarAction::ApproveResponse))->toBeTrue()
+            ->and($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeFalse();
+    });
+
+    it('lets any Responder Approver on the farm review a Responder\'s response', function () {
+        $responder = User::factory()->role(Role::Responder)->create();
+        $car = Car::factory()->forFarm($responder->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($responder, submitted: true)->create();
+
+        expect($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeTrue();
     });
 });
 

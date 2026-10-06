@@ -38,6 +38,8 @@
                     @foreach ($actions as $action)
                         @if ($action === CarAction::Resubmit)
                             <a href="{{ route('cars.edit', $car) }}" wire:navigate class="btn btn-accent" style="text-decoration:none;">Correct &amp; resubmit</a>
+                        @elseif ($action === CarAction::SubmitResponse)
+                            <a href="#response-form" class="btn btn-accent" style="text-decoration:none;">Fill in the response below</a>
                         @else
                             <button type="button" wire:key="action-{{ $action->value }}"
                                     @class(['btn', 'btn-accent' => $loop->first && ! $action->requiresNote(), 'btn-secondary' => ! ($loop->first && ! $action->requiresNote())])
@@ -116,12 +118,22 @@
                 <div class="phase-body">
                     @if (! $car->released_at)
                         <div style="color:var(--text3); font-size:11.5px;">Not started — the CAR has not been released to the Responder yet.</div>
+                    @elseif ($submittedResponses->isEmpty())
+                        <div style="color:var(--text3); font-size:11.5px;">Waiting for {{ $car->farm->name }}'s response — interim containment, root cause and corrective actions.</div>
                     @else
-                        <div style="color:var(--text3); font-size:11.5px;">Interim containment, root cause and corrective actions are entered here from Phase 4 of the build. Round {{ $car->current_round }}.</div>
+                        @foreach ($submittedResponses as $response)
+                            <div wire:key="response-{{ $response->id }}" @style(['padding-top:12px; border-top:.5px solid var(--border)' => ! $loop->first])>
+                                <x-car-response :response="$response" :show-round="$car->current_round > 1" />
+                            </div>
+                        @endforeach
                     @endif
                 </div>
             </div>
         </div>
+
+        @if ($canRespond)
+            <livewire:cars.response-form :car="$car" :key="'response-form-'.$car->id.'-'.$car->current_round" />
+        @endif
 
         {{-- Phase III --}}
         <div class="card" style="margin-top:14px; opacity:{{ $car->status->phase() === 3 || ! $car->status->isOpen() ? 1 : .5 }}">

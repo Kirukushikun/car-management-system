@@ -6,6 +6,7 @@ use App\Enums\CarStatus;
 use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Models\Car;
+use App\Models\CarResponse;
 use App\Models\Category;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
@@ -76,6 +77,21 @@ class CarFactory extends Factory
             'closed_at' => $status === CarStatus::ClosedAccepted ? now() : null,
             'voided_at' => $status === CarStatus::Voided ? now() : null,
         ]);
+    }
+
+    /**
+     * Give the CAR's current round a complete Phase II response (draft until submitted).
+     */
+    public function withResponse(?User $preparedBy = null, bool $submitted = false): static
+    {
+        return $this->afterCreating(function (Car $car) use ($preparedBy, $submitted): void {
+            CarResponse::factory()->create([
+                'car_id' => $car->id,
+                'car_round_id' => $car->currentRound()->first()->id,
+                'prepared_by' => $preparedBy?->id,
+                'submitted_at' => $submitted ? now() : null,
+            ]);
+        });
     }
 
     /**

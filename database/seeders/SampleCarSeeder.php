@@ -6,6 +6,7 @@ use App\Enums\CarAction;
 use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Models\Car;
+use App\Models\CarResponse;
 use App\Models\Category;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
@@ -79,6 +80,45 @@ class SampleCarSeeder extends Seeder
     ];
 
     /**
+     * Phase II answers for the samples that reach "Submit response", keyed by complainant:
+     * [containment, root cause, [corrective action, ...]].
+     *
+     * @var array<string, array{0: string, 1: string, 2: list<string>}>
+     */
+    private const RESPONSES = [
+        'QA Sampling Team' => [
+            'Held the morning collection from dispatch and re-candled all trays from the affected houses.',
+            'Calcium supplement in the layer feed ran short for four days after a delayed feed delivery.',
+            ['Add a minimum-stock alert for the calcium premix.', 'Re-check shell strength daily for two weeks.'],
+        ],
+        'SM Hypermarket Distribution Desk' => [
+            'Called the customer, re-sorted the mixed pallet and delivered the missing cases the same afternoon.',
+            'Loading list was printed before the final order change and the loader worked from the old list.',
+            ['Reprint and countersign the loading list after the 3 PM order cut-off.'],
+        ],
+        'Internal Audit' => [
+            'Completed the missed sanitation round and swabbed the egg room surfaces.',
+            'The night-shift sanitation checklist had no owner after a staff transfer.',
+            ['Name a checklist owner per shift and add the checklist to the shift handover.'],
+        ],
+        'Hatchery Shift Supervisor' => [
+            'Moved the remaining eggs from setter 4 to setters 2 and 5.',
+            'Setter 4 humidity sensor drifted out of calibration.',
+            ['Replace the humidity sensor and add monthly calibration to PMS.'],
+        ],
+        'Grower Farm Partner' => [
+            'Delivered the 200 missing heads on the next trip at no charge.',
+            'Box count was taken before the last trolley was loaded.',
+            ['Count boxes at the truck door against the delivery receipt before sealing.'],
+        ],
+        'Grower Booking Desk' => [
+            'Re-offered the cancelled chicks to two waiting growers.',
+            'Bookings could be cancelled after confirmation without sales manager sign-off.',
+            ['Require sales manager approval for cancellations within 72 hours of pull-out.'],
+        ],
+    ];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -125,6 +165,10 @@ class SampleCarSeeder extends Seeder
     {
         [$action] = $step;
 
+        if ($action === CarAction::SubmitResponse) {
+            $this->writeResponse($car);
+        }
+
         $actor = match ($action) {
             CarAction::Release, CarAction::Accept, CarAction::NotAccept => $requestorApprover,
             CarAction::SubmitResponse, CarAction::UploadEvidence => $this->farmUser($farm, Role::Responder),
@@ -132,6 +176,37 @@ class SampleCarSeeder extends Seeder
         };
 
         $workflow->apply($car, $actor, $action, newDueOn: isset($step[2]) ? CarbonImmutable::parse($step[2]) : null);
+    }
+
+    /**
+     * Fill in the current round's Phase II response so the workflow accepts "Submit response".
+     */
+    private function writeResponse(Car $car): void
+    {
+        [$containment, $rootCause, $actions] = self::RESPONSES[$car->complainant];
+        $today = CarbonImmutable::today();
+        $responsible = $this->farmUser($car->farm, Role::Responder)->name;
+
+        $response = CarResponse::create([
+            'car_id' => $car->id,
+            'car_round_id' => $car->currentRound()->firstOrFail()->id,
+            'containment_actions' => $containment,
+            'containment_starts_on' => $today,
+            'containment_ends_on' => $today,
+            'containment_responsible' => $responsible,
+            'root_cause' => $rootCause,
+            'root_cause_responsible' => $responsible,
+        ]);
+
+        foreach ($actions as $index => $description) {
+            $response->correctiveActions()->create([
+                'position' => $index + 1,
+                'description' => $description,
+                'responsible' => $responsible,
+                'starts_on' => $today,
+                'ends_on' => $car->implementation_due_on,
+            ]);
+        }
     }
 
     /**

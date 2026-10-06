@@ -3,7 +3,7 @@
 **Stack baseline:** Laravel 13 (PHP 8.4) · Livewire *(to install in Phase 0)* · Tailwind 4 · Pest 5 · Pint · SQLite (local) → MySQL (production) · Vite 8
 **References:** `CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf` (behavior spec — 13 steps, flowchart, Table Egg / DOP matrices) · `car-management-system-mockup.html` (UI contract — every view in it becomes a real route; anything not in it is listed as "not in mockup" in §4) · `CAR_rolly funa_1.pdf`, `CAR_ELMER GALLARDO_2_1.pdf`, `CAR_JUN QUITEVIS 9-12-26 1.0.pdf` (real sample CARs — used as seed data and as the UAT script) · `development-playbook.md` (how we work through the stages)
 
-> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0–3 are complete**. **Next: Phase 4** (Phase II: interim containment, root cause, corrective actions, Responder Approver approval).
+> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0–4 are complete**. **Next: Phase 5** (Phase III: implementation evidence, effectiveness check, final acceptance and the "not accepted" loop).
 >
 > - **Stage 1 (UI concept):** `car-management-system-mockup.html` — six roles, full Phase I → III workflow, role-gated actions, Admin screens, sample data. It remains the UI contract and design-token source.
 > - **Phase 0 (foundation + scaffold port):**
@@ -113,6 +113,31 @@
 > - *(actual: voiding went live in Phase 3, not Phase 9, because it is a single action with a reason.)*
 > - *(actual: polymorphic types are pinned with a morph map — `car`, `user` — so stored attachment rows don't depend on class names.)*
 > - *(actual: nobody is notified yet.)* The Requestor Approver sees new CARs through the My Approvals count; flags and email arrive in Phase 6.
+>
+> **Phase 4 (Phase II: response & approval) — done (Oct 5, 2026):**
+>
+> - New tables: `car_responses` (one per round: interim containment with dates and responsible person, root cause and its responsible person, preparer, submitted time) and `corrective_actions` (any number of lines: action, responsible, start, end).
+> - **Response form** on the CAR page, for whoever may submit:
+>   - Steps 7–9, with **Save draft** and **Submit for approval**.
+>   - The root cause can be typed, attached as files, or both. Corrective-action documents can be attached too.
+>   - A corrective action starts when containment ends and must end by the implementation deadline (or the revised one).
+> - **Approve** and **Return for revision** (with a required reason) are live. The Phase II card shows every submitted response, newest round first.
+> - A response returned for revision reopens in the same round. A new round after "not effective" starts from the previous round's answer, which is kept.
+> - The workflow refuses "Submit response" until the response is complete.
+> - The sample seeder writes realistic responses for the six sample CARs that reach Phase II.
+> - 285 tests pass.
+>
+> **Deviations / decisions during Phase 4:**
+>
+> - *(actual: §7 #1 decided provisionally — Step 10 routing.)*
+>   - A Responder Approver may prepare the response too, so "Submit response" now allows both Responder roles.
+>   - Nobody may approve or return a response they prepared.
+>   - A response prepared by a Responder Approver goes to that person's approver in the chain. If they have none, any other Responder Approver on the farm may review it.
+> - *(actual: §7 #3 decided provisionally — the Responder owns interim containment.)* What the Requestor did on first contact stays in the problem details.
+> - *(actual: "responsible person" is free text, defaulting to the signed-in user.)* The people named on the samples are farm staff who may not have accounts.
+> - *(actual: corrective-action end dates may not go past the implementation deadline.)* Moving the deadline is the Requestor Approver's "not accepted" in Phase III.
+> - *(actual: only submitted responses are shown in the Phase II card.)* Drafts are visible only in the form.
+> - *(actual: known gap.)* "My Approvals" for a Responder Approver still lists a response they prepared themselves, even though they cannot act on it. To be filtered in hardening.
 >
 > **Deviations from the requirements document made during the scaffold** — log further ones here as *(actual: …)*:
 >

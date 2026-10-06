@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One pass through Phase II/III. Round 1 opens on submit; "not effective" and "not accepted"
@@ -37,5 +38,15 @@ class CarRound extends Model
     public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class);
+    }
+
+    /**
+     * The Responder's Phase II answer for this round, if one has been started.
+     *
+     * @return HasOne<CarResponse, $this>
+     */
+    public function response(): HasOne
+    {
+        return $this->hasOne(CarResponse::class);
     }
 }

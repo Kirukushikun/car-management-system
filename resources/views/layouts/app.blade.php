@@ -56,7 +56,7 @@
             </aside>
 
             <main class="main">
-                <div class="scaffold-banner">In development — Phase I (filing, release, rejection) is live; Phase II/III buttons and the dashboard charts are placeholders.</div>
+                <div class="scaffold-banner">In development — Phases I and II are live (filing, release, response, approval); Phase III buttons and the dashboard charts are placeholders.</div>
                 {{ $slot }}
             </main>
         </div>

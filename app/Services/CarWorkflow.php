@@ -35,25 +35,28 @@ class CarWorkflow
     ) {}
 
     /**
-     * The transition table: from which statuses, which action, by which role, to which status.
+     * The transition table: from which statuses, which action, by which roles, to which status.
      *
-     * @return list<array{from: list<CarStatus>, action: CarAction, role: Role, to: CarStatus}>
+     * A Responder Approver may also prepare a response (Step 10: whoever prepares it, someone above
+     * them approves it) — see mayReviewResponse().
+     *
+     * @return list<array{from: list<CarStatus>, action: CarAction, roles: list<Role>, to: CarStatus}>
      */
     public static function transitions(): array
     {
         return [
-            ['from' => [CarStatus::AwaitingRelease], 'action' => CarAction::Release, 'role' => Role::RequestorApprover, 'to' => CarStatus::AwaitingResponder],
-            ['from' => [CarStatus::AwaitingRelease], 'action' => CarAction::Reject, 'role' => Role::RequestorApprover, 'to' => CarStatus::ReturnedToRequestor],
-            ['from' => [CarStatus::ReturnedToRequestor], 'action' => CarAction::Resubmit, 'role' => Role::Requestor, 'to' => CarStatus::AwaitingRelease],
-            ['from' => [CarStatus::AwaitingResponder, CarStatus::ReturnedToResponder], 'action' => CarAction::SubmitResponse, 'role' => Role::Responder, 'to' => CarStatus::AwaitingResponderApproval],
-            ['from' => [CarStatus::AwaitingResponderApproval], 'action' => CarAction::ApproveResponse, 'role' => Role::ResponderApprover, 'to' => CarStatus::AwaitingImplementation],
-            ['from' => [CarStatus::AwaitingResponderApproval], 'action' => CarAction::ReturnResponse, 'role' => Role::ResponderApprover, 'to' => CarStatus::ReturnedToResponder],
-            ['from' => [CarStatus::AwaitingImplementation, CarStatus::OpenNotAccepted], 'action' => CarAction::UploadEvidence, 'role' => Role::Responder, 'to' => CarStatus::AwaitingEffectivenessCheck],
-            ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkEffective, 'role' => Role::ResponderApprover, 'to' => CarStatus::AwaitingRequestorApproval],
-            ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkNotEffective, 'role' => Role::ResponderApprover, 'to' => CarStatus::ReturnedToResponder],
-            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::Accept, 'role' => Role::RequestorApprover, 'to' => CarStatus::ClosedAccepted],
-            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::NotAccept, 'role' => Role::RequestorApprover, 'to' => CarStatus::OpenNotAccepted],
-            ['from' => CarStatus::open(), 'action' => CarAction::Void, 'role' => Role::Admin, 'to' => CarStatus::Voided],
+            ['from' => [CarStatus::AwaitingRelease], 'action' => CarAction::Release, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::AwaitingResponder],
+            ['from' => [CarStatus::AwaitingRelease], 'action' => CarAction::Reject, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::ReturnedToRequestor],
+            ['from' => [CarStatus::ReturnedToRequestor], 'action' => CarAction::Resubmit, 'roles' => [Role::Requestor], 'to' => CarStatus::AwaitingRelease],
+            ['from' => [CarStatus::AwaitingResponder, CarStatus::ReturnedToResponder], 'action' => CarAction::SubmitResponse, 'roles' => [Role::Responder, Role::ResponderApprover], 'to' => CarStatus::AwaitingResponderApproval],
+            ['from' => [CarStatus::AwaitingResponderApproval], 'action' => CarAction::ApproveResponse, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::AwaitingImplementation],
+            ['from' => [CarStatus::AwaitingResponderApproval], 'action' => CarAction::ReturnResponse, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::ReturnedToResponder],
+            ['from' => [CarStatus::AwaitingImplementation, CarStatus::OpenNotAccepted], 'action' => CarAction::UploadEvidence, 'roles' => [Role::Responder], 'to' => CarStatus::AwaitingEffectivenessCheck],
+            ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkEffective, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::AwaitingRequestorApproval],
+            ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkNotEffective, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::ReturnedToResponder],
+            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::Accept, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::ClosedAccepted],
+            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::NotAccept, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::OpenNotAccepted],
+            ['from' => CarStatus::open(), 'action' => CarAction::Void, 'roles' => [Role::Admin], 'to' => CarStatus::Voided],
         ];
     }
 
@@ -143,7 +146,7 @@ class CarWorkflow
     {
         $transition = $this->transitionFor($car->status, $action);
 
-        if ($transition === null || ! $user->is_active || $user->role !== $transition['role']) {
+        if ($transition === null || ! $user->is_active || ! in_array($user->role, $transition['roles'], true)) {
             return false;
         }
 
@@ -153,6 +156,34 @@ class CarWorkflow
 
         if ($action === CarAction::Resubmit && $car->requestor_id !== $user->id) {
             return false;
+        }
+
+        if (in_array($action, [CarAction::ApproveResponse, CarAction::ReturnResponse], true) && ! $this->mayReviewResponse($car, $user)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Step 10: nobody reviews a response they prepared. A response prepared by a Responder
+     * Approver goes to that person's own approver when the chain names one; otherwise any other
+     * Responder Approver on the farm may review it.
+     */
+    private function mayReviewResponse(Car $car, User $reviewer): bool
+    {
+        $preparer = $car->currentResponse()?->preparer;
+
+        if ($preparer === null) {
+            return true;
+        }
+
+        if ($preparer->is($reviewer)) {
+            return false;
+        }
+
+        if ($preparer->role === Role::ResponderApprover && $preparer->approver_id !== null) {
+            return $preparer->approver_id === $reviewer->id;
         }
 
         return true;
@@ -178,6 +209,10 @@ class CarWorkflow
 
             if (! $this->can($locked, $user, $action)) {
                 throw new AuthorizationException("A {$user->role->label()} cannot \"{$action->label()}\" {$locked->reference} while it is {$locked->status->label()}.");
+            }
+
+            if ($action === CarAction::SubmitResponse) {
+                $this->stampResponse($locked, $user);
             }
 
             $from = $locked->status;
@@ -214,7 +249,25 @@ class CarWorkflow
     }
 
     /**
-     * @return array{from: list<CarStatus>, action: CarAction, role: Role, to: CarStatus}|null
+     * A response can only be submitted once Steps 7–9 are complete; submitting records who sent it.
+     *
+     * @throws ValidationException when the response is missing or incomplete
+     */
+    private function stampResponse(Car $car, User $user): void
+    {
+        $response = $car->currentResponse();
+
+        if (! $response?->isComplete()) {
+            throw ValidationException::withMessages([
+                'response' => 'Complete the interim containment, the root cause and at least one corrective action before submitting.',
+            ]);
+        }
+
+        $response->update(['prepared_by' => $user->id, 'submitted_at' => now()]);
+    }
+
+    /**
+     * @return array{from: list<CarStatus>, action: CarAction, roles: list<Role>, to: CarStatus}|null
      */
     private function transitionFor(CarStatus $from, CarAction $action): ?array
     {

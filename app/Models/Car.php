@@ -133,6 +133,24 @@ class Car extends Model
     }
 
     /**
+     * Phase II answers, one per round.
+     *
+     * @return HasMany<CarResponse, $this>
+     */
+    public function responses(): HasMany
+    {
+        return $this->hasMany(CarResponse::class)->orderBy('car_round_id');
+    }
+
+    /**
+     * The response for the round in progress, if the Responder has started one.
+     */
+    public function currentResponse(): ?CarResponse
+    {
+        return $this->currentRound?->response;
+    }
+
+    /**
      * @return HasMany<CarEvent, $this>
      */
     public function events(): HasMany
@@ -212,6 +230,15 @@ class Car extends Model
             1 => $this->response_due_on,
             default => $this->revised_due_on ?? $this->implementation_due_on,
         };
+    }
+
+    /**
+     * The date corrective actions must be finished by: the revised end date after a "not
+     * accepted", otherwise the implementation deadline from the matrix.
+     */
+    public function implementationDeadline(): CarbonImmutable
+    {
+        return $this->revised_due_on ?? $this->implementation_due_on;
     }
 
     public function isOverdue(?CarbonInterface $today = null): bool

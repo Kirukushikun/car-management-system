@@ -3,6 +3,7 @@
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
 use App\Enums\Role;
+use App\Livewire\Cars\ResponseForm;
 use App\Livewire\Cars\Show;
 use App\Models\Attachment;
 use App\Models\Car;
@@ -117,16 +118,77 @@ it('lets the IT Admin void an open CAR with a reason', function () {
     expect($car->fresh()->status)->toBe(CarStatus::Voided);
 });
 
-it('explains which phase wires up a Phase II or III action without changing anything', function () {
+it('explains which phase wires up a Phase III action without changing anything', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingImplementation)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car])
+        ->call('act', CarAction::UploadEvidence->value)
+        ->assertSee('wired up in Phase 5');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingImplementation)
+        ->and($car->events()->count())->toBe(0);
+});
+
+it('shows the responder the response form', function () {
     $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
 
     Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
         ->test(Show::class, ['car' => $car])
-        ->call('act', CarAction::SubmitResponse->value)
-        ->assertSee('wired up in Phase 4');
+        ->assertSee(['Fill in the response below', 'Record the interim containment'])
+        ->assertSeeLivewire(ResponseForm::class);
+});
 
-    expect($car->fresh()->status)->toBe(CarStatus::AwaitingResponder)
-        ->and($car->events()->count())->toBe(0);
+it('does not show the response form to anyone else', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertDontSeeLivewire(ResponseForm::class);
+});
+
+it('shows the submitted response in the Phase II card but not drafts', function () {
+    $submitted = Car::factory()->status(CarStatus::AwaitingResponderApproval)->withResponse(submitted: true)->create();
+    $draft = Car::factory()->status(CarStatus::AwaitingResponder)->withResponse()->create();
+    $monitor = User::factory()->role(Role::Monitor)->create();
+
+    Livewire::actingAs($monitor)
+        ->test(Show::class, ['car' => $submitted])
+        ->assertSee(['Segregated the affected batch', 'Eggs were dispatched three days after collection', 'Move dirty eggs to cold storage']);
+
+    Livewire::actingAs($monitor)
+        ->test(Show::class, ['car' => $draft])
+        ->assertDontSee('Segregated the affected batch')
+        ->assertSee('Waiting for');
+});
+
+it('approves a submitted response and moves the CAR to implementation', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingResponderApproval)->withResponse(submitted: true)->create();
+    $approver = User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id]);
+
+    Livewire::actingAs($approver)
+        ->test(Show::class, ['car' => $car])
+        ->assertSee('Review the root cause and corrective actions')
+        ->call('act', CarAction::ApproveResponse->value)
+        ->assertSee('Root cause & corrective action approved');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingImplementation);
+});
+
+it('returns a response for revision with a reason', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingResponderApproval)->withResponse(submitted: true)->create();
+    $approver = User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id]);
+
+    Livewire::actingAs($approver)
+        ->test(Show::class, ['car' => $car])
+        ->call('act', CarAction::ReturnResponse->value)
+        ->assertHasErrors('note')
+        ->set('note', 'Root cause does not explain why only big dirty eggs spoiled.')
+        ->call('act', CarAction::ReturnResponse->value)
+        ->assertHasNoErrors();
+
+    expect($car->fresh()->status)->toBe(CarStatus::ReturnedToResponder)
+        ->and($car->events()->sole()->note)->toBe('Root cause does not explain why only big dirty eggs spoiled.');
 });
 
 it('forbids an action the current user is not offered', function () {

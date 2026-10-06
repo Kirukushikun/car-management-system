@@ -27,6 +27,16 @@ class Attachment extends Model
     public const PROBLEM_EVIDENCE = 'problem_evidence';
 
     /**
+     * Step 8 root-cause findings attached to a response (the requirement allows text or a file).
+     */
+    public const ROOT_CAUSE = 'root_cause';
+
+    /**
+     * Step 9 corrective-action documents attached to a response.
+     */
+    public const CORRECTIVE_ACTION = 'corrective_action';
+
+    /**
      * File types accepted as CAR evidence: photos, phone videos, screenshots, PDFs, Office files.
      *
      * @var list<string>
