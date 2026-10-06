@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccessLog;
 use App\Models\Attachment;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -22,6 +23,8 @@ class AttachmentController extends Controller
 
         $disk = Storage::disk($attachment->disk);
         abort_unless($disk->exists($attachment->path), 404);
+
+        AccessLog::recordAccess('download', "{$car->reference} · {$attachment->original_name}");
 
         $headers = ['Content-Type' => $attachment->mime_type];
 

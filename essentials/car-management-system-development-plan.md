@@ -3,7 +3,7 @@
 **Stack baseline:** Laravel 13 (PHP 8.4) · Livewire *(to install in Phase 0)* · Tailwind 4 · Pest 5 · Pint · SQLite (local) → MySQL (production) · Vite 8
 **References:** `CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf` (behavior spec — 13 steps, flowchart, Table Egg / DOP matrices) · `car-management-system-mockup.html` (UI contract — every view in it becomes a real route; anything not in it is listed as "not in mockup" in §4) · `CAR_rolly funa_1.pdf`, `CAR_ELMER GALLARDO_2_1.pdf`, `CAR_JUN QUITEVIS 9-12-26 1.0.pdf` (real sample CARs — used as seed data and as the UAT script) · `development-playbook.md` (how we work through the stages)
 
-> **Status update (Oct 5, 2026):** the UI-scaffold pass (Playbook, Stage 2) and **Phases 0–4 are complete**. **Next: Phase 5** (Phase III: implementation evidence, effectiveness check, final acceptance and the "not accepted" loop).
+> **Status update (Oct 6, 2026):** **all build phases (0–10) are complete** — the full CAR workflow, notifications, dashboard, print/export, audit log and backups are built and tested (357 tests). **Next: user acceptance testing, then go-live on the internal server.**
 >
 > - **Stage 1 (UI concept):** `car-management-system-mockup.html` — six roles, full Phase I → III workflow, role-gated actions, Admin screens, sample data. It remains the UI contract and design-token source.
 > - **Phase 0 (foundation + scaffold port):**
@@ -139,6 +139,42 @@
 > - *(actual: only submitted responses are shown in the Phase II card.)* Drafts are visible only in the form.
 > - *(actual: known gap.)* "My Approvals" for a Responder Approver still lists a response they prepared themselves, even though they cannot act on it. To be filtered in hardening.
 >
+> **Phases 5–10 — done (Oct 6, 2026):**
+>
+> - **Phase 5, Phase III:**
+>   - Evidence is uploaded per round (files, responsible person, notes); the workflow refuses "upload evidence" without a file.
+>   - Mark effective / not effective (with a reason), Accept, and Not accepted (with a new end date) are live.
+>   - The Phase III card mirrors Part VI of the paper form.
+> - **Phase 6, notifications:**
+>   - Every transition flags whoever can act next: in-app immediately, and by email through the queue.
+>   - "Not accepted" also flags the farm's Responder Approvers. Closing or voiding tells the filing Requestor.
+>   - Daily reminders go out for CARs due tomorrow or overdue (weekdays 07:00), and there is a Notifications page.
+> - **Phase 7, dashboard** (`DashboardMetrics`) shows:
+>   - open, overdue and Phase I counts;
+>   - average response time with on-time %, and average resolution time;
+>   - issuance per month, repeat offenses by category / sub-category, and issuance by unit;
+>   - filters for period, business line and farm.
+>   - `ScaffoldData` is deleted.
+> - **Phase 8, documents:** a printable CAR form in the paper layout (Parts I–VI), and a CSV export of every list view.
+> - **Phase 9, maintenance:** an append-only audit log of user and category changes (passwords masked) with an Audit Log page; `app:backup` runs nightly at 01:00, keeping 14 days.
+> - **Phase 10, hardening:**
+>   - "My Approvals" now hides responses the approver may not review.
+>   - Attachment downloads and prints are written to the access log.
+>   - A route-protection test covers every page.
+>   - An end-to-end lifecycle test walks a CAR through every screen and both loops.
+>   - A smoke test renders every page with the sample data for every role.
+>
+> **Deviations during Phases 5–10:**
+>
+> - *(actual: no `verifications` table.)* The effectiveness check and acceptance are read from `car_events` per round. Evidence fields live on `car_rounds`.
+> - *(actual: emails use the `log` mailer until SMTP is configured)*. They need a running queue worker. In-app flags do not.
+> - *(actual: the repeat-offense key is sub-category within the selected period.)* The list is filterable by line and farm instead of a fixed 90-day sub-category + unit window — §7 #6.
+> - *(actual: deferred.)*
+>   - Import of historical paper CARs (Phase 8).
+>   - Removing attachments after submit.
+>   - Editing category or sub-category names in the app.
+>   - Single sign-on, password self-service and 2FA.
+
 > **Deviations from the requirements document made during the scaffold** — log further ones here as *(actual: …)*:
 >
 > - *(actual: roles are named by function — Requestor, Requestor Approver, Responder, Responder Approver, Monitor, IT Admin — instead of Supervisor / Manager / Division Head, which were confusing across farms.)*

@@ -95,3 +95,22 @@ it('counts the queue in the sidebar', function () {
         ->get(route('cars.index', ['view' => 'mine']))
         ->assertSeeInOrder(['My Approvals', '2']);
 });
+
+it('leaves a response out of My Approvals for the approver who prepared it', function () {
+    $approver = User::factory()->role(Role::ResponderApprover, 'PFC')->create();
+    $colleague = User::factory()->role(Role::ResponderApprover, 'PFC')->create();
+    $own = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingResponderApproval)->withResponse($approver, submitted: true)->create();
+
+    expect(Car::waitingOn($approver)->pluck('id')->all())->not->toContain($own->id)
+        ->and(Car::waitingOn($colleague)->pluck('id')->all())->toContain($own->id);
+});
+
+it('routes an approver-prepared response only to that person\'s approver', function () {
+    $senior = User::factory()->role(Role::ResponderApprover, 'PFC')->create();
+    $other = User::factory()->role(Role::ResponderApprover, 'PFC')->create();
+    $preparer = User::factory()->role(Role::ResponderApprover, 'PFC')->create(['approver_id' => $senior->id]);
+    $car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingResponderApproval)->withResponse($preparer, submitted: true)->create();
+
+    expect(Car::waitingOn($senior)->pluck('id')->all())->toContain($car->id)
+        ->and(Car::waitingOn($other)->pluck('id')->all())->not->toContain($car->id);
+});

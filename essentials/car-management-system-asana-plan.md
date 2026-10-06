@@ -1,8 +1,8 @@
 # CAR Management System — Development Plan
 
-**Stack:** Laravel 13 (PHP 8.4) · Livewire 4 · Tailwind 4 · Pest 5 · SQLite (dev) → MySQL (prod, planned)
-**Status:** In Dev — Phases 0–4 of 10 done
-**Last updated:** 2026-10-05
+**Stack:** Laravel 13 (PHP 8.4) · Livewire 4 · Tailwind 4 · Pest 5 · SQLite (dev) → MySQL (internal server)
+**Status:** Build complete — awaiting UAT and go-live
+**Last updated:** 2026-10-06
 **Repo:** local Git (`main`, no remote yet) · **Prod URL:** internal server (to be set up)
 
 ---
@@ -31,7 +31,7 @@
 |---|---|---|
 | ✅ | Build static HTML/UI mockup | `car-management-system-mockup.html` — every screen, all roles, sample data; the UI contract |
 | ✅ | Settle domain naming / glossary | Function-based roles (Requestor, Requestor Approver, Responder, Responder Approver, Monitor, IT Admin); 11 statuses; 13 actions |
-| ✅ | Data model / database design | Built through Phase 4; remaining tables (verifications, audits) land with their phases |
+| ✅ | Data model / database design | 17 tables built; verifications are read from the CAR history per round |
 
 ---
 
@@ -149,28 +149,28 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
 #### Phase 4 — Phase II: response & approval ✅
 - Containment, root cause (text or file), corrective actions with draft/submit; Step 10 approve / return with reason.
 
-#### Phase 5 — Phase III: implementation & closure ⬜
+#### Phase 5 — Phase III: implementation & closure ✅
 - Evidence upload, effectiveness check, final acceptance, "not accepted" with new end date.
 
-#### Phase 6 — Notifications & reminders ⬜
+#### Phase 6 — Notifications & reminders ✅
 - In-app flag per transition, queued email, due-soon and overdue reminders.
 
-#### Phase 7 — Dashboard & reporting ⬜
+#### Phase 7 — Dashboard & reporting ✅
 - Real response / resolution time, monthly frequency, repeat offenses; filters by date, line, farm.
 
-#### Phase 8 — Documents & import ⬜
-- Printable CAR form (Parts I–VI), Excel/CSV export, historical CAR import.
+#### Phase 8 — Documents & import ✅
+- Printable CAR form (Parts I–VI) and CSV export. *(Historical CAR import deferred.)*
 
-#### Phase 9 — Maintenance ⬜
-- Backups, audit viewer for admin changes, attachment clean-up.
+#### Phase 9 — Maintenance ✅
+- Nightly backups (`app:backup`), audit log of user and category changes with viewer.
 
-#### Phase 10 — Hardening ⬜
-- [ ] Every route/action authorized by policy, not menu visibility
-- [ ] No CAR reachable by link, download, print or export that its list would hide
-- [ ] Every transition has a reachable control and a real handler
-- [ ] Full happy path + every loop + every role combination tested
-- [ ] Attachment downloads written to the access log
-- [ ] "My Approvals" excludes responses the approver prepared
+#### Phase 10 — Hardening ✅
+- [x] Every route/action authorized by policy, not menu visibility
+- [x] No CAR reachable by link, download, print or export that its list would hide
+- [x] Every transition has a reachable control and a real handler
+- [x] Full happy path + every loop + every role combination tested
+- [x] Attachment downloads and prints written to the access log
+- [x] "My Approvals" excludes responses the approver may not review
 - [ ] UAT: the three sample CARs walked to closure by real users
 
 ---
@@ -179,8 +179,8 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
 
 | Status | Task | Notes |
 |---|---|---|
-| 🟡 | Automated test suite green | 285 Pest tests passing through Phase 4; grows with each phase |
-| ⬜ | Hardening checklist | Phase 10 list above |
+| ✅ | Automated test suite green | 357 Pest tests, including an end-to-end lifecycle test and a full-sample-data smoke test |
+| ✅ | Hardening checklist | Phase 10 list above (UAT item open) |
 | ❓ | UAT / stakeholder acceptance | Script: Funa, Gallardo, Quitevis CARs end to end, one user per role |
 
 ---
@@ -189,10 +189,12 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
 
 | Status | Task | Notes |
 |---|---|---|
-| ⬜ | Production environment/config ready | Hosting not decided (on-prem vs cloud VM vs managed) |
-| ⬜ | Data & auth cutover | Create real accounts; import open paper CARs (Phase 8) |
-| ⬜ | Scheduler running | Reminders, backups, queue worker |
-| ⬜ | Go Live | |
+| ⬜ | Production environment/config ready | Internal server: PHP 8.4 (zip, pdo_mysql), MySQL 8, web server pointing at `public/`. `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, MySQL credentials, `php artisan key:generate`. Then `composer install --no-dev`, `npm ci && npm run build`, `php artisan migrate --force`, `php artisan db:seed --class=ReferenceDataSeeder --force` (**not** the demo seeders), `php artisan optimize` |
+| ⬜ | Data & auth cutover | First IT Admin: `php artisan app:create-admin it@company.com`; then real users via Users & Roles with approver chains |
+| ⬜ | Scheduler running | Cron / Task Scheduler every minute: `php artisan schedule:run` (reminders 07:00 weekdays, backups 01:00). Copy `storage/app/backups` off the server |
+| ⬜ | Queue worker running | `php artisan queue:work` as a service (emails). In-app flags work without it |
+| ⬜ | Mail settings | Set `MAIL_*` to the company SMTP when ready — until then emails go to the log |
+| ⬜ | Go Live | After UAT sign-off |
 
 ---
 
@@ -207,13 +209,19 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
 
 ## Known Gaps / Deferred
 
-- **Open decisions still on assumptions:** Step 10 escalation (approver chain, provisional), who picks the category, calendar vs business days, CAR visibility (everyone sees all), Issued To ↔ farm link, multiple Issued To per CAR, hosting.
-- **Auth extras deferred to hardening:** SSO, forgot/change password, emailed invites, 2FA.
-- **No notifications yet** — approvers rely on their queue counts until Phase 6.
-- **Dashboard averages, monthly chart and repeat offenders are sample values** until Phase 7.
-- **No audit trail of admin changes** (users, matrix) until Phase 9.
-- **Attachments can't be removed after submit**; downloads aren't logged yet.
-- **Matrix edits days only** — categories and sub-categories can't be added or renamed in the app.
+- **Open decisions still on assumptions:**
+  - Step 10 escalation uses the approver chain (provisional).
+  - Who picks the category.
+  - Calendar vs business days (calendar now).
+  - CAR visibility (everyone sees all).
+  - The Issued To ↔ farm link.
+  - Multiple Issued To per CAR.
+- **Pending outside the code:** UAT with real users, SMTP settings, server setup and go-live.
+- **Deferred features:**
+  - Importing historical paper CARs.
+  - Removing attachments after submit.
+  - Adding or renaming categories and sub-categories in the app (days are editable).
+  - SSO, password self-service, 2FA.
 
 ---
 

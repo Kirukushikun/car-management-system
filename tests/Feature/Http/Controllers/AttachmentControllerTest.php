@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\AccessLog;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\User;
@@ -52,4 +53,15 @@ it('stores files outside the public folder', function () {
     expect($attachment->disk)->toBe('local')
         ->and($attachment->path)->toStartWith("cars/{$this->car->id}/")
         ->and($attachment->path)->not->toContain('spoiled');
+});
+
+it('writes each download to the access log', function () {
+    $attachment = Attachment::store($this->car, UploadedFile::fake()->image('spoiled.jpg'), Attachment::PROBLEM_EVIDENCE, $this->uploader);
+    $viewer = User::factory()->role(Role::Monitor)->create();
+
+    $this->actingAs($viewer)->get(route('attachments.show', $attachment))->assertOk();
+
+    expect(AccessLog::where('event', 'download')->sole())
+        ->user_id->toBe($viewer->id)
+        ->subject->toBe("{$this->car->reference} · spoiled.jpg");
 });

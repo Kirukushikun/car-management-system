@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\AccessLog;
 use App\Models\Car;
 use App\Models\User;
 use Database\Seeders\ReferenceDataSeeder;
@@ -42,4 +43,12 @@ it('returns 404 for an unknown reference', function () {
     $this->actingAs(User::factory()->role(Role::Monitor)->create())
         ->get('/cars/CAR-2026-9999/print')
         ->assertNotFound();
+});
+
+it('writes each print to the access log', function () {
+    $car = Car::factory()->create();
+
+    $this->actingAs(User::factory()->role(Role::Monitor)->create())->get(route('cars.print', $car))->assertOk();
+
+    expect(AccessLog::where('event', 'print')->sole()->subject)->toBe($car->reference);
 });

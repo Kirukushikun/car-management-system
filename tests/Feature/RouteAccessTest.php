@@ -10,6 +10,11 @@ dataset('protected pages', [
     'car detail' => ['/cars/CAR-2026-0147'],
     'users' => ['/admin/users'],
     'matrix' => ['/admin/matrix'],
+    'audit log' => ['/admin/audit'],
+    'notifications' => ['/notifications'],
+    'export' => ['/cars/export'],
+    'print' => ['/cars/CAR-2026-0147/print'],
+    'attachment' => ['/attachments/1'],
 ]);
 
 it('sends guests to sign in', function (string $path) {
@@ -25,4 +30,6 @@ it('forbids pages outside the signed-in role', function (Role $role, string $pat
     'monitor on matrix' => [Role::Monitor, '/admin/matrix'],
     'monitor on my queue' => [Role::Monitor, '/cars?view=mine'],
     'requestor on overdue' => [Role::Requestor, '/cars?view=overdue'],
+    'monitor on audit log' => [Role::Monitor, '/admin/audit'],
+    'requestor on overdue export' => [Role::Requestor, '/cars/export?view=overdue'],
 ]);

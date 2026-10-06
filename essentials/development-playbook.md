@@ -112,6 +112,8 @@ The principle: **decide behavior in a mockup, build structure in a scaffold, onl
 **Exit check:** checklist all ticked; every sample document completed through closure; no open high-severity defects.
 
 > **Applied to CAR:** UAT script = the three sample CARs, entered and walked from Phase I to "Closed — Accepted", plus one run through each loop (reject at release, return at Step 10, not effective, not accepted).
+>
+> **Status (Oct 6, 2026):** Stage 3 (build) complete — Phases 0–10. The checklist is done except UAT. The same walk-through already runs as an automated test (`tests/Feature/CarLifecycleTest.php`). UAT with real users is the next step.
 
 ---
 

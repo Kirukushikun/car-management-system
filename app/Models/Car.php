@@ -176,7 +176,8 @@ class Car extends Model
 
     /**
      * CARs waiting on this user: their role owns the status, on their farm for Responder roles,
-     * and only their own CARs for a Requestor.
+     * and only their own CARs for a Requestor. A Responder Approver does not see responses they
+     * may not review (Step 10): ones they prepared, or ones routed to another approver in the chain.
      *
      * @param  Builder<Car>  $query
      */
@@ -186,7 +187,21 @@ class Car extends Model
 
         $query->whereIn('status', $statuses)
             ->when($user->role->isFarmScoped(), fn (Builder $query) => $query->where('farm_id', $user->farm_id))
-            ->when($user->role === Role::Requestor, fn (Builder $query) => $query->where('requestor_id', $user->id));
+            ->when($user->role === Role::Requestor, fn (Builder $query) => $query->where('requestor_id', $user->id))
+            ->when($user->role === Role::ResponderApprover, fn (Builder $query) => $query->whereNot(fn (Builder $query) => $query
+                ->where('status', CarStatus::AwaitingResponderApproval)
+                ->whereExists(fn ($response) => $response->selectRaw('1')
+                    ->from('car_responses')
+                    ->join('car_rounds', 'car_rounds.id', '=', 'car_responses.car_round_id')
+                    ->join('users as preparers', 'preparers.id', '=', 'car_responses.prepared_by')
+                    ->whereColumn('car_rounds.car_id', 'cars.id')
+                    ->whereColumn('car_rounds.number', 'cars.current_round')
+                    ->where(fn ($reviewable) => $reviewable
+                        ->where('preparers.id', $user->id)
+                        ->orWhere(fn ($chained) => $chained
+                            ->where('preparers.role', Role::ResponderApprover->value)
+                            ->whereNotNull('preparers.approver_id')
+                            ->where('preparers.approver_id', '<>', $user->id))))));
     }
 
     /**

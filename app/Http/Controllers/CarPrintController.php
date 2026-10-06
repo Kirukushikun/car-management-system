@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CarAction;
+use App\Models\AccessLog;
 use App\Models\Attachment;
 use App\Models\Car;
 use Illuminate\Contracts\View\View;
@@ -17,6 +18,7 @@ class CarPrintController extends Controller
     public function __invoke(Car $car): View
     {
         Gate::authorize('view', $car);
+        AccessLog::recordAccess('print', $car->reference);
 
         $car->load([
             'farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'attachments',
