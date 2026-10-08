@@ -35,4 +35,23 @@ return [
         ],
     ],
 
+    // Central organization login (bfcgroup.ph) — see config/login.php for when each path runs.
+    'auth_api' => [
+        'base_uri' => env('AUTH_API_BASE_URI', ''),
+        'api_key' => env('AUTH_API_KEY', ''),
+        'auth_user_api_key' => env('AUTH_USER_API_KEY', ''),
+    ],
+
+    // Central user directory, for granting access in Users & Roles.
+    'user_api' => [
+        'endpoint' => env('USER_API_ENDPOINT', ''),
+        'key' => env('USER_API_KEY', ''),
+    ],
+
+    // Turnstile credentials only. Whether it runs is decided in config/login.php.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY', ''),
+        'secret' => env('TURNSTILE_SECRET_KEY', ''),
+    ],
+
 ];

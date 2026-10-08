@@ -15,14 +15,13 @@ beforeEach(function () {
     Audit::query()->delete();
 });
 
-it('records who changed a user, from what to what, without storing the password', function () {
+it('records who changed a user, from what to what', function () {
     $user = User::factory()->create(['name' => 'Old Name']);
 
     Livewire::actingAs($this->admin)
         ->test(Users::class)
         ->call('edit', $user->id)
         ->set('form.name', 'New Name')
-        ->set('form.password', 'brand-new-pass')
         ->call('save');
 
     $audit = Audit::where('auditable_type', 'user')->where('auditable_id', $user->id)->latest('id')->first();
@@ -30,8 +29,18 @@ it('records who changed a user, from what to what, without storing the password'
     expect($audit)
         ->user_id->toBe($this->admin->id)
         ->event->toBe('updated')
-        ->old_values->toMatchArray(['name' => 'Old Name', 'password' => '(changed)'])
-        ->new_values->toMatchArray(['name' => 'New Name', 'password' => '(changed)']);
+        ->old_values->toBe(['name' => 'Old Name'])
+        ->new_values->toBe(['name' => 'New Name']);
+});
+
+it('never stores a password in the audit log', function () {
+    $user = User::factory()->create();
+
+    $user->update(['password' => 'some-new-secret']);
+
+    expect(Audit::where('auditable_id', $user->id)->latest('id')->first())
+        ->old_values->toBe(['password' => '(changed)'])
+        ->new_values->toBe(['password' => '(changed)']);
 });
 
 it('records matrix day changes', function () {

@@ -6,13 +6,15 @@ use App\Enums\Role;
 use App\Livewire\Forms\UserForm;
 use App\Models\Farm;
 use App\Models\User;
+use App\Services\UserDirectory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Users & Roles: create accounts, assign role / farm / approver, deactivate and reactivate.
+ * Users & Roles: grant access to people from the central directory (by central user id), assign
+ * role / farm / approver, deactivate and reactivate.
  * Accounts are never deleted — CAR history keeps pointing at them.
  */
 #[Title('Users & Roles')]
@@ -24,19 +26,50 @@ class Users extends Component
 
     public ?string $notice = null;
 
+    public string $search = '';
+
     public function mount(): void
     {
         $this->authorize('administer');
     }
 
-    public function create(): void
+    /**
+     * Start granting access to someone from the central directory. People who already have an
+     * account open in the edit form instead.
+     */
+    public function grant(int $centralId, UserDirectory $directory): void
     {
         $this->authorize('administer');
 
+        $person = $directory->find($centralId);
+
+        if ($person === null) {
+            $this->notice = 'That person is no longer in the central directory. Try Refresh.';
+
+            return;
+        }
+
+        if ($existing = User::find($centralId)) {
+            $this->edit($existing);
+
+            return;
+        }
+
         $this->form->reset();
         $this->form->resetErrorBag();
+        $this->form->centralId = $person['id'];
+        $this->form->name = $person['name'];
+        $this->form->email = $person['email'];
         $this->form->role = Role::Requestor->value;
         $this->showForm = true;
+    }
+
+    public function refreshDirectory(UserDirectory $directory): void
+    {
+        $this->authorize('administer');
+
+        $directory->refresh();
+        $this->notice = 'Directory refreshed.';
     }
 
     public function edit(User $user): void
@@ -71,7 +104,7 @@ class Users extends Component
             $this->notice = "Saved changes to {$user->name}.";
         } else {
             $user = $this->form->store();
-            $this->notice = "Created {$user->name} as {$user->role->label()}. Share the initial password with them directly.";
+            $this->notice = "Granted {$user->name} access as {$user->role->label()}. They sign in with their company account.";
         }
 
         $this->cancel();
@@ -104,10 +137,24 @@ class Users extends Component
         $this->notice = $user->is_active ? "Reactivated {$user->name}." : "Deactivated {$user->name}. They are signed out on their next request.";
     }
 
-    public function render(): View
+    public function render(UserDirectory $directory): View
     {
+        $users = User::with(['farm', 'approver'])->orderBy('role')->orderBy('name')->get();
+        $listing = $directory->all();
+        $term = mb_strtolower(trim($this->search));
+        $matches = collect($listing['users'])
+            ->filter(fn (array $person): bool => $term === ''
+                || str_contains(mb_strtolower($person['name']), $term)
+                || str_contains(mb_strtolower($person['email']), $term));
+
         return view('livewire.admin.users', [
-            'users' => User::with(['farm', 'approver'])->orderBy('role')->orderBy('name')->get(),
+            'users' => $users,
+            'directory' => $matches->take(50)->values(),
+            'directoryTotal' => count($listing['users']),
+            'directoryMatches' => $matches->count(),
+            'directoryError' => $listing['error'],
+            'undecryptable' => $listing['undecryptable'],
+            'localById' => $users->keyBy('id'),
             'roles' => Role::cases(),
             'farms' => Farm::orderBy('name')->get(),
             'approverOptions' => $this->approverOptions(),

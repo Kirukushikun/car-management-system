@@ -32,5 +32,12 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="AUTH_API_BASE_URI" value="https://auth.test"/>
+        <env name="AUTH_API_KEY" value="test-auth-key"/>
+        <env name="AUTH_USER_API_KEY" value="test-auth-user-key"/>
+        <env name="USER_API_ENDPOINT" value=""/>
+        <env name="USER_API_KEY" value="test-user-key"/>
+        <env name="TURNSTILE_SITE_KEY" value=""/>
+        <env name="TURNSTILE_SECRET_KEY" value=""/>
     </php>
 </phpunit>

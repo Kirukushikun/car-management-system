@@ -164,6 +164,31 @@
 >   - An end-to-end lifecycle test walks a CAR through every screen and both loops.
 >   - A smoke test renders every page with the sample data for every role.
 >
+> **Authentication — organization standard (Oct 7, 2026):**
+>
+> - **Central sign-in** follows the Authentication Implementation Guide:
+>   - Central Auth API login, then the user-id lookup, then the local user.
+>   - The person must have been granted access and be active.
+>   - The central token is kept in the session.
+>   - 3 failed attempts lock the email for 15 minutes; an outage or a failed lookup does not count.
+>   - Every attempt is written to the access log, with a new `success` column.
+> - **Two modes, worked out in `config/login.php` with no switch in `.env`:**
+>   - Sample accounts (`is_sample`, made by `TestSeeder`) sign in locally anywhere except production. The login page lists them; clicking one fills the form.
+>   - Turnstile runs off local only when its keys are filled in.
+> - **App-to-app login** at `/app-login/{id}`, taking an id encrypted with the shared `APP_KEY`.
+> - **Users & Roles: user access management (guide Part 2).**
+>   - The central directory is fetched from the user-list API: ids are decrypted, names are joined from first and last name, a `data` wrapper is accepted, and the list is cached for 60 seconds with a Refresh button.
+>   - The screen shows everyone with their access status and can be searched.
+>   - **Grant** prefills from the directory. On save, only the id is taken from the browser; the name and email are re-read from the directory on the server.
+>   - Revoking deactivates the account, and granting someone who already has an account opens their edit form.
+>   - Records whose id will not decrypt are counted and flagged, since that means an `APP_KEY` mismatch.
+>   - A temporary `/admin/debug/user-api` page (IT Admin only, 404 in production) shows the raw response and the decrypt check. **Delete it before go-live.**
+>   - `app:create-admin` takes the central id.
+> - **`TestSeeder`** replaces `UserSeeder` and refuses to run in production. `DatabaseSeeder` seeds only reference data in production.
+> - **Tests** never reach the network: `Http::preventStrayRequests()`, and phpunit points the API at `https://auth.test`.
+> - *(actual: kept from the CAR design.)* The CAR system's own gates and `CarPolicy` stay, instead of the guide's `role:` middleware, because they are finer-grained (farm, filer, preparer). Revoking access deactivates rather than deletes, as the guide's soft-delete recommendation suggests; CAR history references users.
+> - *(actual: still to confirm.)* The API response shapes come from the guide and have not yet been checked against the live `bfcgroup.ph` API.
+>
 > **Deviations during Phases 5–10:**
 >
 > - *(actual: no `verifications` table.)* The effectiveness check and acceptance are read from `car_events` per round. Evidence fields live on `car_rounds`.

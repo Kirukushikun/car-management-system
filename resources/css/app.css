@@ -100,6 +100,15 @@
   .role-scope{ font-size:10.5px; color:var(--text3); margin-top:1px; }
   .role-blurb{ font-size:11.5px; color:var(--text2); line-height:1.55; }
   .role-title-pill{ align-self:flex-start; }
+  .sample-more{ margin-top:12px; }
+  .sample-more summary{ cursor:pointer; text-align:center; font-size:11px; color:var(--text2); padding:6px 0; }
+  .sample-more-list{ display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+  .sample-more-row{
+    display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; text-align:left; cursor:pointer;
+    font-family:inherit; color:inherit; background:var(--bg); border:.5px solid var(--border); border-radius:9px;
+  }
+  .sample-more-row:hover{ border-color:var(--border2); background:var(--bg2); }
+  .sample-more-row .role-scope{ flex:1; margin-top:0; }
   .login-foot{ text-align:center; margin-top:18px; font-size:10.5px; color:var(--text3); }
 
   /* ============ SHELL ============ */

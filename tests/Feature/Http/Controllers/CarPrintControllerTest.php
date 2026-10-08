@@ -5,8 +5,7 @@ use App\Models\AccessLog;
 use App\Models\Car;
 use App\Models\User;
 use Database\Seeders\ReferenceDataSeeder;
-use Database\Seeders\SampleCarSeeder;
-use Database\Seeders\UserSeeder;
+use Database\Seeders\TestSeeder;
 use Illuminate\Support\Facades\Storage;
 
 it('prints a new CAR with Part I and II filled and the rest blank', function () {
@@ -20,7 +19,7 @@ it('prints a new CAR with Part I and II filled and the rest blank', function () 
 
 it('prints a closed CAR through all six parts', function () {
     Storage::fake('local');
-    $this->seed([ReferenceDataSeeder::class, UserSeeder::class, SampleCarSeeder::class]);
+    $this->seed([ReferenceDataSeeder::class, TestSeeder::class]);
     $closed = Car::where('reference', 'CAR-2026-0138')->sole();
 
     $this->actingAs(User::factory()->role(Role::Monitor)->create())

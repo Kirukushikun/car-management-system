@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\UserDirectoryDebugController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\Auth\AppLoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\CarExportController;
 use App\Http\Controllers\CarPrintController;
@@ -22,6 +24,8 @@ Route::middleware('guest')->group(function () {
     Route::livewire('/login', Login::class)->name('login');
 });
 
+Route::get('/app-login/{id}', AppLoginController::class)->name('app.login');
+
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', LogoutController::class)->name('logout');
 
@@ -42,5 +46,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         Route::livewire('/users', Admin\Users::class)->name('users');
         Route::livewire('/matrix', Admin\Matrix::class)->name('matrix');
         Route::livewire('/audit', Admin\AuditLog::class)->name('audit');
+
+        // TEMPORARY — delete before go-live (checks the real user-list API response).
+        Route::get('/debug/user-api', UserDirectoryDebugController::class)->name('debug.user-api');
     });
 });

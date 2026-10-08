@@ -4,58 +4,159 @@ use App\Enums\Role;
 use App\Livewire\Admin\Users;
 use App\Models\Farm;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
+/**
+ * The central directory as the guide's pasted real response shows it: a bare array, split names,
+ * ids encrypted with the shared APP_KEY.
+ *
+ * @param  list<array{0: int, 1: string, 2: string, 3: string}>  $people  [id, first name, last name, email]
+ */
+function fakeDirectory(array $people): void
+{
+    config(['services.user_api.endpoint' => 'https://auth.test/api/v1/users']);
+
+    Http::fake(['auth.test/api/v1/users' => Http::response(array_map(fn (array $person): array => [
+        'id' => Crypt::encryptString((string) $person[0]),
+        'first_name' => $person[1],
+        'last_name' => $person[2],
+        'middle_name' => null,
+        'email' => $person[3],
+        'created_at' => null,
+        'updated_at' => '2026-07-14T05:45:08.000000Z',
+    ], $people))]);
+}
+
 beforeEach(function () {
     $this->admin = User::factory()->role(Role::Admin)->create();
+
+    fakeDirectory([
+        [5120, 'Juan', 'Dela Cruz', 'juan@bfcgroup.test'],
+        [5121, 'Nena', 'Responder', 'nena@bfcgroup.test'],
+        [5122, 'Quinn', 'Assurance', 'qa@bfcgroup.test'],
+        [5123, 'Maria Christina', 'Santos', 'm.santos@bfcgroup.test'],
+    ]);
 });
 
-describe('creating users', function () {
-    it('creates a requestor with an approver and a hashed initial password', function () {
+describe('the central directory', function () {
+    it('lists everyone in the directory with their access in this system', function () {
+        User::factory()->role(Role::Monitor)->create(['id' => 5122, 'email' => 'qa@bfcgroup.test']);
+
+        Livewire::actingAs($this->admin)
+            ->test(Users::class)
+            ->assertSee(['Central directory', '4 people', 'Juan Dela Cruz', 'Maria Christina Santos', 'No access', 'Monitor']);
+    });
+
+    it('filters the directory by name or email', function () {
+        Livewire::actingAs($this->admin)
+            ->test(Users::class)
+            ->set('search', 'santos')
+            ->assertSee('Maria Christina Santos')
+            ->assertDontSee('Juan Dela Cruz')
+            ->set('search', 'juan@')
+            ->assertSee('Juan Dela Cruz');
+    });
+
+    it('caches the directory so searching does not call the API each time, and refreshes on demand', function () {
+        $component = Livewire::actingAs($this->admin)->test(Users::class)
+            ->set('search', 'a')->set('search', 'ab')->set('search', '');
+
+        Http::assertSentCount(1);
+
+        $component->call('refreshDirectory')->assertSee('Directory refreshed.');
+
+        Http::assertSentCount(2);
+    });
+
+    it('explains when the directory cannot be loaded', function () {
+        Cache::flush();
+        config(['services.user_api.endpoint' => 'https://down.test/api/v1/users']);
+        Http::fake(['down.test/*' => Http::response(['message' => 'error'], 500)]);
+
+        Livewire::actingAs($this->admin)
+            ->test(Users::class)
+            ->assertSee('The user directory answered with an error (HTTP 500).');
+    });
+});
+
+describe('granting access', function () {
+    it('grants a person from the directory under their central id, with an approver and no usable local password', function () {
         $approver = User::factory()->role(Role::RequestorApprover)->create();
 
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
-            ->set('form.name', 'Juan Dela Cruz')
-            ->set('form.email', 'juan@car.test')
+            ->call('grant', 5120)
+            ->assertSet('form.centralId', 5120)
+            ->assertSet('form.name', 'Juan Dela Cruz')
+            ->assertSet('form.email', 'juan@bfcgroup.test')
             ->set('form.role', Role::Requestor->value)
             ->set('form.approverId', $approver->id)
-            ->set('form.password', 'secret-pass')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertSee('Created Juan Dela Cruz as Requestor.')
+            ->assertSee('Granted Juan Dela Cruz access as Requestor.')
             ->assertSet('showForm', false);
 
-        $user = User::where('email', 'juan@car.test')->sole();
-
-        expect($user)
+        expect(User::findOrFail(5120))
+            ->email->toBe('juan@bfcgroup.test')
             ->role->toBe(Role::Requestor)
-            ->farm_id->toBeNull()
             ->approver_id->toBe($approver->id)
             ->is_active->toBeTrue()
-            ->and(Hash::check('secret-pass', $user->password))->toBeTrue();
+            ->is_sample->toBeFalse()
+            ->and(Hash::check('password', User::findOrFail(5120)->password))->toBeFalse();
     });
 
-    it('requires a name, email and initial password', function () {
+    it('takes the name and email from the directory, not from the browser', function () {
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
+            ->call('grant', 5120)
+            ->set('form.name', 'Tampered Name')
+            ->set('form.email', 'attacker@evil.test')
+            ->set('form.role', Role::Monitor->value)
             ->call('save')
-            ->assertHasErrors(['form.name' => 'required', 'form.email' => 'required', 'form.password' => 'required']);
+            ->assertHasNoErrors();
+
+        expect(User::findOrFail(5120))
+            ->name->toBe('Juan Dela Cruz')
+            ->email->toBe('juan@bfcgroup.test');
     });
 
-    it('rejects an email that is already used', function () {
-        $existing = User::factory()->create();
+    it('refuses a central id that is not in the directory', function () {
+        Livewire::actingAs($this->admin)
+            ->test(Users::class)
+            ->call('grant', 5120)
+            ->set('form.centralId', 99999)
+            ->set('form.name', 'Ghost')
+            ->set('form.email', 'ghost@bfcgroup.test')
+            ->set('form.role', Role::Monitor->value)
+            ->call('save')
+            ->assertHasErrors('form.centralId')
+            ->assertSee('That person is not in the central directory.');
+
+        expect(User::find(99999))->toBeNull();
+    });
+
+    it('opens the edit form for someone who already has an account', function () {
+        $existing = User::factory()->role(Role::Monitor)->create(['id' => 5122, 'email' => 'qa@bfcgroup.test']);
 
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
-            ->set('form.name', 'Someone')
-            ->set('form.email', $existing->email)
-            ->set('form.password', 'secret-pass')
+            ->call('grant', 5122)
+            ->assertSet('form.user.id', $existing->id)
+            ->assertSee('Edit '.$existing->name);
+    });
+
+    it('rejects an email that another account already uses', function () {
+        User::factory()->create(['email' => 'juan@bfcgroup.test']);
+
+        Livewire::actingAs($this->admin)
+            ->test(Users::class)
+            ->call('grant', 5120)
+            ->set('form.role', Role::Monitor->value)
             ->call('save')
             ->assertHasErrors(['form.email' => 'unique']);
     });
@@ -63,11 +164,8 @@ describe('creating users', function () {
     it('requires a farm for responder roles', function () {
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
-            ->set('form.name', 'New Responder')
-            ->set('form.email', 'responder@car.test')
+            ->call('grant', 5121)
             ->set('form.role', Role::Responder->value)
-            ->set('form.password', 'secret-pass')
             ->call('save')
             ->assertHasErrors(['form.farmId' => 'required'])
             ->assertSee('Responders and Responder Approvers must belong to a farm.');
@@ -76,13 +174,10 @@ describe('creating users', function () {
     it('treats the empty farm option as no farm', function () {
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
+            ->call('grant', 5121)
             ->set('form.role', Role::Responder->value)
             ->set('form.farmId', '')
             ->assertSet('form.farmId', null)
-            ->set('form.name', 'New Responder')
-            ->set('form.email', 'responder@car.test')
-            ->set('form.password', 'secret-pass')
             ->call('save')
             ->assertHasErrors(['form.farmId' => 'required']);
     });
@@ -92,16 +187,13 @@ describe('creating users', function () {
 
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
-            ->set('form.name', 'QA Person')
-            ->set('form.email', 'qa@car.test')
+            ->call('grant', 5122)
             ->set('form.role', Role::Monitor->value)
             ->set('form.farmId', $farm->id)
-            ->set('form.password', 'secret-pass')
             ->call('save')
             ->assertHasNoErrors();
 
-        expect(User::where('email', 'qa@car.test')->value('farm_id'))->toBeNull();
+        expect(User::findOrFail(5122)->farm_id)->toBeNull();
     });
 });
 
@@ -110,13 +202,10 @@ describe('approver chain', function () {
     {
         return Livewire::actingAs($admin)
             ->test(Users::class)
-            ->call('create')
-            ->set('form.name', 'New Responder')
-            ->set('form.email', 'new.responder@car.test')
+            ->call('grant', 5121)
             ->set('form.role', Role::Responder->value)
             ->set('form.farmId', $farm->id)
             ->set('form.approverId', $approver->id)
-            ->set('form.password', 'secret-pass')
             ->call('save');
     }
 
@@ -184,7 +273,7 @@ describe('approver chain', function () {
 
         Livewire::actingAs($this->admin)
             ->test(Users::class)
-            ->call('create')
+            ->call('grant', 5121)
             ->set('form.role', Role::Responder->value)
             ->set('form.farmId', $pfcApprover->farm_id)
             ->assertViewHas('approverOptions', fn ($options) => $options->pluck('name')->all() === ['Pfc Approver']);
@@ -192,7 +281,7 @@ describe('approver chain', function () {
 });
 
 describe('editing users', function () {
-    it('keeps the password when the field is left blank', function () {
+    it('keeps the stored password hash untouched when editing', function () {
         $user = User::factory()->create();
         $originalHash = $user->password;
 
@@ -208,17 +297,20 @@ describe('editing users', function () {
             ->password->toBe($originalHash);
     });
 
-    it('resets the password when a new one is given', function () {
+    it('keeps the central user id when editing', function () {
         $user = User::factory()->create();
 
         Livewire::actingAs($this->admin)
             ->test(Users::class)
             ->call('edit', $user->id)
-            ->set('form.password', 'brand-new-pass')
+            ->assertSet('form.centralId', $user->id)
+            ->set('form.centralId', 777777)
+            ->set('form.name', 'Renamed')
             ->call('save')
             ->assertHasNoErrors();
 
-        expect(Hash::check('brand-new-pass', $user->fresh()->password))->toBeTrue();
+        expect(User::find($user->id)->name)->toBe('Renamed')
+            ->and(User::find(777777))->toBeNull();
     });
 
     it('does not let the admin change their own role', function () {

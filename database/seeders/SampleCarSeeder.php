@@ -25,7 +25,8 @@ use Illuminate\Support\Str;
 /**
  * Demo data: the mockup's ten sample CARs (CAR-2026-0138 … 0147), replayed through CarWorkflow
  * on their original dates so every status, deadline, round and history entry is produced by the
- * real state machine. Local development only. Requires ReferenceDataSeeder and UserSeeder.
+ * real state machine. Called by TestSeeder (never in production); farms without a Responder get
+ * sample Responder accounts.
  */
 class SampleCarSeeder extends Seeder
 {
@@ -284,7 +285,7 @@ class SampleCarSeeder extends Seeder
 
         $handle = str($farm->name)->lower()->replace('/', '-').'.'.str($role->value)->replace('_', '-');
 
-        return User::factory()->create([
+        return User::factory()->sample()->create([
             'name' => ucwords(strtolower($farm->name)).' '.$role->label(),
             'email' => "{$handle}@car.test",
             'role' => $role,

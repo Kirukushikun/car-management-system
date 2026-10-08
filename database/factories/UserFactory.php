@@ -34,6 +34,7 @@ class UserFactory extends Factory
             'role' => Role::Requestor,
             'farm_id' => null,
             'is_active' => true,
+            'is_sample' => false,
             'remember_token' => Str::random(10),
         ];
     }
@@ -49,6 +50,17 @@ class UserFactory extends Factory
             'farm_id' => $role->isFarmScoped()
                 ? Farm::firstOrCreate(['name' => $farmName ?? 'PFC'])->id
                 : null,
+        ]);
+    }
+
+    /**
+     * A TestSeeder-style sample account: flagged, with the shared sample password.
+     */
+    public function sample(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_sample' => true,
+            'password' => Hash::make(config('login.sample_password')),
         ]);
     }
 

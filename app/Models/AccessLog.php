@@ -12,13 +12,40 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Append-only record of sign-ins, sign-outs, failed sign-in attempts, attachment downloads and
  * CAR prints.
  */
-#[Fillable(['user_id', 'event', 'email', 'subject', 'ip_address', 'user_agent'])]
+#[Fillable(['user_id', 'event', 'email', 'success', 'subject', 'ip_address', 'user_agent'])]
 class AccessLog extends Model
 {
     /** @use HasFactory<AccessLogFactory> */
     use HasFactory;
 
     public const UPDATED_AT = null;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'success' => 'boolean',
+        ];
+    }
+
+    /**
+     * Record a sign-in attempt that did not succeed (wrong password, no access, lockout, outage).
+     */
+    public static function recordSignInFailure(string $email): self
+    {
+        $request = request();
+
+        return self::create([
+            'user_id' => null,
+            'event' => 'failed',
+            'email' => $email,
+            'success' => false,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
 
     /**
      * Record that the signed-in user opened something sensitive (an attachment, a printed CAR).

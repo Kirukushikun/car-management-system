@@ -4,12 +4,18 @@ namespace App\Livewire\Forms;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Services\UserDirectory;
 use Closure;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
 /**
- * Create / edit form for Users & Roles. Enforces the approver chain rules:
+ * Grant / edit form for Users & Roles. People sign in with their central company account, so a
+ * user here is created with their central user id (organization standard: the local id must match
+ * the id the Auth API returns) and has no usable local password.
+ *
+ * Enforces the approver chain rules:
  * the approver must be active, hold this role's approver role, share the farm for Responder
  * roles, and must not lead back to this user.
  */
@@ -27,7 +33,7 @@ class UserForm extends Form
 
     public ?int $approverId = null;
 
-    public string $password = '';
+    public ?int $centralId = null;
 
     public function setUser(User $user): void
     {
@@ -37,7 +43,7 @@ class UserForm extends Form
         $this->role = $user->role->value;
         $this->farmId = $user->farm_id;
         $this->approverId = $user->approver_id;
-        $this->password = '';
+        $this->centralId = $user->id;
     }
 
     public function selectedRole(): ?Role
@@ -58,7 +64,7 @@ class UserForm extends Form
             'role' => ['required', Rule::enum(Role::class)],
             'farmId' => [Rule::requiredIf(fn (): bool => (bool) $role?->isFarmScoped()), 'nullable', Rule::exists('farms', 'id')],
             'approverId' => ['nullable', Rule::exists('users', 'id')->where('is_active', true), $this->approverRule()],
-            'password' => [$this->user ? 'nullable' : 'required', 'string', 'min:8'],
+            'centralId' => $this->user ? ['nullable'] : ['required', 'integer', 'min:1', Rule::unique('users', 'id'), $this->inDirectoryRule()],
         ];
     }
 
@@ -70,27 +76,38 @@ class UserForm extends Form
         return [
             'farmId.required' => 'Responders and Responder Approvers must belong to a farm.',
             'approverId.exists' => 'The approver must be an active user.',
+            'centralId.required' => 'Pick the person from the central directory.',
+            'centralId.unique' => 'That central user already has access to this system.',
         ];
     }
 
+    /**
+     * Grant access to someone from the directory. Only the id is taken from the browser; name and
+     * email are re-read from the directory on the server.
+     */
     public function store(): User
     {
+        $person = $this->centralId ? app(UserDirectory::class)->find((int) $this->centralId) : null;
+
+        if ($person !== null) {
+            $this->name = $person['name'];
+            $this->email = $person['email'];
+        }
+
         $this->validate();
 
-        return User::create([...$this->attributes(), 'password' => $this->password]);
+        $user = new User([...$this->attributes(), 'password' => Str::random(40)]);
+        $user->id = $this->centralId;
+        $user->save();
+
+        return $user;
     }
 
     public function update(): User
     {
         $this->validate();
 
-        $attributes = $this->attributes();
-
-        if ($this->password !== '') {
-            $attributes['password'] = $this->password;
-        }
-
-        $this->user->update($attributes);
+        $this->user->update($this->attributes());
 
         return $this->user;
     }
@@ -109,6 +126,15 @@ class UserForm extends Form
             'farm_id' => $role->isFarmScoped() ? $this->farmId : null,
             'approver_id' => $role->approverRole() ? $this->approverId : null,
         ];
+    }
+
+    private function inDirectoryRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (app(UserDirectory::class)->find((int) $value) === null) {
+                $fail('That person is not in the central directory.');
+            }
+        };
     }
 
     private function approverRule(): Closure

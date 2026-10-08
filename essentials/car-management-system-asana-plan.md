@@ -41,7 +41,7 @@
 
 | Function | Default | Alternative / notes |
 |---|---|---|
-| Auth | Laravel session auth, no self-registration — IT Admin creates accounts; local-only role switcher | Company SSO later |
+| Auth | Organization standard (Authentication Implementation Guide): central Auth API at bfcgroup.ph → central user id → local user granted by the IT Admin; 3 failures = 15-min lockout; Turnstile when keys are set; sample accounts (TestSeeder, `is_sample`) outside production; app-to-app login `/app-login/{id}` | BGC SSO alongside it later |
 | Roles & permissions | `Role` enum on users + farm link + approver chain; gates and `CarPolicy` | spatie/laravel-permission only if one person needs several roles |
 | Core status flow | `CarStatus` enum + hand-written `CarWorkflow` transition table — the only code that changes status | spatie/laravel-model-states if it outgrows one class |
 | Reference numbers | `CAR-YYYY-NNNN` from a locked per-year sequence | — |
@@ -190,7 +190,7 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
 | Status | Task | Notes |
 |---|---|---|
 | ⬜ | Production environment/config ready | Internal server: PHP 8.4 (zip, pdo_mysql), MySQL 8, web server pointing at `public/`. `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, MySQL credentials, `php artisan key:generate`. Then `composer install --no-dev`, `npm ci && npm run build`, `php artisan migrate --force`, `php artisan db:seed --class=ReferenceDataSeeder --force` (**not** the demo seeders), `php artisan optimize` |
-| ⬜ | Data & auth cutover | First IT Admin: `php artisan app:create-admin it@company.com`; then real users via Users & Roles with approver chains |
+| ⬜ | Data & auth cutover | Set `AUTH_API_*` / `USER_API_*` and copy `storage/cacert.pem`; **confirm the real API responses** (debug check) first. First IT Admin: `php artisan app:create-admin {central-id} it@company.com`; then grant real users in Users & Roles by central id. Seed production with `ReferenceDataSeeder` only — `TestSeeder` refuses to run there. Set `APP_KEY` to the central system's key (directory ids and app-to-app login depend on it) and delete the `/admin/debug/user-api` route |
 | ⬜ | Scheduler running | Cron / Task Scheduler every minute: `php artisan schedule:run` (reminders 07:00 weekdays, backups 01:00). Copy `storage/app/backups` off the server |
 | ⬜ | Queue worker running | `php artisan queue:work` as a service (emails). In-app flags work without it |
 | ⬜ | Mail settings | Set `MAIL_*` to the company SMTP when ready — until then emails go to the log |
@@ -217,6 +217,8 @@ Each phase ends runnable and demoable. Don't start a phase before the previous o
   - The Issued To ↔ farm link.
   - Multiple Issued To per CAR.
 - **Pending outside the code:** UAT with real users, SMTP settings, server setup and go-live.
+- **Central login built but not yet checked against the live API:** it follows the response shapes in the Authentication Implementation Guide and is tested with simulated responses. The real `bfcgroup.ph` responses still need one check before go-live.
+- **Users & Roles lists the central directory (user-list API) and grants from it.** Before go-live: open `/admin/debug/user-api` to confirm the real response and that ids decrypt (this system's `APP_KEY` must match the central system's), then **delete that debug route**.
 - **Deferred features:**
   - Importing historical paper CARs.
   - Removing attachments after submit.

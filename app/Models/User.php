@@ -16,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[ObservedBy(AuditObserver::class)]
-#[Fillable(['name', 'email', 'password', 'role', 'farm_id', 'approver_id', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'farm_id', 'approver_id', 'is_active', 'is_sample'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -35,6 +35,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'is_active' => 'boolean',
+            'is_sample' => 'boolean',
         ];
     }
 
