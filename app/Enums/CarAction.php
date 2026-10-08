@@ -67,6 +67,36 @@ enum CarAction: string
     }
 
     /**
+     * What the confirmation dialog asks before the action runs — who the CAR goes to next.
+     */
+    public function confirmation(): string
+    {
+        return match ($this) {
+            self::Submit => 'The CAR gets its reference number and goes to the Requestor Approver for review.',
+            self::Release => 'The CAR is released to the responding farm and the response deadline starts.',
+            self::Reject => 'The CAR goes back to the Requestor with your reason.',
+            self::Resubmit => 'The corrected CAR goes back to the Requestor Approver for release.',
+            self::SubmitResponse => 'Your containment, root cause and corrective actions go to the Responder Approver. You cannot edit them unless they are returned.',
+            self::ApproveResponse => 'The corrective actions are approved and the Responder moves on to implementation (Phase III).',
+            self::ReturnResponse => 'The response goes back to the Responder for revision with your reason.',
+            self::UploadEvidence => 'The evidence goes to the Responder Approver for the effectiveness check. You cannot add files to this round afterwards.',
+            self::MarkEffective => 'The CAR goes to the Requestor Approver for final acceptance.',
+            self::MarkNotEffective => 'The CAR goes back to Phase II and the Responder must revise the response.',
+            self::Accept => 'The CAR is closed. This cannot be undone.',
+            self::NotAccept => 'The CAR goes back to the Responder to re-implement by the new end date.',
+            self::Void => 'The CAR is voided and leaves every queue. This cannot be undone.',
+        };
+    }
+
+    /**
+     * Sends the CAR backwards or ends it — confirmed with a red button.
+     */
+    public function isNegative(): bool
+    {
+        return $this->requiresNote() || $this === self::NotAccept;
+    }
+
+    /**
      * Actions that must explain themselves: every rejection, return and void.
      */
     public function requiresNote(): bool

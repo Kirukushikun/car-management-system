@@ -282,3 +282,54 @@ it('forbids an action the current user is not offered', function () {
 
     expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
 });
+
+it('asks for confirmation before running an action, saying where the CAR goes next', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeHtml("\$dispatch('confirm'")
+        ->assertDontSeeHtml('wire:click="act(')
+        ->assertSee(CarAction::Release->confirmation())
+        ->assertSee(CarAction::Reject->confirmation());
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
+});
+
+it('puts the response form inside the single Phase II card instead of a waiting placeholder', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeInOrder(['Response, Root Cause &amp; Action Planning', 'Your response — round 1', 'Implementation, Verification &amp; Closure'], false)
+        ->assertDontSee('Waiting for');
+});
+
+it('puts the evidence form inside the single Phase III card instead of the not-started note', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingImplementation)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeInOrder(['Implementation, Verification &amp; Closure', 'Your implementation evidence — round 1', 'History'], false)
+        ->assertDontSee('Starts once the corrective actions are approved');
+});
+
+it('folds the history after the fourth entry', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+    foreach ([CarAction::Submit, CarAction::Reject, CarAction::Resubmit, CarAction::Reject, CarAction::Resubmit, CarAction::Reject] as $action) {
+        $car->events()->create(['round' => 1, 'action' => $action, 'to_status' => CarStatus::AwaitingRelease, 'actor_id' => $car->requestor_id, 'created_at' => now()]);
+    }
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSee(['Show 2 more entries', 'Show less']);
+});
+
+it('does not fold a short history', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+    $car->events()->create(['round' => 1, 'action' => CarAction::Submit, 'to_status' => CarStatus::AwaitingRelease, 'actor_id' => $car->requestor_id, 'created_at' => now()]);
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertDontSee(['more entr', 'Show less']);
+});

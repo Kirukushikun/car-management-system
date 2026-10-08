@@ -31,6 +31,11 @@ class Show extends Component
         'upload_evidence' => 'Attach the evidence in the form below, then submit it for the effectiveness check.',
     ];
 
+    /**
+     * History entries shown before the rest fold behind "Show N more entries".
+     */
+    private const HISTORY_VISIBLE = 4;
+
     public Car $car;
 
     public string $note = '';
@@ -90,6 +95,7 @@ class Show extends Component
             'submittedResponses' => $this->car->responses->sortByDesc(fn ($response) => $response->round->number)->values(),
             'verificationRounds' => $this->verificationRounds(),
             'isOverdue' => $this->car->isOverdue(),
+            'historyVisible' => self::HISTORY_VISIBLE,
         ])->title($this->car->reference);
     }
 

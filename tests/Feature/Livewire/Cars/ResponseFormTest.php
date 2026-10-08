@@ -191,7 +191,7 @@ describe('later rounds', function () {
         Livewire::actingAs($this->responder)
             ->test(ResponseForm::class, ['car' => $car])
             ->assertSet('rootCause', 'First attempt.')
-            ->assertSee('Revise the response');
+            ->assertSee('Revise your response');
     });
 
     it('starts a new round from the previous round\'s answer', function () {

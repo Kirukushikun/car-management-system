@@ -3,7 +3,7 @@
                    :subtitle="$car ? 'Fix what the Requestor Approver asked for, then resubmit it for release' : 'The reference number is assigned on submit — the Requestor Approver reviews the CAR before it is released to the Responder'" />
 
     <div class="content">
-        <form wire:submit="submit" class="card" style="padding:20px 22px; max-width:760px;">
+        <form x-on:submit.prevent class="card" style="padding:20px 22px; max-width:760px;">
             @if ($returnReason)
                 <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd);">
                     Returned by the Requestor Approver: {{ $returnReason }}
@@ -141,7 +141,9 @@
 
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:16px; border-top:.5px solid var(--border);">
                 <a href="{{ $car ? route('cars.show', $car) : route('cars.index') }}" wire:navigate class="btn btn-secondary" style="text-decoration:none;">Cancel</a>
-                <button type="submit" class="btn btn-accent" wire:loading.attr="disabled" wire:target="submit,attachments">{{ $car ? 'Resubmit for release' : 'Submit CAR' }}</button>
+                @php($submitAction = $car ? \App\Enums\CarAction::Resubmit : \App\Enums\CarAction::Submit)
+                <button type="button" class="btn btn-accent" wire:loading.attr="disabled" wire:target="submit,attachments"
+                        x-on:click="$dispatch('confirm', { ...@js(['title' => $submitAction->label().'?', 'message' => $submitAction->confirmation(), 'confirmLabel' => $submitAction->label()]), run: () => $wire.submit() })">{{ $submitAction->label() }}</button>
             </div>
         </form>
     </div>

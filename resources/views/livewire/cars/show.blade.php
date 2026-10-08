@@ -54,7 +54,7 @@
                         @else
                             <button type="button" wire:key="action-{{ $action->value }}"
                                     @class(['btn', 'btn-accent' => $loop->first && ! $action->requiresNote(), 'btn-secondary' => ! ($loop->first && ! $action->requiresNote())])
-                                    wire:click="act('{{ $action->value }}')"
+                                    x-on:click="$dispatch('confirm', { ...@js(['title' => $action->label().' — '.$car->reference.'?', 'message' => $action->confirmation(), 'confirmLabel' => $action->label(), 'danger' => $action->isNegative()]), run: () => $wire.act(@js($action->value)) })"
                                     wire:loading.attr="disabled">{{ $action->label() }}</button>
                         @endif
                     @endforeach
@@ -62,7 +62,8 @@
             </div>
         @endif
 
-        <div class="detail-grid">
+        {{-- While the Responder fills in Phase II, it takes the full width so the form fits; Phase I sits above it. --}}
+        <div class="detail-grid" @style(['grid-template-columns:1fr' => $canRespond])>
             {{-- Phase I --}}
             <div class="card">
                 <div class="phase-head">
@@ -127,11 +128,20 @@
                     @endif
                 </div>
                 <div class="phase-body">
+                    @if ($canRespond)
+                        <livewire:cars.response-form :car="$car" :key="'response-form-'.$car->id.'-'.$car->current_round" />
+                    @endif
+
                     @if (! $car->released_at)
                         <div style="color:var(--text3); font-size:11.5px;">Not started — the CAR has not been released to the Responder yet.</div>
                     @elseif ($submittedResponses->isEmpty())
-                        <div style="color:var(--text3); font-size:11.5px;">Waiting for {{ $car->farm->name }}'s response — interim containment, root cause and corrective actions.</div>
+                        @unless ($canRespond)
+                            <div style="color:var(--text3); font-size:11.5px;">Waiting for {{ $car->farm->name }}'s response — interim containment, root cause and corrective actions.</div>
+                        @endunless
                     @else
+                        @if ($canRespond)
+                            <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier submissions</div>
+                        @endif
                         @foreach ($submittedResponses as $response)
                             <div wire:key="response-{{ $response->id }}" @style(['padding-top:12px; border-top:.5px solid var(--border)' => ! $loop->first])>
                                 <x-car-response :response="$response" :show-round="$car->current_round > 1" />
@@ -141,10 +151,6 @@
                 </div>
             </div>
         </div>
-
-        @if ($canRespond)
-            <livewire:cars.response-form :car="$car" :key="'response-form-'.$car->id.'-'.$car->current_round" />
-        @endif
 
         {{-- Phase III --}}
         <div class="card" style="margin-top:14px; opacity:{{ $car->status->phase() === 3 || ! $car->status->isOpen() ? 1 : .5 }}">
@@ -160,6 +166,13 @@
                     <div class="flash" style="background:var(--green-bg); color:var(--green); border-color:var(--green-bd); margin:0;">Closed — accepted on {{ $car->closed_at->format('M j, Y') }}.</div>
                 @elseif ($car->voided_at)
                     <div class="flash" style="margin:0;">Voided on {{ $car->voided_at->format('M j, Y') }}.</div>
+                @endif
+
+                @if ($canUploadEvidence)
+                    <livewire:cars.evidence-form :car="$car" :key="'evidence-form-'.$car->id.'-'.$car->current_round" />
+                    @if ($verificationRounds)
+                        <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier rounds</div>
+                    @endif
                 @endif
 
                 @forelse ($verificationRounds as $row)
@@ -218,7 +231,7 @@
                     </div>
                 @empty
                     <div style="color:var(--text3); font-size:11.5px;">
-                        @if ($car->status->isOpen())
+                        @if ($car->status->isOpen() && ! $canUploadEvidence)
                             Starts once the corrective actions are approved — the Responder uploads evidence, the Responder Approver checks effectiveness, and the Requestor Approver gives final acceptance.
                         @endif
                     </div>
@@ -226,14 +239,15 @@
             </div>
         </div>
 
-        @if ($canUploadEvidence)
-            <livewire:cars.evidence-form :car="$car" :key="'evidence-form-'.$car->id.'-'.$car->current_round" />
-        @endif
-
-        <div class="card" style="margin-top:14px; padding:16px 18px;">
+        <div class="card" style="margin-top:14px; padding:16px 18px;" x-data="{ showAll: false }" wire:key="history">
             <div class="section-title">History</div>
             <div class="timeline">
                 @foreach ($car->events as $event)
+                    @if ($loop->index === $historyVisible)
+                        <button type="button" class="btn btn-ghost history-toggle" x-show="! showAll" x-on:click="showAll = true">
+                            Show {{ $loop->remaining + 1 }} more {{ str('entry')->plural($loop->remaining + 1) }}
+                        </button>
+                    @endif
                     @php
                         $tone = match ($event->action) {
                             CarAction::Release, CarAction::ApproveResponse, CarAction::MarkEffective, CarAction::Accept => 'green',
@@ -241,7 +255,8 @@
                             default => null,
                         };
                     @endphp
-                    <div @class(['tl-entry', "tone-{$tone}" => $tone]) wire:key="event-{{ $event->id }}">
+                    <div @class(['tl-entry', "tone-{$tone}" => $tone]) wire:key="event-{{ $event->id }}"
+                         @if ($loop->index >= $historyVisible) x-show="showAll" x-cloak @endif>
                         <div class="tl-head">
                             <span>{{ $event->actor?->name ?? 'System' }} <span style="font-weight:400; color:var(--text3);">— {{ $event->actor?->role->label() }}</span></span>
                             <span class="tl-date tnum">{{ $event->created_at->format('M j, Y g:i A') }}</span>
@@ -257,6 +272,9 @@
                         @endif
                     </div>
                 @endforeach
+                @if ($car->events->count() > $historyVisible)
+                    <button type="button" class="btn btn-ghost history-toggle" x-show="showAll" x-cloak x-on:click="showAll = false">Show less</button>
+                @endif
             </div>
         </div>
     </div>
