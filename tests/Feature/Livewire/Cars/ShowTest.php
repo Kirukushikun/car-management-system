@@ -373,3 +373,21 @@ it('does not fold a short history', function () {
         ->test(Show::class, ['car' => $car])
         ->assertDontSee(['more entr', 'Show less']);
 });
+
+it('shows a message instead of an error page when an action fails to save', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+    $this->mock(CarWorkflow::class, function ($mock): void {
+        $mock->shouldReceive('can')->andReturn(true);
+        $mock->shouldReceive('availableActions')->andReturn([CarAction::Release, CarAction::Reject]);
+        $mock->shouldReceive('apply')->andThrow(new RuntimeException('Database went away'));
+    });
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->call('act', CarAction::Release->value)
+        ->assertHasErrors('submission')
+        ->assertSee('nothing was submitted')
+        ->assertDontSee('CAR approved and released');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
+});

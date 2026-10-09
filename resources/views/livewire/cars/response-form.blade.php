@@ -115,6 +115,8 @@
         </div>
     @endif
 
+    @error('submission') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin:0;" role="alert">{{ $message }}</div> @enderror
+
     <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:12px; border-top:.5px solid var(--border);">
         <button type="button" class="btn btn-secondary" wire:click="saveDraft" wire:loading.attr="disabled">Save draft</button>
         <button type="button" class="btn btn-accent" wire:loading.attr="disabled" wire:target="submit,rootCauseFiles,correctiveActionFiles"

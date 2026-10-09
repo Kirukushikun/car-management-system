@@ -87,3 +87,24 @@ it('keeps the first round\'s evidence when new evidence is uploaded after "not a
         ->and($rounds->map(fn ($round) => $round->attachments->pluck('original_name')->all())->all())
         ->toBe([['evidence.jpg'], ['re-implemented.jpg']]);
 });
+
+it('uploads nothing and keeps the CAR where it was when saving the evidence fails', function () {
+    Attachment::creating(function (Attachment $attachment): void {
+        if ($attachment->original_name === 'checklist.pdf') {
+            throw new RuntimeException('Disk full');
+        }
+    });
+
+    Livewire::actingAs($this->responder)
+        ->test(EvidenceForm::class, ['car' => $this->car])
+        ->set('files', [UploadedFile::fake()->image('cold-room.jpg'), UploadedFile::fake()->create('checklist.pdf', 50, 'application/pdf')])
+        ->call('submit')
+        ->assertHasErrors('submission')
+        ->assertSee('nothing was submitted')
+        ->assertCount('files', 2);
+
+    expect($this->car->fresh()->status)->toBe(CarStatus::AwaitingImplementation)
+        ->and($this->car->currentRound()->first()->evidence_uploaded_at)->toBeNull()
+        ->and(Attachment::count())->toBe(0)
+        ->and(Storage::disk('local')->allFiles())->toBe([]);
+});

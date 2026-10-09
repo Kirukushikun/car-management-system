@@ -3,12 +3,12 @@
 namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
+use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Services\CarWorkflow;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -21,7 +21,7 @@ use Livewire\WithFileUploads;
  */
 class ResponseForm extends Component
 {
-    use WithFileUploads;
+    use GuardsSubmissions, WithFileUploads;
 
     #[Locked]
     public Car $car;
@@ -113,7 +113,11 @@ class ResponseForm extends Component
         $this->authorize('act', [$this->car, CarAction::SubmitResponse]);
         $this->validate($this->rules(complete: false));
 
-        $this->persist();
+        if ($this->guardSubmission(fn (): CarResponse => $this->persist()) === null) {
+            return;
+        }
+
+        $this->clearSavedFiles();
         $this->notice = 'Draft saved. Submit it for approval when it is complete.';
     }
 
@@ -122,11 +126,18 @@ class ResponseForm extends Component
         $this->authorize('act', [$this->car, CarAction::SubmitResponse]);
         $this->validate($this->rules(complete: true));
 
-        DB::transaction(function () use ($workflow): void {
+        $submitted = $this->guardSubmission(function () use ($workflow): bool {
             $this->persist();
             $workflow->apply($this->car, auth()->user(), CarAction::SubmitResponse);
+
+            return true;
         });
 
+        if ($submitted === null) {
+            return;
+        }
+
+        $this->clearSavedFiles();
         session()->flash('status', "Response submitted. {$this->car->ownerLabel()} reviews it next.");
         $this->redirectRoute('cars.show', $this->car, navigate: true);
     }
@@ -209,11 +220,22 @@ class ResponseForm extends Component
     }
 
     /**
+     * The new files are attached now; empty the pickers so they are not attached twice.
+     */
+    private function clearSavedFiles(): void
+    {
+        $this->rootCauseFiles = [];
+        $this->correctiveActionFiles = [];
+        $this->car->unsetRelation('currentRound');
+    }
+
+    /**
      * Save the form into the current round's response, replacing its corrective-action lines.
+     * Callers run it through guardSubmission(), so the lines and files are saved all-or-nothing.
      */
     private function persist(): CarResponse
     {
-        return DB::transaction(function (): CarResponse {
+        return Attachment::atomically(function (): CarResponse {
             $round = $this->car->currentRound()->firstOrFail();
             $response = CarResponse::firstOrNew(['car_round_id' => $round->id], ['car_id' => $this->car->id]);
 
@@ -246,10 +268,6 @@ class ResponseForm extends Component
             foreach ($this->correctiveActionFiles as $file) {
                 Attachment::store($response, $file, Attachment::CORRECTIVE_ACTION, auth()->user());
             }
-
-            $this->rootCauseFiles = [];
-            $this->correctiveActionFiles = [];
-            $this->car->unsetRelation('currentRound');
 
             return $response;
         });

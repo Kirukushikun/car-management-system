@@ -4,6 +4,7 @@ namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
 use App\Enums\ComplaintType;
+use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\Category;
@@ -26,7 +27,7 @@ use Livewire\WithFileUploads;
  */
 class Create extends Component
 {
-    use WithFileUploads;
+    use GuardsSubmissions, WithFileUploads;
 
     /**
      * The returned CAR being corrected; null when filing a new one.
@@ -111,12 +112,20 @@ class Create extends Component
             'problem_details' => $this->problem,
         ];
 
-        $car = $this->car
-            ? $workflow->resubmit($this->car, auth()->user(), $details)
-            : $workflow->submit(auth()->user(), $details);
+        $car = $this->guardSubmission(function () use ($workflow, $details): Car {
+            $car = $this->car
+                ? $workflow->resubmit($this->car, auth()->user(), $details)
+                : $workflow->submit(auth()->user(), $details);
 
-        foreach ($this->attachments as $file) {
-            Attachment::store($car, $file, Attachment::PROBLEM_EVIDENCE, auth()->user());
+            foreach ($this->attachments as $file) {
+                Attachment::store($car, $file, Attachment::PROBLEM_EVIDENCE, auth()->user());
+            }
+
+            return $car;
+        });
+
+        if ($car === null) {
+            return;
         }
 
         session()->flash('status', $this->car

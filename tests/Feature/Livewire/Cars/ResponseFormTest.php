@@ -209,3 +209,44 @@ describe('later rounds', function () {
             ->and($car->fresh()->responses()->first()->root_cause)->toBe('Eggs were dispatched three days after collection without cold storage.');
     });
 });
+
+describe('when saving fails', function () {
+    it('submits nothing, removes the files already saved and keeps the response and files for another try', function () {
+        Storage::fake('local');
+        Attachment::creating(function (Attachment $attachment): void {
+            if ($attachment->original_name === 'plan.pdf') {
+                throw new RuntimeException('Disk full');
+            }
+        });
+
+        completedResponseForm($this->car, $this->responder)
+            ->set('rootCauseFiles', [UploadedFile::fake()->create('fishbone.pdf', 40, 'application/pdf')])
+            ->set('correctiveActionFiles', [UploadedFile::fake()->create('plan.pdf', 40, 'application/pdf')])
+            ->call('submit')
+            ->assertHasErrors('submission')
+            ->assertSee('nothing was submitted')
+            ->assertCount('rootCauseFiles', 1)
+            ->assertCount('correctiveActionFiles', 1)
+            ->assertSet('rootCause', 'Dirty eggs sat three days at room temperature before dispatch.');
+
+        expect($this->car->fresh()->status)->toBe(CarStatus::AwaitingResponder)
+            ->and(CarResponse::count())->toBe(0)
+            ->and(Attachment::count())->toBe(0)
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
+    });
+
+    it('does not save a draft halfway when a file fails', function () {
+        Storage::fake('local');
+        Attachment::creating(fn () => throw new RuntimeException('Disk full'));
+
+        completedResponseForm($this->car, $this->responder)
+            ->set('rootCauseFiles', [UploadedFile::fake()->create('fishbone.pdf', 40, 'application/pdf')])
+            ->call('saveDraft')
+            ->assertHasErrors('submission')
+            ->assertDontSee('Draft saved')
+            ->assertCount('rootCauseFiles', 1);
+
+        expect(CarResponse::count())->toBe(0)
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
+    });
+});

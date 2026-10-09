@@ -6,10 +6,13 @@
 
         <title>{{ isset($title) ? $title.' — ' : '' }}{{ config('app.name') }}</title>
 
+        <meta name="debug-error-page" content="{{ app()->isLocal() && config('app.debug') ? '1' : '0' }}">
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body>
         {{ $slot }}
+
+        <x-request-error-toast />
     </body>
 </html>

@@ -3,11 +3,11 @@
 namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
+use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Services\CarWorkflow;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -20,7 +20,7 @@ use Livewire\WithFileUploads;
  */
 class EvidenceForm extends Component
 {
-    use WithFileUploads;
+    use GuardsSubmissions, WithFileUploads;
 
     #[Locked]
     public Car $car;
@@ -64,7 +64,7 @@ class EvidenceForm extends Component
             'files.*.extensions' => 'Use photos, videos (mp4, mov), PDF or Office files.',
         ]);
 
-        DB::transaction(function () use ($workflow, $round): void {
+        $submitted = $this->guardSubmission(function () use ($workflow, $round): bool {
             $round->update(['evidence_responsible' => $this->responsible, 'evidence_notes' => $this->notes ?: null]);
 
             foreach ($this->files as $file) {
@@ -72,7 +72,13 @@ class EvidenceForm extends Component
             }
 
             $workflow->apply($this->car, auth()->user(), CarAction::UploadEvidence);
+
+            return true;
         });
+
+        if ($submitted === null) {
+            return;
+        }
 
         session()->flash('status', "Implementation evidence uploaded. {$this->car->ownerLabel()} checks whether it was effective.");
         $this->redirectRoute('cars.show', $this->car, navigate: true);

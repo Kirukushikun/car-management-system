@@ -49,6 +49,8 @@
         @error('notes') <div class="error-text">{{ $message }}</div> @enderror
     </div>
 
+    @error('submission') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin:0;" role="alert">{{ $message }}</div> @enderror
+
     <div style="display:flex; justify-content:flex-end; padding-top:12px; border-top:.5px solid var(--border);">
         <button type="button" class="btn btn-accent" wire:loading.attr="disabled" wire:target="submit,files"
                 x-on:click="$dispatch('confirm', { ...@js(['title' => 'Submit the evidence for the effectiveness check?', 'message' => \App\Enums\CarAction::UploadEvidence->confirmation(), 'confirmLabel' => 'Submit evidence']), run: () => $wire.submit() })">Submit evidence for the effectiveness check</button>

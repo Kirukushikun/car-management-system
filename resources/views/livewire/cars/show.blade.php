@@ -33,6 +33,8 @@
                     </div>
                 @endif
 
+                @error('submission') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin:0 0 10px;" role="alert">{{ $message }}</div> @enderror
+
                 @if ($needsNewDueDate)
                     <div class="field" style="max-width:260px; margin-bottom:10px;">
                         <label for="newDueOn">New end date (required if not accepted)</label>

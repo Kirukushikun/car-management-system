@@ -139,6 +139,8 @@
                 @error('attachments') <div class="error-text">{{ $message }}</div> @enderror
             </div>
 
+            @error('submission') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin:18px 0 0;" role="alert">{{ $message }}</div> @enderror
+
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:16px; border-top:.5px solid var(--border);">
                 <a href="{{ $car ? route('cars.show', $car) : route('cars.index') }}" wire:navigate class="btn btn-secondary" style="text-decoration:none;">Cancel</a>
                 @php($submitAction = $car ? \App\Enums\CarAction::Resubmit : \App\Enums\CarAction::Submit)

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Closure;
 use Database\Factories\AttachmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,7 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 /**
  * A file on the private disk, attached to a CAR (or later to a round or corrective action).
@@ -51,6 +56,13 @@ class Attachment extends Model
     public const MAX_KILOBYTES = 51200;
 
     /**
+     * Files written by store() inside the current atomically() call, deleted again if it fails.
+     *
+     * @var list<array{disk: string, path: string}>|null
+     */
+    private static ?array $storedInTransaction = null;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -61,12 +73,57 @@ class Attachment extends Model
     }
 
     /**
+     * Run a submission all-or-nothing: the database changes and the files stored with them.
+     * If anything fails, the transaction rolls back and the files already written are deleted,
+     * so a CAR is never left half-submitted or holding files nothing points to.
+     *
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $work
+     * @return TResult
+     */
+    public static function atomically(Closure $work): mixed
+    {
+        $outermost = self::$storedInTransaction === null;
+
+        if ($outermost) {
+            self::$storedInTransaction = [];
+        }
+
+        try {
+            return DB::transaction($work);
+        } catch (Throwable $e) {
+            if ($outermost) {
+                foreach (self::$storedInTransaction as $file) {
+                    Storage::disk($file['disk'])->delete($file['path']);
+                }
+            }
+
+            throw $e;
+        } finally {
+            if ($outermost) {
+                self::$storedInTransaction = null;
+            }
+        }
+    }
+
+    /**
      * Store an uploaded file on the private disk and attach it to the owner.
+     *
+     * @throws RuntimeException when the file cannot be written
      */
     public static function store(Model $owner, UploadedFile $file, string $collection, User $uploader): self
     {
         $directory = Str::of($owner->getMorphClass())->classBasename()->snake()->plural().'/'.$owner->getKey();
         $path = $file->storeAs($directory, Str::uuid().'.'.strtolower($file->getClientOriginalExtension()), 'local');
+
+        if ($path === false) {
+            throw new RuntimeException("Could not save {$file->getClientOriginalName()} to storage.");
+        }
+
+        if (self::$storedInTransaction !== null) {
+            self::$storedInTransaction[] = ['disk' => 'local', 'path' => $path];
+        }
 
         return $owner->attachments()->create([
             'collection' => $collection,

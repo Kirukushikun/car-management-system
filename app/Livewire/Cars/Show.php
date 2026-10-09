@@ -4,6 +4,7 @@ namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
+use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarEvent;
@@ -21,6 +22,8 @@ use Livewire\Component;
  */
 class Show extends Component
 {
+    use GuardsSubmissions;
+
     /**
      * Actions completed through a form on the page rather than a single button.
      *
@@ -62,13 +65,17 @@ class Show extends Component
             return;
         }
 
-        $workflow->apply(
+        $applied = $this->guardSubmission(fn (): Car => $workflow->apply(
             $this->car,
             auth()->user(),
             $action,
             note: $action->allowsNote() && trim($this->note) !== '' ? $this->note : null,
             newDueOn: $action->requiresNewDueDate() && $this->newDueOn !== '' ? CarbonImmutable::parse($this->newDueOn) : null,
-        );
+        ));
+
+        if ($applied === null) {
+            return;
+        }
 
         $this->note = '';
         $this->resetErrorBag();

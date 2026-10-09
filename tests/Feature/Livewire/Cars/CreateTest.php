@@ -4,6 +4,7 @@ use App\Enums\CarStatus;
 use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Livewire\Cars\Create;
+use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\Category;
 use App\Models\IssuedToUnit;
@@ -12,6 +13,7 @@ use App\Models\User;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -220,5 +222,49 @@ describe('correcting a returned CAR', function () {
         $released = Car::factory()->status(CarStatus::AwaitingResponder)->create(['requestor_id' => $this->requestor->id]);
 
         $this->actingAs($this->requestor)->get(route('cars.edit', $released))->assertForbidden();
+    });
+});
+
+describe('when saving fails', function () {
+    it('submits nothing, removes the files already saved and keeps the form for another try', function () {
+        Storage::fake('local');
+        Notification::fake();
+        Attachment::creating(function (Attachment $attachment): void {
+            if ($attachment->original_name === 'second.jpg') {
+                throw new RuntimeException('Disk full');
+            }
+        });
+
+        filledCreateForm($this->requestor)
+            ->set('attachments', [UploadedFile::fake()->image('first.jpg'), UploadedFile::fake()->image('second.jpg')])
+            ->call('submit')
+            ->assertHasErrors('submission')
+            ->assertSee('nothing was submitted')
+            ->assertNoRedirect()
+            ->assertCount('attachments', 2)
+            ->assertSet('complainant', 'Rollie Funa');
+
+        expect(Car::count())->toBe(0)
+            ->and(Attachment::count())->toBe(0)
+            ->and(Storage::disk('local')->allFiles('cars'))->toBe([]);
+        Notification::assertNothingSent();
+    });
+
+    it('leaves a returned CAR untouched when its resubmission fails', function () {
+        Storage::fake('local');
+        $car = Car::factory()->status(CarStatus::ReturnedToRequestor)->create(['requestor_id' => $this->requestor->id]);
+        Attachment::creating(fn () => throw new RuntimeException('Disk full'));
+
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class, ['car' => $car])
+            ->set('complainant', 'Corrected Complainant')
+            ->set('attachments', [UploadedFile::fake()->image('more-proof.jpg')])
+            ->call('submit')
+            ->assertHasErrors('submission');
+
+        expect($car->fresh())
+            ->status->toBe(CarStatus::ReturnedToRequestor)
+            ->complainant->not->toBe('Corrected Complainant')
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
     });
 });
