@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // HTTPS ends at the reverse proxy in front of the server; trust its X-Forwarded-* headers so
+        // generated URLs (Livewire's update endpoint included) use https instead of http.
+        $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo(fn (): string => route('login'));
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user()->role->homeUrl());
     })
