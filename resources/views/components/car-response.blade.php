@@ -1,10 +1,10 @@
-@props(['response', 'showRound' => false])
+@props(['response', 'showRound' => false, 'outcome' => null])
 
 @use('App\Models\Attachment')
 
 <div {{ $attributes->merge(['style' => 'display:flex; flex-direction:column; gap:12px;']) }}>
     @if ($showRound)
-        <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text3);">Round {{ $response->round->number }}</div>
+        <x-solution-badge :number="$response->round->number" :outcome="$outcome" />
     @endif
 
     <div class="kv">

@@ -14,7 +14,7 @@ it('replays the mockup sample CARs into the same statuses', function () {
     expect(Car::orderBy('reference')->get()->mapWithKeys(fn (Car $car): array => [$car->reference => $car->status])->all())
         ->toBe([
             'CAR-2026-0138' => CarStatus::ClosedAccepted,
-            'CAR-2026-0139' => CarStatus::OpenNotAccepted,
+            'CAR-2026-0139' => CarStatus::ReturnedToResponder,
             'CAR-2026-0140' => CarStatus::AwaitingResponderApproval,
             'CAR-2026-0141' => CarStatus::AwaitingImplementation,
             'CAR-2026-0142' => CarStatus::AwaitingResponder,

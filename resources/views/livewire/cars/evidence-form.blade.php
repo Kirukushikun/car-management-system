@@ -1,6 +1,6 @@
 <form x-on:submit.prevent id="evidence-form" class="embedded-form">
     <div class="embedded-form-head">
-        <strong>Your implementation evidence — round {{ $round->number }}</strong>
+        <strong>Your implementation evidence — solution {{ $round->number }}</strong>
         <span>Step 11 · due {{ $deadline->format('M j, Y') }}</span>
     </div>
     @error('evidence') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin-bottom:0;">{{ $message }}</div> @enderror

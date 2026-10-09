@@ -37,6 +37,10 @@ class CarWorkflow
     /**
      * The transition table: from which statuses, which action, by which roles, to which status.
      *
+     * Not accepted (Step 13) sends the CAR back to Phase II for a new solution in a new round, as
+     * many times as it takes. Open — Not Accepted is no longer entered; CARs already in it can
+     * still upload their evidence.
+     *
      * A Responder Approver may also prepare a response (Step 10: whoever prepares it, someone above
      * them approves it) — see mayReviewResponse().
      *
@@ -55,7 +59,7 @@ class CarWorkflow
             ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkEffective, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::AwaitingRequestorApproval],
             ['from' => [CarStatus::AwaitingEffectivenessCheck], 'action' => CarAction::MarkNotEffective, 'roles' => [Role::ResponderApprover], 'to' => CarStatus::ReturnedToResponder],
             ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::Accept, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::ClosedAccepted],
-            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::NotAccept, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::OpenNotAccepted],
+            ['from' => [CarStatus::AwaitingRequestorApproval], 'action' => CarAction::NotAccept, 'roles' => [Role::RequestorApprover], 'to' => CarStatus::ReturnedToResponder],
             ['from' => CarStatus::open(), 'action' => CarAction::Void, 'roles' => [Role::Admin], 'to' => CarStatus::Voided],
         ];
     }

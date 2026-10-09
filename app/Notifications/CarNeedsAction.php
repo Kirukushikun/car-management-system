@@ -51,6 +51,7 @@ class CarNeedsAction extends Notification implements ShouldQueue
             ->greeting("Hello {$notifiable->name},")
             ->line("{$this->car->reference} — {$this->car->subcategory->name} ({$this->car->farm->name}, {$this->car->issuedToUnit->name})")
             ->line("{$this->action->pastTense()} by {$this->actorName}.")
+            ->when($this->note(), fn (MailMessage $mail, string $note) => $mail->line("Remarks: “{$note}”"))
             ->line("Status: {$this->car->status->label()}.")
             ->action('Open the CAR', route('cars.show', $this->car));
     }
@@ -72,6 +73,14 @@ class CarNeedsAction extends Notification implements ShouldQueue
     }
 
     /**
+     * The reason or remarks given with this action, if any.
+     */
+    private function note(): ?string
+    {
+        return $this->car->events()->where('action', $this->action)->latest('id')->value('note');
+    }
+
+    /**
      * Short line telling the recipient why they are hearing about this CAR.
      */
     private function headline(object $notifiable): string
@@ -83,7 +92,7 @@ class CarNeedsAction extends Notification implements ShouldQueue
             return match ($this->action) {
                 CarAction::Accept => 'Your CAR was accepted and closed',
                 CarAction::Void => 'A CAR you filed was voided',
-                CarAction::NotAccept => 'Not accepted — new end date set',
+                CarAction::NotAccept => 'Not accepted — the Responder will propose a new solution',
                 default => $this->car->status->label(),
             };
         }
@@ -92,7 +101,11 @@ class CarNeedsAction extends Notification implements ShouldQueue
             CarStatus::AwaitingRelease => 'A new CAR is waiting for your release',
             CarStatus::ReturnedToRequestor => 'Your CAR was returned — please correct and resubmit',
             CarStatus::AwaitingResponder => 'A CAR was issued to your farm — response needed',
-            CarStatus::ReturnedToResponder => 'Your response needs revision',
+            CarStatus::ReturnedToResponder => match ($this->action) {
+                CarAction::NotAccept => 'Not accepted — propose a new solution',
+                CarAction::MarkNotEffective => 'Not effective — propose a new solution',
+                default => 'Your response needs revision',
+            },
             CarStatus::AwaitingResponderApproval => 'A response is waiting for your approval',
             CarStatus::AwaitingImplementation => 'Corrective actions approved — upload the implementation evidence',
             CarStatus::AwaitingEffectivenessCheck => 'Evidence uploaded — check whether the action was effective',

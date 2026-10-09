@@ -51,10 +51,19 @@ it('flags the filing requestor when a CAR is rejected', function () {
 it('flags both the responders and responder approvers when a CAR is not accepted', function () {
     $car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingRequestorApproval)->create();
 
-    $this->workflow->apply($car, $this->requestorApprover, CarAction::NotAccept, newDueOn: CarbonImmutable::today()->addWeek());
+    $this->workflow->apply($car, $this->requestorApprover, CarAction::NotAccept, note: 'Still cracked.', newDueOn: CarbonImmutable::today()->addWeek());
 
     Notification::assertSentTo([$this->pfcResponder, $this->pfcApprover], CarNeedsAction::class);
     Notification::assertNotSentTo($this->hatcheryResponder, CarNeedsAction::class);
+});
+
+it('asks the responder for a new solution and passes on the reason when a CAR is not accepted', function () {
+    $car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingRequestorApproval)->create();
+
+    $this->workflow->apply($car, $this->requestorApprover, CarAction::NotAccept, note: 'Still receiving cracked eggs.', newDueOn: CarbonImmutable::today()->addWeek());
+
+    Notification::assertSentTo($this->pfcResponder, CarNeedsAction::class, fn (CarNeedsAction $notification): bool => $notification->toArray($this->pfcResponder)['message'] === 'Not accepted — propose a new solution'
+        && in_array('Remarks: “Still receiving cracked eggs.”', $notification->toMail($this->pfcResponder)->introLines, true));
 });
 
 it('tells the filing requestor when the CAR is closed', function () {

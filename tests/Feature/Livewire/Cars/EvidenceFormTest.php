@@ -71,11 +71,12 @@ it('is forbidden to anyone who may not upload evidence', function (Role $role, s
 
 it('keeps the first round\'s evidence when new evidence is uploaded after "not accepted"', function () {
     $car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingRequestorApproval)->withEvidence()->create();
-    app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(), CarAction::NotAccept, newDueOn: CarbonImmutable::tomorrow()->addWeek());
+    app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(), CarAction::NotAccept, note: 'Still cracked.', newDueOn: CarbonImmutable::tomorrow()->addWeek());
+    $car->fresh()->update(['status' => CarStatus::AwaitingImplementation]);
 
     Livewire::actingAs($this->responder)
         ->test(EvidenceForm::class, ['car' => $car->fresh()])
-        ->assertSee('round 2')
+        ->assertSee('solution 2')
         ->set('files', [UploadedFile::fake()->image('re-implemented.jpg')])
         ->call('submit')
         ->assertHasNoErrors();

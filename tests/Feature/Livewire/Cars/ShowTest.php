@@ -164,27 +164,66 @@ it('closes the CAR on final acceptance', function () {
 
     Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
         ->test(Show::class, ['car' => $car])
-        ->assertSee('New end date (only used if not accepted)')
+        ->assertSee(['New end date (required if not accepted)', 'Remarks (optional to accept, required if not accepted)'])
         ->call('act', CarAction::Accept->value)
         ->assertSee('Closed — accepted on');
 
-    expect($car->fresh()->status)->toBe(CarStatus::ClosedAccepted);
+    expect($car->fresh()->status)->toBe(CarStatus::ClosedAccepted)
+        ->and($car->events()->where('action', CarAction::Accept)->value('note'))->toBeNull();
 });
 
-it('does not accept with a new end date and loops back to implementation', function () {
+it('keeps the Requestor Approver remarks when accepting and shows them in Phase III', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+    $car->currentRound()->first()->update(['evidence_uploaded_at' => now(), 'evidence_responsible' => 'Roi']);
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->set('note', 'Verified on site — racks in use.')
+        ->call('act', CarAction::Accept->value)
+        ->assertSee(['Accepted — closed', '“Verified on site — racks in use.”']);
+
+    expect($car->events()->where('action', CarAction::Accept)->value('note'))->toBe('Verified on site — racks in use.');
+});
+
+it('requires a reason to not accept', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->set('newDueOn', now()->addDays(10)->toDateString())
+        ->call('act', CarAction::NotAccept->value)
+        ->assertHasErrors('note');
+
+    expect($car->fresh()->status)->toBe(CarStatus::AwaitingRequestorApproval);
+});
+
+it('does not accept with a reason and a new end date and sends it back for a new solution', function () {
     $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
     $newDueOn = now()->addDays(10)->toDateString();
 
     Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
         ->test(Show::class, ['car' => $car])
         ->set('newDueOn', $newDueOn)
+        ->set('note', 'Still receiving cracked eggs.')
         ->call('act', CarAction::NotAccept->value)
         ->assertHasNoErrors()
         ->assertSee('Not accepted');
 
     expect($car->fresh())
-        ->status->toBe(CarStatus::OpenNotAccepted)
+        ->status->toBe(CarStatus::ReturnedToResponder)
+        ->current_round->toBe(2)
         ->revised_due_on->toDateString()->toBe($newDueOn);
+});
+
+it('shows the Responder why the solution was not accepted and labels each solution', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->withResponse(submitted: true)->create();
+    app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(['name' => 'Stephanie Flores']), CarAction::NotAccept,
+        note: 'Still receiving cracked eggs.', newDueOn: now()->addDays(10));
+
+    Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
+        ->test(Show::class, ['car' => $car->fresh()])
+        ->assertSee(['Propose solution 2', 'Not accepted', 'Stephanie Flores', '“Still receiving cracked eggs.”', 'Propose a new solution — solution 2', 'Earlier solutions', 'Solution 1'])
+        ->assertSeeLivewire(ResponseForm::class);
 });
 
 it('rejects a new end date that is not in the future', function () {
@@ -193,6 +232,7 @@ it('rejects a new end date that is not in the future', function () {
     Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
         ->test(Show::class, ['car' => $car])
         ->set('newDueOn', now()->toDateString())
+        ->set('note', 'Still receiving cracked eggs.')
         ->call('act', CarAction::NotAccept->value)
         ->assertHasErrors('new_due_on');
 
@@ -301,7 +341,7 @@ it('puts the response form inside the single Phase II card instead of a waiting 
 
     Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
         ->test(Show::class, ['car' => $car])
-        ->assertSeeInOrder(['Response, Root Cause &amp; Action Planning', 'Your response — round 1', 'Implementation, Verification &amp; Closure'], false)
+        ->assertSeeInOrder(['Response, Root Cause &amp; Action Planning', 'Your response — solution 1', 'Implementation, Verification &amp; Closure'], false)
         ->assertDontSee('Waiting for');
 });
 
@@ -310,7 +350,7 @@ it('puts the evidence form inside the single Phase III card instead of the not-s
 
     Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
         ->test(Show::class, ['car' => $car])
-        ->assertSeeInOrder(['Implementation, Verification &amp; Closure', 'Your implementation evidence — round 1', 'History'], false)
+        ->assertSeeInOrder(['Implementation, Verification &amp; Closure', 'Your implementation evidence — solution 1', 'History'], false)
         ->assertDontSee('Starts once the corrective actions are approved');
 });
 

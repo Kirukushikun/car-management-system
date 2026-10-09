@@ -66,7 +66,7 @@ class Show extends Component
             $this->car,
             auth()->user(),
             $action,
-            note: $action->requiresNote() ? $this->note : null,
+            note: $action->allowsNote() && trim($this->note) !== '' ? $this->note : null,
             newDueOn: $action->requiresNewDueDate() && $this->newDueOn !== '' ? CarbonImmutable::parse($this->newDueOn) : null,
         );
 
@@ -87,7 +87,12 @@ class Show extends Component
 
         return view('livewire.cars.show', [
             'actions' => $actions,
-            'needsNote' => collect($actions)->contains(fn (CarAction $action): bool => $action->requiresNote()),
+            'needsNote' => collect($actions)->contains(fn (CarAction $action): bool => $action->allowsNote()),
+            'noteLabel' => in_array(CarAction::Accept, $actions, true)
+                ? 'Remarks (optional to accept, required if not accepted)'
+                : 'Reason (required to reject, return, mark not effective or void)',
+            'sentBack' => $this->sentBack(),
+            'solutionOutcomes' => $this->solutionOutcomes(),
             'needsNewDueDate' => in_array(CarAction::NotAccept, $actions, true),
             'actionNote' => $this->actionNote($actions),
             'canRespond' => in_array(CarAction::SubmitResponse, $actions, true),
@@ -123,6 +128,33 @@ class Show extends Component
     }
 
     /**
+     * The event that sent the CAR back to whoever holds it now, when it was sent back with a reason.
+     */
+    private function sentBack(): ?CarEvent
+    {
+        $last = $this->car->events->last();
+
+        return $last && $last->note && $last->to_status === $this->car->status
+            && in_array($this->car->status, [CarStatus::ReturnedToRequestor, CarStatus::ReturnedToResponder], true)
+            ? $last
+            : null;
+    }
+
+    /**
+     * Why each earlier solution (round) ended: the "not effective" or "not accepted" event that
+     * opened the next one, keyed by round number.
+     *
+     * @return array<int, CarEvent>
+     */
+    private function solutionOutcomes(): array
+    {
+        return $this->car->events
+            ->filter(fn (CarEvent $event): bool => $event->action->opensNewRound())
+            ->keyBy('round')
+            ->all();
+    }
+
+    /**
      * One line telling the user what is expected of them on this CAR.
      *
      * @param  list<CarAction>  $actions
@@ -133,15 +165,18 @@ class Show extends Component
             $actions === [CarAction::Void] => 'As IT Admin you can void this CAR — for duplicates or CARs filed in error. A reason is required and kept in the history.',
             in_array(CarAction::Release, $actions, true) => 'Investigation done? Release this CAR to the Responder, or reject it back to the Requestor for clarity.',
             in_array(CarAction::Resubmit, $actions, true) => 'The Requestor Approver sent this back. Correct the details, then resubmit it for release.',
-            in_array(CarAction::SubmitResponse, $actions, true) => $this->car->status === CarStatus::ReturnedToResponder
-                ? 'The response was returned or the action was not effective — see the reason in the history, update the response below and submit it again.'
-                : 'Record the interim containment, root cause and corrective actions below, then submit them for approval.',
+            in_array(CarAction::SubmitResponse, $actions, true) => match ($this->sentBack()?->action) {
+                CarAction::NotAccept => "The Requestor Approver did not accept the solution. Propose solution {$this->car->current_round} below — it starts from the last one — and submit it for approval. It must be implemented by {$this->car->implementationDeadline()->format('M j, Y')}.",
+                CarAction::MarkNotEffective => "The corrective action was not effective. Propose solution {$this->car->current_round} below — it starts from the last one — and submit it for approval.",
+                CarAction::ReturnResponse => 'The Responder Approver returned the response. Revise it below and submit it again.',
+                default => 'Record the interim containment, root cause and corrective actions below, then submit them for approval.',
+            },
             in_array(CarAction::ApproveResponse, $actions, true) => 'Review the root cause and corrective actions in Phase II. Approve to move to implementation, or return them for revision with a reason.',
             in_array(CarAction::UploadEvidence, $actions, true) => $this->car->status === CarStatus::OpenNotAccepted
                 ? "Not accepted by the Requestor Approver — re-implement and upload new evidence by {$this->car->implementationDeadline()->format('M j, Y')}."
                 : 'Upload files and photos proving the corrective actions were carried out.',
             in_array(CarAction::MarkEffective, $actions, true) => 'Review the implementation evidence in Phase III. Was the corrective action effective?',
-            in_array(CarAction::Accept, $actions, true) => 'The corrective action was validated as effective. Accept to close this CAR, or send it back with a new end date.',
+            in_array(CarAction::Accept, $actions, true) => 'The corrective action was validated as effective. Accept to close this CAR (remarks optional), or mark it not accepted with a reason and a new end date — the Responder then proposes a new solution.',
             default => 'This CAR is waiting on you.',
         };
     }

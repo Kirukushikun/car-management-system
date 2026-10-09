@@ -83,27 +83,37 @@ it('carries a CAR from filing to closure through every step and both loops', fun
     Livewire::actingAs($reneliza)->test(Show::class, ['car' => $car->fresh()])->call('act', CarAction::MarkEffective->value);
     expect($car->fresh()->status)->toBe(CarStatus::AwaitingRequestorApproval);
 
-    // Step 13 — NOT accepted with a new end date → re-implement (round 3) → accepted
+    // Step 13 — NOT accepted with a reason and a new end date → a new solution (round 3) → accepted with remarks
     Livewire::actingAs($stephanie)->test(Show::class, ['car' => $car->fresh()])
         ->set('newDueOn', '2026-10-20')
+        ->set('note', 'Spoilage reports continued from the Lucena outlet.')
         ->call('act', CarAction::NotAccept->value)->assertHasNoErrors();
-    expect($car->fresh())->status->toBe(CarStatus::OpenNotAccepted)->current_round->toBe(3);
+    expect($car->fresh())->status->toBe(CarStatus::ReturnedToResponder)->current_round->toBe(3);
 
+    Livewire::actingAs($roi)->test(Show::class, ['car' => $car->fresh()])
+        ->assertSee(['Propose solution 3', 'Spoilage reports continued from the Lucena outlet.']);
+    Livewire::actingAs($roi)->test(ResponseForm::class, ['car' => $car->fresh()])
+        ->set('rootCause', 'Outlet stores eggs next to the oven; rotate stock with FIFO racks.')
+        ->call('submit')->assertHasNoErrors();
+    Livewire::actingAs($reneliza)->test(Show::class, ['car' => $car->fresh()])->call('act', CarAction::ApproveResponse->value);
     Livewire::actingAs($roi)->test(EvidenceForm::class, ['car' => $car->fresh()])
         ->set('files', [UploadedFile::fake()->image('fifo-rack.jpg')])
         ->call('submit')->assertHasNoErrors();
     Livewire::actingAs($reneliza)->test(Show::class, ['car' => $car->fresh()])->call('act', CarAction::MarkEffective->value);
-    Livewire::actingAs($stephanie)->test(Show::class, ['car' => $car->fresh()])->call('act', CarAction::Accept->value);
+    Livewire::actingAs($stephanie)->test(Show::class, ['car' => $car->fresh()])
+        ->set('note', 'No complaints for two weeks.')
+        ->call('act', CarAction::Accept->value);
 
     $car->refresh();
     expect($car->status)->toBe(CarStatus::ClosedAccepted)
         ->and($car->closed_at)->not->toBeNull()
-        ->and($car->responses()->count())->toBe(2)
+        ->and($car->responses()->count())->toBe(3)
         ->and($car->rounds()->count())->toBe(3)
         ->and(CarEvent::where('car_id', $car->id)->pluck('action')->map->value->all())->toBe([
             'submit', 'release', 'submit_response', 'approve_response', 'upload_evidence', 'mark_not_effective',
             'submit_response', 'approve_response', 'upload_evidence', 'mark_effective', 'not_accept',
-            'upload_evidence', 'mark_effective', 'accept',
+            'submit_response', 'approve_response', 'upload_evidence', 'mark_effective', 'accept',
         ])
+        ->and($car->events()->where('action', CarAction::Accept)->value('note'))->toBe('No complaints for two weeks.')
         ->and($gab->notifications()->where('data->message', 'Your CAR was accepted and closed')->exists())->toBeTrue();
 });

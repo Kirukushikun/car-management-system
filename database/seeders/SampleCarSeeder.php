@@ -188,7 +188,13 @@ class SampleCarSeeder extends Seeder
             default => $this->farmUser($farm, Role::ResponderApprover),
         };
 
-        $workflow->apply($car, $actor, $action, newDueOn: isset($step[2]) ? CarbonImmutable::parse($step[2]) : null);
+        $workflow->apply(
+            $car,
+            $actor,
+            $action,
+            note: $action === CarAction::NotAccept ? 'The next delivery still arrived with mixed orders — the fix did not hold. Propose a different solution.' : null,
+            newDueOn: isset($step[2]) ? CarbonImmutable::parse($step[2]) : null,
+        );
     }
 
     /**

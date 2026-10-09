@@ -77,7 +77,7 @@ function expectedTransitions(): array
         ],
         CarStatus::AwaitingRequestorApproval->value => [
             [CarAction::Accept, Role::RequestorApprover, CarStatus::ClosedAccepted],
-            [CarAction::NotAccept, Role::RequestorApprover, CarStatus::OpenNotAccepted],
+            [CarAction::NotAccept, Role::RequestorApprover, CarStatus::ReturnedToResponder],
         ],
         CarStatus::OpenNotAccepted->value => [
             [CarAction::UploadEvidence, Role::Responder, CarStatus::AwaitingEffectivenessCheck],
@@ -404,9 +404,10 @@ describe('Phase III evidence', function () {
             ->evidence_uploaded_at->toDateTimeString()->toBe('2026-10-05 09:00:00');
     });
 
-    it('needs fresh evidence in the new round after "not accepted"', function () {
+    it('needs fresh evidence for the new solution after "not accepted"', function () {
         $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->withEvidence()->create();
-        $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, newDueOn: CarbonImmutable::parse('2026-10-20'));
+        $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, note: 'Still cracked.', newDueOn: CarbonImmutable::parse('2026-10-20'));
+        $car->fresh()->update(['status' => CarStatus::AwaitingImplementation]);
 
         expect(fn () => $this->workflow->apply($car->fresh(), actorFor(Role::Responder, $car), CarAction::UploadEvidence))
             ->toThrow(ValidationException::class);
@@ -433,7 +434,7 @@ describe('side effects', function () {
     it('opens a new round with the revised end date when not accepted', function () {
         $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
 
-        $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, newDueOn: CarbonImmutable::parse('2026-10-20'));
+        $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, note: 'Still cracked.', newDueOn: CarbonImmutable::parse('2026-10-20'));
 
         $car->refresh();
         expect($car)
@@ -487,6 +488,7 @@ describe('required input', function () {
         expect($car->fresh()->status)->toBe($status);
     })->with([
         [CarStatus::AwaitingRelease, CarAction::Reject, Role::RequestorApprover],
+        [CarStatus::AwaitingRequestorApproval, CarAction::NotAccept, Role::RequestorApprover],
         [CarStatus::AwaitingResponderApproval, CarAction::ReturnResponse, Role::ResponderApprover],
         [CarStatus::AwaitingEffectivenessCheck, CarAction::MarkNotEffective, Role::ResponderApprover],
         [CarStatus::AwaitingResponder, CarAction::Void, Role::Admin],
@@ -495,7 +497,7 @@ describe('required input', function () {
     it('requires a new end date after today when not accepting', function (?string $newDueOn) {
         $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
 
-        expect(fn () => $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, newDueOn: $newDueOn ? CarbonImmutable::parse($newDueOn) : null))
+        expect(fn () => $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::NotAccept, note: 'Still cracked.', newDueOn: $newDueOn ? CarbonImmutable::parse($newDueOn) : null))
             ->toThrow(ValidationException::class, 'The new end date must be after today.');
         expect($car->fresh()->status)->toBe(CarStatus::AwaitingRequestorApproval);
     })->with(['missing' => [null], 'today' => ['2026-10-05'], 'past' => ['2026-10-01']]);

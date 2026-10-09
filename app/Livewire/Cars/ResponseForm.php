@@ -200,7 +200,11 @@ class ResponseForm extends Component
         return view('livewire.cars.response-form', [
             'existingFiles' => $this->car->currentResponse()?->attachments ?? collect(),
             'deadline' => $this->car->implementationDeadline(),
-            'isRevision' => $this->car->currentResponse()?->submitted_at !== null || $this->previousResponse() !== null,
+            'heading' => match (true) {
+                $this->car->currentResponse()?->submitted_at !== null => 'Revise your response',
+                $this->car->current_round > 1 => 'Propose a new solution',
+                default => 'Your response',
+            },
         ]);
     }
 

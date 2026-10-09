@@ -1,6 +1,6 @@
 <form x-on:submit.prevent id="response-form" class="embedded-form">
     <div class="embedded-form-head">
-        <strong>{{ $isRevision ? 'Revise your response' : 'Your response' }} — round {{ $car->current_round }}</strong>
+        <strong>{{ $heading }} — solution {{ $car->current_round }}</strong>
         <span>Steps 7–9 · submit for Responder Approver sign-off</span>
     </div>
     @if ($notice)

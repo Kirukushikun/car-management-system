@@ -26,10 +26,16 @@
             <div class="card action-bar" style="background:var(--accent-bg); border-color:var(--accent-bd);" wire:key="action-bar">
                 <div class="who">Your action — {{ auth()->user()->roleWithScope() }}</div>
                 <div class="note">{{ $actionNote }}</div>
+                @if ($sentBack)
+                    <div class="sent-back">
+                        <strong>{{ $sentBack->action->label() }}</strong> by {{ $sentBack->actor?->name }} · {{ $sentBack->created_at->format('M j, Y') }}
+                        <div>“{{ $sentBack->note }}”</div>
+                    </div>
+                @endif
 
                 @if ($needsNewDueDate)
                     <div class="field" style="max-width:260px; margin-bottom:10px;">
-                        <label for="newDueOn">New end date (only used if not accepted)</label>
+                        <label for="newDueOn">New end date (required if not accepted)</label>
                         <input type="date" id="newDueOn" wire:model="newDueOn" min="{{ now()->addDay()->toDateString() }}">
                         @error('new_due_on') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -37,7 +43,7 @@
 
                 @if ($needsNote)
                     <div class="field" style="margin-bottom:10px;">
-                        <label for="note">Reason (required to reject, return, mark not effective or void)</label>
+                        <label for="note">{{ $noteLabel }}</label>
                         <textarea id="note" wire:model="note" style="min-height:60px;"></textarea>
                         @error('note') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -140,11 +146,11 @@
                         @endunless
                     @else
                         @if ($canRespond)
-                            <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier submissions</div>
+                            <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier solutions</div>
                         @endif
                         @foreach ($submittedResponses as $response)
                             <div wire:key="response-{{ $response->id }}" @style(['padding-top:12px; border-top:.5px solid var(--border)' => ! $loop->first])>
-                                <x-car-response :response="$response" :show-round="$car->current_round > 1" />
+                                <x-car-response :response="$response" :show-round="$car->current_round > 1" :outcome="$solutionOutcomes[$response->round->number] ?? null" />
                             </div>
                         @endforeach
                     @endif
@@ -171,14 +177,14 @@
                 @if ($canUploadEvidence)
                     <livewire:cars.evidence-form :car="$car" :key="'evidence-form-'.$car->id.'-'.$car->current_round" />
                     @if ($verificationRounds)
-                        <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier rounds</div>
+                        <div class="section-title" style="margin:6px 0 0; padding-top:14px; border-top:.5px solid var(--border);">Earlier solutions</div>
                     @endif
                 @endif
 
                 @forelse ($verificationRounds as $row)
                     <div wire:key="verification-{{ $row['round']->id }}" @style(['padding-top:12px; border-top:.5px solid var(--border)' => ! $loop->first])>
                         @if (count($verificationRounds) > 1 || $row['round']->number > 1)
-                            <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); margin-bottom:8px;">Round {{ $row['round']->number }}</div>
+                            <x-solution-badge :number="$row['round']->number" :outcome="$solutionOutcomes[$row['round']->number] ?? null" style="margin-bottom:8px;" />
                         @endif
                         <div class="field-grid">
                             <div class="kv">
@@ -219,6 +225,9 @@
                                             <x-pill :tone="$row['acceptance']->action === CarAction::Accept ? 'green' : 'red'">{{ $row['acceptance']->action === CarAction::Accept ? 'Accepted — closed' : 'Not accepted' }}</x-pill>
                                             <span style="font-weight:400; font-size:11.5px;">{{ $row['acceptance']->actor?->name }} · {{ $row['acceptance']->created_at->format('M j, Y') }}</span>
                                         </span>
+                                        @if ($row['acceptance']->note)
+                                            <span class="v" style="font-weight:400; color:var(--text2);">“{{ $row['acceptance']->note }}”</span>
+                                        @endif
                                         @if ($row['acceptance']->action === CarAction::NotAccept)
                                             <span class="v" style="font-weight:400; color:var(--text2);">New end date: {{ $car->rounds->firstWhere('number', $row['round']->number + 1)?->due_on?->format('M j, Y') ?? '—' }}</span>
                                         @endif

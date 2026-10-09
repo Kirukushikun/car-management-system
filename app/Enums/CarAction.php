@@ -61,7 +61,7 @@ enum CarAction: string
             self::MarkEffective => 'Corrective action validated as effective — forwarded for final acceptance',
             self::MarkNotEffective => 'Corrective action not effective — returned to Phase II',
             self::Accept => 'Final acceptance given — CAR closed',
-            self::NotAccept => 'Not accepted — new end date set, looped back to implementation',
+            self::NotAccept => 'Not accepted — sent back to the Responder for a new solution',
             self::Void => 'CAR voided',
         };
     }
@@ -82,8 +82,8 @@ enum CarAction: string
             self::UploadEvidence => 'The evidence goes to the Responder Approver for the effectiveness check. You cannot add files to this round afterwards.',
             self::MarkEffective => 'The CAR goes to the Requestor Approver for final acceptance.',
             self::MarkNotEffective => 'The CAR goes back to Phase II and the Responder must revise the response.',
-            self::Accept => 'The CAR is closed. This cannot be undone.',
-            self::NotAccept => 'The CAR goes back to the Responder to re-implement by the new end date.',
+            self::Accept => 'The CAR is closed with your remarks. This cannot be undone.',
+            self::NotAccept => 'The CAR goes back to the Responder with your reason to propose a new solution by the new end date. The Responder Approver approves it again before it is implemented.',
             self::Void => 'The CAR is voided and leaves every queue. This cannot be undone.',
         };
     }
@@ -93,15 +93,23 @@ enum CarAction: string
      */
     public function isNegative(): bool
     {
-        return $this->requiresNote() || $this === self::NotAccept;
+        return $this->requiresNote();
     }
 
     /**
-     * Actions that must explain themselves: every rejection, return and void.
+     * Actions that must explain themselves: every rejection, return, non-acceptance and void.
      */
     public function requiresNote(): bool
     {
-        return in_array($this, [self::Reject, self::ReturnResponse, self::MarkNotEffective, self::Void], true);
+        return in_array($this, [self::Reject, self::ReturnResponse, self::MarkNotEffective, self::NotAccept, self::Void], true);
+    }
+
+    /**
+     * Actions that take a note: the required ones, plus optional remarks when accepting.
+     */
+    public function allowsNote(): bool
+    {
+        return $this->requiresNote() || $this === self::Accept;
     }
 
     public function requiresNewDueDate(): bool

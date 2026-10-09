@@ -201,7 +201,7 @@ describe('later rounds', function () {
         Livewire::actingAs($this->responder)
             ->test(ResponseForm::class, ['car' => $car->fresh()])
             ->assertSet('rootCause', 'Eggs were dispatched three days after collection without cold storage.')
-            ->assertSee('round 2')
+            ->assertSee('solution 2')
             ->set('rootCause', 'Cold room door seal was also failing.')
             ->call('saveDraft');
 
