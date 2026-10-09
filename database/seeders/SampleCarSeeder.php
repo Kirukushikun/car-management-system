@@ -21,12 +21,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * Demo data: the mockup's ten sample CARs (CAR-2026-0138 … 0147), replayed through CarWorkflow
  * on their original dates so every status, deadline, round and history entry is produced by the
- * real state machine. Called by TestSeeder (never in production); farms without a Responder get
- * sample Responder accounts.
+ * real state machine. Optional — run it after TestSeeder with `db:seed --class=SampleCarSeeder`
+ * for a populated demo. Refuses to run in production.
  */
 class SampleCarSeeder extends Seeder
 {
@@ -127,6 +128,10 @@ class SampleCarSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->isProduction()) {
+            throw new RuntimeException('SampleCarSeeder creates demo CARs and must never run in production.');
+        }
+
         $workflow = app(CarWorkflow::class);
         $requestor = User::where('email', 'gab.maglalang@car.test')->firstOrFail();
         $requestorApprover = User::where('email', 'stephanie.flores@car.test')->firstOrFail();

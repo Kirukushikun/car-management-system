@@ -10,9 +10,11 @@ use Illuminate\Database\Seeder;
 use RuntimeException;
 
 /**
- * Testing-mode data: one sample account per role (the people named on the sample CAR forms) and
- * the mockup's ten sample CARs. Every account is flagged is_sample and uses the shared sample
- * password from config/login.php, so it signs in locally without the central Auth API.
+ * Testing-mode accounts: one per role (the people named on the sample CAR forms), plus a Responder
+ * and Responder Approver for every other farm so a CAR can be walked through for any farm. No CARs
+ * — the system starts empty; `db:seed --class=SampleCarSeeder` adds the mockup's ten if wanted.
+ * Every account is flagged is_sample and uses the shared sample password from config/login.php,
+ * so it signs in without the central Auth API.
  *
  * Refuses to run in production — the third lock that keeps sample accounts out of real systems.
  * Requires ReferenceDataSeeder.
@@ -41,7 +43,13 @@ class TestSeeder extends Seeder
         $this->person('QA Monitor', 'qa.monitor', Role::Monitor);
         $this->person('IT Admin', 'it.admin', Role::Admin);
 
-        $this->call(SampleCarSeeder::class);
+        Farm::whereKeyNot($pfc->id)->orderBy('name')->each(function (Farm $farm): void {
+            $handle = str($farm->name)->lower()->replace('/', '-');
+            $name = ucwords(strtolower($farm->name));
+
+            $approver = $this->person("{$name} Responder Approver", "{$handle}.responder-approver", Role::ResponderApprover, $farm);
+            $this->person("{$name} Responder", "{$handle}.responder", Role::Responder, $farm, $approver);
+        });
     }
 
     private function person(string $name, string $handle, Role $role, ?Farm $farm = null, ?User $approver = null): User

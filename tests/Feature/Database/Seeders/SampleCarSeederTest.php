@@ -3,10 +3,11 @@
 use App\Enums\CarStatus;
 use App\Models\Car;
 use Database\Seeders\ReferenceDataSeeder;
+use Database\Seeders\SampleCarSeeder;
 use Database\Seeders\TestSeeder;
 
 beforeEach(function () {
-    $this->seed([ReferenceDataSeeder::class, TestSeeder::class]);
+    $this->seed([ReferenceDataSeeder::class, TestSeeder::class, SampleCarSeeder::class]);
 });
 
 it('replays the mockup sample CARs into the same statuses', function () {
