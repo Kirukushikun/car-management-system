@@ -39,7 +39,7 @@ it('gives every farm a Responder and a Responder Approver, the Responder reporti
         expect($responder->approver_id)->toBe($approver->id);
     });
 
-    expect(User::count())->toBe(12);
+    expect(User::count())->toBe(7 + 2 * (Farm::count() - 1));
 });
 
 /**
