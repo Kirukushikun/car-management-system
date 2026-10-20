@@ -80,7 +80,7 @@ it('falls back to all CARs for an unknown view', function () {
 it('shows the New CAR button only to requestors', function (Role $role, bool $seesButton) {
     $component = Livewire::actingAs(User::factory()->role($role)->create())->test(Index::class);
 
-    $seesButton ? $component->assertSee('+ New CAR') : $component->assertDontSee('+ New CAR');
+    $seesButton ? $component->assertSeeHtml('href="'.route('cars.create').'"') : $component->assertDontSeeHtml('href="'.route('cars.create').'"');
 })->with([
     'requestor' => [Role::Requestor, true],
     'responder' => [Role::Responder, false],

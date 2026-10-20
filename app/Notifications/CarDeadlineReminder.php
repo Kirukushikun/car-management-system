@@ -41,7 +41,7 @@ class CarDeadlineReminder extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject("[{$this->car->reference}] {$this->headline()}")
             ->greeting("Hello {$notifiable->name},")
-            ->line("{$this->car->reference} — {$this->car->subcategory->name} ({$this->car->farm->name})")
+            ->line("{$this->car->reference} — {$this->car->subject()} ({$this->car->farm->name})")
             ->line("Status: {$this->car->status->label()}. Deadline: {$this->car->activeDueOn()->format('M j, Y')}.")
             ->action('Open the CAR', route('cars.show', $this->car));
     }

@@ -8,6 +8,7 @@
 
         <meta name="debug-error-page" content="{{ app()->isLocal() && config('app.debug') ? '1' : '0' }}">
         @fonts
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body>

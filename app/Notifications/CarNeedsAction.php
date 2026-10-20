@@ -49,7 +49,7 @@ class CarNeedsAction extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject("[{$this->car->reference}] {$this->headline($notifiable)}")
             ->greeting("Hello {$notifiable->name},")
-            ->line("{$this->car->reference} — {$this->car->subcategory->name} ({$this->car->farm->name}, {$this->car->issuedToUnit->name})")
+            ->line("{$this->car->reference} — {$this->car->subject()} ({$this->car->farm->name}, {$this->car->unitNames()})")
             ->line("{$this->action->pastTense()} by {$this->actorName}.")
             ->when($this->note(), fn (MailMessage $mail, string $note) => $mail->line("Remarks: “{$note}”"))
             ->line("Status: {$this->car->status->label()}.")

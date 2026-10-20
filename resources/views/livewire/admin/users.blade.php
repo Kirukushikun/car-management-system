@@ -1,6 +1,6 @@
 <section>
     <x-page-header title="Users & Roles" subtitle="Assign each person a function, a farm (Responder roles) and an approver — CARs are routed by these fields">
-        <button type="button" class="btn btn-secondary" wire:click="refreshDirectory">Refresh directory</button>
+        <button type="button" class="btn btn-secondary" wire:click="refreshDirectory"><x-icon name="refresh" /> Refresh directory</button>
     </x-page-header>
 
     <div class="content">

@@ -1,7 +1,7 @@
 <div class="login-screen">
     <div class="login-wrap">
         <div class="login-head">
-            <span class="mark"><x-icon name="check" width="20" height="20" /></span>
+            <span class="mark"><x-icon name="check" /></span>
             <h1>CAR Management System</h1>
             <p>Brookside Group of Companies — Table Egg &amp; DOP corrective action requests</p>
         </div>
@@ -19,7 +19,9 @@
                 <label for="password">Password</label>
                 <div style="display:flex; gap:6px;">
                     <input id="password" x-bind:type="shown ? 'text' : 'password'" type="password" wire:model="password" autocomplete="current-password">
-                    <button type="button" class="btn btn-ghost" style="padding:0 8px;" x-on:click="shown = ! shown" x-text="shown ? 'Hide' : 'Show'">Show</button>
+                    <button type="button" class="btn btn-ghost" style="padding:0 8px;" x-on:click="shown = ! shown" :aria-label="shown ? 'Hide password' : 'Show password'" aria-label="Show password">
+                        <span x-show="! shown"><x-icon name="eye" /></span><span x-show="shown" x-cloak><x-icon name="eye-slash" /></span>
+                    </button>
                 </div>
                 @error('password') <div class="error-text">{{ $message }}</div> @enderror
             </div>

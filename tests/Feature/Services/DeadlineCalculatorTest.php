@@ -27,3 +27,16 @@ it('ignores the time of day the CAR was issued', function () {
 
     expect($deadlines['response_due_on']->toDateTimeString())->toBe('2026-10-06 00:00:00');
 });
+
+it('takes the shortest response and the shortest implementation days across several categories', function () {
+    $fastResponse = Category::factory()->create(['response_days' => 1, 'implementation_days' => 10]);
+    $fastImplementation = Category::factory()->create(['response_days' => 3, 'implementation_days' => 5]);
+
+    $deadlines = app(DeadlineCalculator::class)->forCategories([$fastResponse, $fastImplementation], CarbonImmutable::parse('2026-10-05'));
+
+    expect($deadlines)
+        ->response_days->toBe(1)
+        ->implementation_days->toBe(5)
+        ->and($deadlines['response_due_on']->toDateString())->toBe('2026-10-06')
+        ->and($deadlines['implementation_due_on']->toDateString())->toBe('2026-10-10');
+});

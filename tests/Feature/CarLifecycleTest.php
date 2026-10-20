@@ -36,9 +36,9 @@ it('carries a CAR from filing to closure through every step and both loops', fun
 
     // Phase I — file, release
     Livewire::actingAs($requestor)->test(Create::class)
-        ->set('unitId', IssuedToUnit::where('name', 'PFC Production')->value('id'))
-        ->set('categoryId', $category->id)
-        ->set('subcategoryId', Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id'))
+        ->set('unitIds', [IssuedToUnit::where('name', 'PFC Production')->value('id')])
+        ->set('pairs.0.category_id', $category->id)
+        ->set('pairs.0.subcategory_ids', [Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id')])
         ->set('complainant', 'Rollie Funa')
         ->set('problem', '34 trays and 7 pcs of big dirty eggs returned by his customer as spoiled.')
         ->set('attachments', [UploadedFile::fake()->create('customer-video.mp4', 900, 'video/mp4')])

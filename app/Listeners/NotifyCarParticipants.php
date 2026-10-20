@@ -16,7 +16,7 @@ class NotifyCarParticipants
 
     public function handle(CarTransitioned $event): void
     {
-        $car = $event->car->fresh(['farm', 'issuedToUnit', 'subcategory', 'requestor']);
+        $car = $event->car->fresh(['farm', 'issuedToUnits', 'subcategories', 'requestor']);
         $recipients = $this->recipients->afterAction($car, $event->action, $event->actor);
 
         if ($recipients->isNotEmpty()) {

@@ -88,7 +88,7 @@ function expectedTransitions(): array
 }
 
 /**
- * @return array{farm_id: int, issued_to_unit_id: int, category_id: int, subcategory_id: int, issued_by: string, complainant: string, complaint_type: ComplaintType, problem_details: string}
+ * @return array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType>, problem_details: string}
  */
 function funaDetails(): array
 {
@@ -97,12 +97,11 @@ function funaDetails(): array
 
     return [
         'farm_id' => Farm::where('name', 'PFC')->value('id'),
-        'issued_to_unit_id' => IssuedToUnit::where('name', 'PFC Production')->value('id'),
-        'category_id' => $category->id,
-        'subcategory_id' => Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id'),
+        'issued_to_unit_ids' => [IssuedToUnit::where('name', 'PFC Production')->value('id')],
+        'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id')],
         'issued_by' => 'John Doe — Requestor',
         'complainant' => 'Rollie Funa',
-        'complaint_type' => ComplaintType::Product,
+        'complaint_types' => [ComplaintType::Product],
         'problem_details' => '34 trays and 7 pcs of big dirty eggs returned as spoiled.',
     ];
 }
@@ -137,7 +136,7 @@ describe('submitting a CAR', function () {
     it('keeps its deadlines when the matrix changes afterwards', function () {
         $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), funaDetails());
 
-        $car->category->update(['response_days' => 1, 'implementation_days' => 2]);
+        $car->subcategories->first()->category->update(['response_days' => 1, 'implementation_days' => 2]);
 
         expect($car->fresh())
             ->response_due_on->toDateString()->toBe('2026-10-08')
@@ -167,23 +166,83 @@ describe('submitting a CAR', function () {
         expect(fn () => $this->workflow->submit($requestor, funaDetails()))->toThrow(AuthorizationException::class);
     });
 
-    it('rejects a sub-category from another category', function () {
+    it('rejects a category from the other business line', function () {
         $details = funaDetails();
-        $details['subcategory_id'] = Subcategory::whereRelation('category', 'name', 'Sales & Order Management')->value('id');
+        $details['subcategory_ids'][] = Category::whereRelation('businessLine', 'name', 'DOP')->where('name', 'Sales & Order Management')->sole()->subcategories()->value('id');
 
         expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), $details))
-            ->toThrow(ValidationException::class, 'The sub-category does not belong to the selected category.');
+            ->toThrow(ValidationException::class, "Every category must belong to the selected units' business line.");
         expect(Car::count())->toBe(0);
     });
 
-    it('rejects a category from the other business line', function () {
+    it('records every complaint type picked', function () {
+        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complaint_types' => [ComplaintType::Product, 'service']]);
+
+        expect($car->fresh()->complaint_types->all())->toBe([ComplaintType::Product, ComplaintType::Service]);
+    });
+
+    it('needs at least one complaint type', function () {
+        expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complaint_types' => []]))
+            ->toThrow(ValidationException::class, 'Pick at least one type of complaint.');
+    });
+
+    it('needs at least one sub-category', function () {
+        expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'subcategory_ids' => []]))
+            ->toThrow(ValidationException::class, 'Pick at least one category and sub-category.');
+    });
+
+    it('files several category / sub-category pairs on one CAR', function () {
         $details = funaDetails();
-        $dopCategory = Category::whereRelation('businessLine', 'name', 'DOP')->where('name', 'Sales & Order Management')->sole();
-        $details['category_id'] = $dopCategory->id;
-        $details['subcategory_id'] = $dopCategory->subcategories()->value('id');
+        $production = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Production Related')->sole();
+        $compliance = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Compliance & Standards')->sole();
+        $details['subcategory_ids'] = [
+            ...$production->subcategories()->whereIn('name', ['Shell Quality Defects', 'Internal Quality Defects'])->pluck('id'),
+            $compliance->subcategories()->where('name', 'Storage & Handling')->value('id'),
+        ];
+
+        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), $details)->fresh();
+
+        expect($car->classification()->map(fn (array $pair): array => [$pair['category']->name, $pair['subcategories']->pluck('name')->all()])->all())
+            ->toBe([
+                ['Production Related', ['Shell Quality Defects', 'Internal Quality Defects']],
+                ['Compliance & Standards', ['Storage & Handling']],
+            ]);
+    });
+
+    it('takes the strictest deadline when the CAR has several categories', function () {
+        $details = funaDetails();
+        $details['subcategory_ids'][] = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Compliance & Standards')->sole()->subcategories()->value('id');
+
+        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), $details);
+
+        expect($car->fresh())
+            ->response_days->toBe(1)
+            ->implementation_days->toBe(5)
+            ->response_due_on->toDateString()->toBe('2026-10-06')
+            ->implementation_due_on->toDateString()->toBe('2026-10-10');
+    });
+
+    it('issues one CAR to several units', function () {
+        $details = funaDetails();
+        $details['issued_to_unit_ids'] = IssuedToUnit::whereIn('name', ['PFC Production', 'Eggroom', 'Egg Grading'])->pluck('id')->all();
+
+        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), $details);
+
+        expect($car->fresh()->issuedToUnits->pluck('name')->all())->toBe(['Eggroom', 'Egg Grading', 'PFC Production']);
+    });
+
+    it('rejects units from both business lines', function () {
+        $details = funaDetails();
+        $details['issued_to_unit_ids'][] = IssuedToUnit::where('name', 'Hatchery')->value('id');
 
         expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), $details))
-            ->toThrow(ValidationException::class, "The category does not belong to the selected unit's business line.");
+            ->toThrow(ValidationException::class, 'Pick units from one business line only — TABLE EGG or DOP.');
+        expect(Car::count())->toBe(0);
+    });
+
+    it('needs at least one unit', function () {
+        expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'issued_to_unit_ids' => []]))
+            ->toThrow(ValidationException::class, 'Pick at least one unit the CAR is issued to.');
     });
 });
 
@@ -198,13 +257,12 @@ describe('resubmitting a returned CAR', function () {
         $compliance = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Compliance & Standards')->sole();
         $this->workflow->resubmit($car, $requestor, [
             ...$details,
-            'category_id' => $compliance->id,
-            'subcategory_id' => $compliance->subcategories()->where('name', 'Storage & Handling')->value('id'),
+            'subcategory_ids' => [$compliance->subcategories()->where('name', 'Storage & Handling')->value('id')],
         ]);
 
-        expect($car->fresh())
+        expect($car->fresh()->subcategories->pluck('name')->all())->toBe(['Storage & Handling'])
+            ->and($car->fresh())
             ->status->toBe(CarStatus::AwaitingRelease)
-            ->category_id->toBe($compliance->id)
             ->issued_on->toDateString()->toBe('2026-10-05')
             ->response_due_on->toDateString()->toBe('2026-10-06')
             ->implementation_due_on->toDateString()->toBe('2026-10-10')

@@ -33,10 +33,11 @@
             @page { size: A4; margin: 12mm; }
         }
     </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body>
     <div class="toolbar">
-        <a href="{{ route('cars.show', $car) }}">&larr; Back to {{ $car->reference }}</a>
+        <a href="{{ route('cars.show', $car) }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to {{ $car->reference }}</a>
         <button type="button" onclick="window.print()">Print / Save as PDF</button>
     </div>
 
@@ -50,7 +51,7 @@
                 <td rowspan="5" style="width:30%;">
                     <strong>Type of Complaint/Problem</strong><br>
                     @foreach (ComplaintType::cases() as $type)
-                        <span class="check {{ $car->complaint_type === $type ? 'on' : '' }}"></span>{{ $type->label() }}<br>
+                        <span class="check {{ $car->complaint_types->contains($type) ? 'on' : '' }}"></span>{{ $type->label() }}<br>
                     @endforeach
                 </td>
             </tr>
@@ -58,7 +59,8 @@
             <tr><td class="label">Date Issued:</td><td>{{ strtoupper($car->issued_on->format('F d, Y')) }}</td></tr>
             <tr><td class="label">Customer/Farm Name</td><td>{{ strtoupper($car->complainant) }}</td></tr>
             <tr><td class="label">Assigned Agent</td><td>{{ $car->requestor->name }}</td></tr>
-            <tr><td class="label">Issued To</td><td colspan="2">{{ $car->farm->name }} · {{ $car->issuedToUnit->name }} ({{ $car->issuedToUnit->businessLine->name }}) — {{ $car->category->name }} / {{ $car->subcategory->name }}</td></tr>
+            <tr><td class="label">Issued To</td><td colspan="2">{{ $car->farm->name }} · {{ $car->unitNames() }} ({{ $car->businessLineName() }})</td></tr>
+            <tr><td class="label">Category / Sub-category</td><td colspan="2">@foreach ($car->classification() as $pair){{ $pair['category']->name }} — {{ $pair['subcategories']->pluck('name')->join(', ') }}@if (! $loop->last)<br>@endif @endforeach</td></tr>
             <tr><td class="label">Deadlines</td><td colspan="2">Response: {{ $car->response_due_on->format('M j, Y') }} · Implementation: {{ $car->implementation_due_on->format('M j, Y') }}@if ($car->revised_due_on) · Revised: {{ $car->revised_due_on->format('M j, Y') }}@endif</td></tr>
         </table>
 

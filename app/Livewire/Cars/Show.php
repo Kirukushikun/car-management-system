@@ -85,7 +85,7 @@ class Show extends Component
     public function render(CarWorkflow $workflow): View
     {
         $this->car->load([
-            'farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'attachments', 'events.actor',
+            'farm', 'issuedToUnits.businessLine', 'subcategories.category', 'requestor', 'attachments', 'events.actor',
             'responses' => fn ($query) => $query->whereNotNull('submitted_at')->with(['round', 'correctiveActions', 'attachments', 'preparer']),
             'rounds' => fn ($query) => $query->with(['attachments' => fn ($query) => $query->where('collection', Attachment::IMPLEMENTATION_EVIDENCE), 'evidenceUploader']),
         ]);

@@ -24,7 +24,7 @@
                                             <span>
                                                 <span style="color:var(--text3);">{{ str($field)->headline() }}:</span>
                                                 @if ($audit->event === 'updated')
-                                                    <span style="text-decoration:line-through; color:var(--text3);">{{ is_scalar($audit->old_values[$field] ?? null) ? ($audit->old_values[$field] ?? '—') : json_encode($audit->old_values[$field] ?? null) }}</span> →
+                                                    <span style="text-decoration:line-through; color:var(--text3);">{{ is_scalar($audit->old_values[$field] ?? null) ? ($audit->old_values[$field] ?? '—') : json_encode($audit->old_values[$field] ?? null) }}</span> <x-icon name="arrow-right" style="font-size:9px; color:var(--text3);" />
                                                 @endif
                                                 {{ is_scalar($value) ? ($value === true ? 'yes' : ($value === false ? 'no' : $value)) : json_encode($value) }}
                                             </span>

@@ -24,7 +24,7 @@ class SendCarReminders extends Command
         $today = CarbonImmutable::today();
         $sent = 0;
 
-        Car::open()->with(['farm', 'issuedToUnit', 'subcategory'])->get()
+        Car::open()->with(['farm', 'issuedToUnits', 'subcategories'])->get()
             ->filter(fn (Car $car): bool => $car->activeDueOn() !== null && $car->activeDueOn()->lte($today->addDay()))
             ->each(function (Car $car) use ($recipients, $today, &$sent): void {
                 $users = $recipients->nextActors($car);

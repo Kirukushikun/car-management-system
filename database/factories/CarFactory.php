@@ -40,16 +40,9 @@ class CarFactory extends Factory
             'requestor_id' => fn (): int => User::factory()->role(Role::Requestor)->create()->id,
             'issued_by' => fake()->name(),
             'complainant' => fake()->company(),
-            'complaint_type' => ComplaintType::Product,
+            'complaint_types' => [ComplaintType::Product],
             'problem_details' => fake()->paragraph(),
             'farm_id' => fn (): int => Farm::firstOrCreate(['name' => 'PFC'])->id,
-            'issued_to_unit_id' => fn (): int => IssuedToUnit::factory()->create()->id,
-            'category_id' => fn (array $attributes): int => Category::factory()->create([
-                'business_line_id' => IssuedToUnit::find($attributes['issued_to_unit_id'])->business_line_id,
-                'response_days' => 3,
-                'implementation_days' => 10,
-            ])->id,
-            'subcategory_id' => fn (array $attributes): int => Subcategory::factory()->create(['category_id' => $attributes['category_id']])->id,
             'issued_on' => $issuedOn,
             'response_days' => 3,
             'implementation_days' => 10,
@@ -61,6 +54,10 @@ class CarFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Car $car): void {
+            $category = Category::factory()->create(['response_days' => 3, 'implementation_days' => 10]);
+            $car->subcategories()->attach(Subcategory::factory()->create(['category_id' => $category->id]));
+            $car->issuedToUnits()->attach(IssuedToUnit::factory()->create(['business_line_id' => $category->business_line_id]));
+
             foreach (range(1, $car->current_round) as $number) {
                 $car->rounds()->firstOrCreate(['number' => $number], ['opened_by_action' => $number === 1 ? 'submit' : 'mark_not_effective']);
             }
@@ -108,6 +105,27 @@ class CarFactory extends Factory
                 'original_name' => 'evidence.jpg',
             ]);
         });
+    }
+
+    /**
+     * Issued to these units instead of one made-up unit.
+     *
+     * @param  iterable<IssuedToUnit>  $units
+     */
+    public function issuedTo(iterable $units): static
+    {
+        return $this->afterCreating(fn (Car $car) => $car->issuedToUnits()->sync(collect($units)->pluck('id')));
+    }
+
+    /**
+     * Classified under these sub-categories (their categories form the pairs) instead of one
+     * made-up pair. Pair it with issuedTo() when the units' business line matters.
+     *
+     * @param  iterable<Subcategory>  $subcategories
+     */
+    public function classifiedAs(iterable $subcategories): static
+    {
+        return $this->afterCreating(fn (Car $car) => $car->subcategories()->sync(collect($subcategories)->pluck('id')));
     }
 
     /**

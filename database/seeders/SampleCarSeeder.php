@@ -147,12 +147,11 @@ class SampleCarSeeder extends Seeder
 
                 $car = $workflow->submit($requestor, [
                     'farm_id' => $farm->id,
-                    'issued_to_unit_id' => IssuedToUnit::where('name', $unitName)->firstOrFail()->id,
-                    'category_id' => $category->id,
-                    'subcategory_id' => Subcategory::where('category_id', $category->id)->where('name', $subcategoryName)->firstOrFail()->id,
+                    'issued_to_unit_ids' => [IssuedToUnit::where('name', $unitName)->firstOrFail()->id],
+                    'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', $subcategoryName)->firstOrFail()->id],
                     'issued_by' => "{$requestor->name} — Requestor",
                     'complainant' => $complainant,
-                    'complaint_type' => ComplaintType::Product,
+                    'complaint_types' => [ComplaintType::Product],
                     'problem_details' => $problem,
                 ]);
 

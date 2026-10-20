@@ -39,7 +39,7 @@ class Index extends Component
                 default => 'All CARs across TABLE EGG and DOP operations.',
             },
             'cars' => Car::query()
-                ->with(['farm', 'issuedToUnit', 'category', 'subcategory'])
+                ->with(['farm', 'issuedToUnits', 'subcategories.category'])
                 ->forView($this->view, $user)
                 ->orderByDesc('issued_on')
                 ->orderByDesc('id')

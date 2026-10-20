@@ -95,7 +95,7 @@
     @endforeach
 
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-secondary" wire:click="addAction">+ Add corrective action</button>
+        <button type="button" class="btn btn-secondary" wire:click="addAction"><x-icon name="plus" /> Add corrective action</button>
         <div class="field" style="min-width:260px;">
             <label for="correctiveActionFiles">Corrective action documents (optional)</label>
             <input id="correctiveActionFiles" type="file" wire:model="correctiveActionFiles" multiple accept=".{{ implode(',.', \App\Models\Attachment::ALLOWED_EXTENSIONS) }}">

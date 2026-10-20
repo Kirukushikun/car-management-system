@@ -64,9 +64,9 @@ class Index extends Component
             'lines' => BusinessLine::orderBy('id')->get(),
             'farms' => Farm::orderBy('id')->get(),
             'attention' => Car::overdue()
-                ->when($this->line, fn ($query) => $query->whereRelation('category', 'business_line_id', $this->line))
+                ->when($this->line, fn ($query) => $query->whereRelation('issuedToUnits', 'business_line_id', $this->line))
                 ->when($this->farm, fn ($query) => $query->where('farm_id', $this->farm))
-                ->with(['farm', 'issuedToUnit', 'category', 'subcategory'])
+                ->with(['farm', 'issuedToUnits', 'subcategories.category'])
                 ->orderBy('issued_on')
                 ->get(),
         ]);

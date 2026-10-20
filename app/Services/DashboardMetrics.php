@@ -8,6 +8,7 @@ use App\Models\Car;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as BaseCollection;
 
 /**
  * The figures behind the Monitor dashboard (requirement: repeat offenses by category and
@@ -55,7 +56,8 @@ class DashboardMetrics
             'avg_resolution_days' => $this->averageResolutionDays($issued),
             'months' => $this->monthlyFrequency(),
             'repeat_offenses' => $this->repeatOffenses($issued),
-            'by_unit' => $issued->countBy(fn (Car $car): string => $car->issuedToUnit->name)
+            'by_unit' => $issued->flatMap(fn (Car $car) => $car->issuedToUnits->pluck('name'))
+                ->countBy()
                 ->sortDesc()->take(7)
                 ->map(fn (int $count, string $unit): array => ['unit' => $unit, 'count' => $count])
                 ->values()->all(),
@@ -122,7 +124,8 @@ class DashboardMetrics
     }
 
     /**
-     * Category / sub-category pairs issued more than once in the period, most frequent first.
+     * Category / sub-category pairs issued more than once in the period, most frequent first. A CAR
+     * with several sub-categories counts once under each.
      *
      * @param  Collection<int, Car>  $cars
      * @return list<array{category: string, subcategory: string, line: string, count: int}>
@@ -130,11 +133,13 @@ class DashboardMetrics
     private function repeatOffenses(Collection $cars): array
     {
         return $cars
-            ->groupBy('subcategory_id')
-            ->filter(fn (Collection $group): bool => $group->count() > 1)
-            ->map(fn (Collection $group): array => [
+            ->flatMap(fn (Car $car) => $car->subcategories)
+            ->toBase()
+            ->groupBy('id')
+            ->filter(fn (BaseCollection $group): bool => $group->count() > 1)
+            ->map(fn (BaseCollection $group): array => [
                 'category' => $group->first()->category->name,
-                'subcategory' => $group->first()->subcategory->name,
+                'subcategory' => $group->first()->name,
                 'line' => $group->first()->category->businessLine->name,
                 'count' => $group->count(),
             ])
@@ -152,7 +157,7 @@ class DashboardMetrics
         return $this->scoped(Car::query())
             ->when($this->days !== null, fn (Builder $query) => $query->where('issued_on', '>=', $this->today->subDays($this->days)->toDateString()))
             ->with([
-                'category.businessLine', 'subcategory', 'issuedToUnit',
+                'subcategories.category.businessLine', 'issuedToUnits',
                 'events' => fn ($query) => $query->where('action', CarAction::SubmitResponse),
             ])
             ->get();
@@ -165,7 +170,7 @@ class DashboardMetrics
     private function scoped(Builder $query): Builder
     {
         return $query
-            ->when($this->businessLineId, fn (Builder $query) => $query->whereRelation('category', 'business_line_id', $this->businessLineId))
+            ->when($this->businessLineId, fn (Builder $query) => $query->whereRelation('issuedToUnits', 'business_line_id', $this->businessLineId))
             ->when($this->farmId, fn (Builder $query) => $query->where('farm_id', $this->farmId));
     }
 }

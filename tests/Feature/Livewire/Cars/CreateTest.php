@@ -43,53 +43,131 @@ function filledCreateForm(User $requestor): Testable
 {
     return Livewire::actingAs($requestor)
         ->test(Create::class)
-        ->set('unitId', unitId('PFC Production'))
-        ->set('subcategoryId', subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects'))
+        ->set('unitIds', [unitId('PFC Production')])
+        ->set('pairs.0.subcategory_ids', [subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects')])
         ->set('complainant', 'Rollie Funa')
         ->set('problem', '34 trays and 7 pcs of big dirty eggs returned as spoiled.');
 }
 
 describe('the form', function () {
-    it('prefills the issuer and the first unit, category and sub-category', function () {
+    it('prefills the issuer, the first unit and one pair on the first category', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
             ->assertSet('issuedBy', 'John Doe — Requestor')
-            ->assertSet('complaintType', ComplaintType::Product->value)
-            ->assertSet('unitId', unitId('Eggroom'))
-            ->assertSet('categoryId', categoryId('TABLE EGG', 'Production Related'))
-            ->assertSet('subcategoryId', subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects'))
-            ->assertSee(['Business line: TABLE EGG', 'assigned on submit']);
+            ->assertSet('complaintTypes', [ComplaintType::Product->value])
+            ->assertSet('unitIds', [unitId('Eggroom')])
+            ->assertSet('pairs', [['category_id' => categoryId('TABLE EGG', 'Production Related'), 'subcategory_ids' => []]])
+            ->assertSee(['Business line: TABLE EGG', 'assigned on submit', 'Shell Quality Defects']);
     });
 
     it('switches to the DOP categories when a DOP unit is chosen', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
-            ->set('unitId', unitId('Hatchery'))
-            ->assertSee('Business line: DOP')
-            ->assertSet('categoryId', categoryId('DOP', 'Production Related'))
-            ->assertSet('subcategoryId', subcategoryId('DOP', 'Production Related', 'Hatchery Production & Hatch Rates'));
+            ->call('addPair')
+            ->set('unitIds', [unitId('Hatchery')])
+            ->assertSee(['Business line: DOP', 'Hatchery Production &amp; Hatch Rates'], false)
+            ->assertSet('pairs', [['category_id' => categoryId('DOP', 'Production Related'), 'subcategory_ids' => []]]);
     });
 
-    it('resets the sub-category when the category changes', function () {
+    it('keeps the pairs when more units from the same business line are added', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
-            ->set('categoryId', categoryId('TABLE EGG', 'Logistics & Distribution Transport'))
-            ->assertSet('subcategoryId', subcategoryId('TABLE EGG', 'Logistics & Distribution Transport', 'Issuance & Delivery Errors'));
+            ->set('pairs.0.category_id', categoryId('TABLE EGG', 'Compliance & Standards'))
+            ->set('unitIds', [unitId('Eggroom'), unitId('Egg Grading')])
+            ->assertSet('pairs.0.category_id', categoryId('TABLE EGG', 'Compliance & Standards'));
     });
 
-    it('shows the what-to-report guidance for the selected sub-category', function () {
+    it('adds a pair on the next unused category and offers each category in one pair only', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
-            ->set('subcategoryId', subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects'))
-            ->assertSee('What to report here: Watery/weak albumen');
+            ->call('addPair')
+            ->assertSet('pairs.1.category_id', categoryId('TABLE EGG', 'Compliance & Standards'))
+            ->assertSeeHtml('id="pair-1-category"')
+            ->call('addPair')
+            ->assertSet('pairs.2.category_id', categoryId('TABLE EGG', 'Logistics & Distribution Transport'))
+            ->assertDontSeeHtml('wire:click="addPair"')
+            ->call('removePair', 1)
+            ->assertCount('pairs', 2)
+            ->assertSet('pairs.1.category_id', categoryId('TABLE EGG', 'Logistics & Distribution Transport'))
+            ->assertSeeHtml('wire:click="addPair"');
     });
 
-    it('previews deadlines from today and the category timeline', function () {
+    it('does not offer a category that another pair already uses', function () {
+        $component = Livewire::actingAs($this->requestor)->test(Create::class)->call('addPair');
+        $production = categoryId('TABLE EGG', 'Production Related');
+        $compliance = categoryId('TABLE EGG', 'Compliance & Standards');
+
+        $html = $component->html();
+        $firstSelect = str($html)->after('id="pair-0-category"')->before('</select>');
+        $secondSelect = str($html)->after('id="pair-1-category"')->before('</select>');
+
+        expect((string) $firstSelect)->toContain('value="'.$production.'"')->not->toContain('value="'.$compliance.'"')
+            ->and((string) $secondSelect)->toContain('value="'.$compliance.'"')->not->toContain('value="'.$production.'"');
+    });
+
+    it('lists every unit in the issued-to dropdown, grouped by business line', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->assertSeeInOrder(['Issued to (operational units)', 'TABLE EGG', 'Eggroom', 'Table Egg Logistics', 'DOP', 'Hatchery', 'DOP Logistics']);
+    });
+
+    it('clears a pair\'s sub-categories when its category changes', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->set('pairs.0.subcategory_ids', [subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects')])
+            ->set('pairs.0.category_id', categoryId('TABLE EGG', 'Logistics & Distribution Transport'))
+            ->assertSet('pairs.0.subcategory_ids', []);
+    });
+
+    it('has a two-tab Phase I guide opened from the page header: an overview and the category reference', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->assertSeeHtml('open-guide')
+            ->assertSeeInOrder([
+                'Phase I guide',
+                'Overview', 'Categories',
+                'You file the CAR', 'The Requestor Approver reviews it', 'Released to the farm — or back to you',
+                'TABLE EGG', 'DOP',
+                'Production Related', '3d to respond · 10d to implement',
+                'Internal Quality Defects', 'Watery/weak albumen',
+                'Compliance &amp; Standards', '1d to respond · 5d to implement',
+                'Hatchery Production &amp; Hatch Rates',
+            ], false)
+            ->assertDontSee(['The fields', 'What happens in Phase I']);
+    });
+
+    it('puts a short tip at the right of each field label', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->assertSeeInOrder([
+                'Farm / site', 'The farm whose Responders must answer this CAR.',
+                'Issued to (operational units)', 'all from one business line',
+                'Category', 'Each category can be used once',
+                'Sub-category', 'One or more sub-categories of this category.',
+                'Type of complaint', 'pick all that apply',
+                'Complaint received on (optional)', 'Leave blank if it was today.',
+                'Issued by', 'Change it only if you are filing for someone else.',
+                'Complainant', 'a customer, a distributor or internal audit',
+                'Details of the problem', 'the Responder works from this',
+                'File attachments (optional)', 'up to 10 files, 50 MB each',
+            ]);
+    });
+
+    it('no longer stacks what-to-report notes under the picked sub-categories', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->set('pairs.0.subcategory_ids', [subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects')])
+            ->assertDontSee('What to report under Internal Quality Defects');
+    });
+
+    it('previews deadlines from today and the strictest picked category', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
             ->assertSee(['Oct 5, 2026 (+3d)', 'Oct 12, 2026 (+10d)'])
-            ->set('unitId', unitId('Hatchery'))
-            ->set('categoryId', categoryId('DOP', 'Compliance & Standards'))
+            ->call('addPair')
+            ->assertSee(['Oct 3, 2026 (+1d)', 'Oct 7, 2026 (+5d)', 'with several categories, the shortest applies'])
+            ->set('unitIds', [unitId('Hatchery')])
+            ->set('pairs.0.category_id', categoryId('DOP', 'Compliance & Standards'))
             ->assertSee(['Oct 3, 2026 (+1d)', 'Oct 5, 2026 (+3d)']);
     });
 });
@@ -107,7 +185,6 @@ describe('submitting', function () {
             ->status->toBe(CarStatus::AwaitingRelease)
             ->requestor_id->toBe($this->requestor->id)
             ->complainant->toBe('Rollie Funa')
-            ->complaint_type->toBe(ComplaintType::Product)
             ->complaint_received_on->toDateString()->toBe('2026-09-30')
             ->response_due_on->toDateString()->toBe('2026-10-05');
     });
@@ -162,26 +239,116 @@ describe('submitting', function () {
             ->assertSee('The complaint cannot have been received in the future.');
     });
 
-    it('rejects a sub-category from a different category', function () {
+    it('files one CAR for several units', function () {
         filledCreateForm($this->requestor)
-            ->set('subcategoryId', subcategoryId('DOP', 'Sales & Order Management', 'Booking & Sales Cancellations'))
+            ->set('unitIds', [unitId('PFC Production'), unitId('Eggroom')])
             ->call('submit')
-            ->assertHasErrors(['subcategoryId' => 'exists']);
+            ->assertHasNoErrors();
+
+        expect(Car::sole()->issuedToUnits->pluck('name')->all())->toBe(['Eggroom', 'PFC Production']);
+    });
+
+    it('requires at least one unit', function () {
+        filledCreateForm($this->requestor)
+            ->set('unitIds', [])
+            ->call('submit')
+            ->assertHasErrors(['unitIds' => 'required'])
+            ->assertSee('Pick at least one unit the CAR is issued to.');
 
         expect(Car::count())->toBe(0);
+    });
+
+    it('rejects units from both business lines', function () {
+        filledCreateForm($this->requestor)
+            ->set('unitIds', [unitId('PFC Production'), unitId('Hatchery')])
+            ->call('submit')
+            ->assertHasErrors('unitIds')
+            ->assertSee('Pick units from one business line only — TABLE EGG or DOP.');
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('rejects a sub-category from a different category', function () {
+        filledCreateForm($this->requestor)
+            ->set('pairs.0.subcategory_ids', [subcategoryId('DOP', 'Sales & Order Management', 'Booking & Sales Cancellations')])
+            ->call('submit')
+            ->assertHasErrors(['pairs.0.subcategory_ids.0' => 'exists']);
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('files several complaint types', function () {
+        filledCreateForm($this->requestor)
+            ->set('complaintTypes', [ComplaintType::Product->value, ComplaintType::Other->value])
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        expect(Car::sole()->complaint_types->all())->toBe([ComplaintType::Product, ComplaintType::Other])
+            ->and(Car::sole()->complaintTypeLabels())->toBe('Product Nonconformity, Others');
+    });
+
+    it('requires at least one complaint type', function () {
+        filledCreateForm($this->requestor)
+            ->set('complaintTypes', [])
+            ->call('submit')
+            ->assertHasErrors(['complaintTypes' => 'required'])
+            ->assertSee('Pick at least one type of complaint.');
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('requires at least one sub-category in every pair', function () {
+        filledCreateForm($this->requestor)
+            ->call('addPair')
+            ->call('submit')
+            ->assertHasErrors(['pairs.1.subcategory_ids' => 'required'])
+            ->assertSee('Pick at least one sub-category.');
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('rejects the same category in two pairs', function () {
+        filledCreateForm($this->requestor)
+            ->call('addPair')
+            ->set('pairs.1.category_id', categoryId('TABLE EGG', 'Production Related'))
+            ->set('pairs.1.subcategory_ids', [subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects')])
+            ->call('submit')
+            ->assertHasErrors('pairs.1.category_id')
+            ->assertSee('This category is already in another pair');
+    });
+
+    it('files several pairs with several sub-categories each', function () {
+        filledCreateForm($this->requestor)
+            ->set('pairs.0.subcategory_ids', [
+                subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects'),
+                subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects'),
+            ])
+            ->call('addPair')
+            ->set('pairs.1.subcategory_ids', [subcategoryId('TABLE EGG', 'Compliance & Standards', 'Storage & Handling')])
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $car = Car::sole();
+
+        expect($car->subcategories->pluck('name')->all())->toBe(['Shell Quality Defects', 'Internal Quality Defects', 'Storage & Handling'])
+            ->and($car->categoryNames())->toBe('Production Related, Compliance & Standards')
+            ->and($car->response_days)->toBe(1)
+            ->and($car->implementation_days)->toBe(5);
     });
 });
 
 describe('correcting a returned CAR', function () {
     beforeEach(function () {
-        $category = Category::find(categoryId('TABLE EGG', 'Production Related'));
-        $this->returned = Car::factory()->status(CarStatus::ReturnedToRequestor)->create([
-            'requestor_id' => $this->requestor->id,
-            'issued_on' => '2026-09-28',
-            'issued_to_unit_id' => unitId('PFC Production'),
-            'category_id' => $category->id,
-            'subcategory_id' => subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects'),
-        ]);
+        $this->returned = Car::factory()->status(CarStatus::ReturnedToRequestor)
+            ->issuedTo(IssuedToUnit::whereIn('name', ['PFC Production', 'Eggroom'])->get())
+            ->classifiedAs(Subcategory::whereKey([
+                subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects'),
+                subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects'),
+            ])->get())
+            ->create([
+                'requestor_id' => $this->requestor->id,
+                'issued_on' => '2026-09-28',
+            ]);
         $this->returned->events()->create(['round' => 1, 'action' => 'reject', 'from_status' => 'awaiting_release', 'to_status' => 'returned_to_requestor', 'actor_id' => User::factory()->role(Role::RequestorApprover)->create()->id, 'note' => 'Attach the dispatch form.', 'created_at' => now()]);
     });
 
@@ -189,14 +356,19 @@ describe('correcting a returned CAR', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class, ['car' => $this->returned])
             ->assertSet('complainant', $this->returned->complainant)
+            ->assertSet('unitIds', [unitId('Eggroom'), unitId('PFC Production')])
+            ->assertSet('pairs', [[
+                'category_id' => categoryId('TABLE EGG', 'Production Related'),
+                'subcategory_ids' => [subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects'), subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects')],
+            ]])
             ->assertSee(['Returned by the Requestor Approver: Attach the dispatch form.', $this->returned->reference, 'Resubmit for release']);
     });
 
     it('saves the corrections and resubmits for release, keeping the issued date', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class, ['car' => $this->returned])
-            ->set('categoryId', categoryId('TABLE EGG', 'Compliance & Standards'))
-            ->set('subcategoryId', subcategoryId('TABLE EGG', 'Compliance & Standards', 'Storage & Handling'))
+            ->set('pairs.0.category_id', categoryId('TABLE EGG', 'Compliance & Standards'))
+            ->set('pairs.0.subcategory_ids', [subcategoryId('TABLE EGG', 'Compliance & Standards', 'Storage & Handling')])
             ->set('problem', 'Updated: dispatch form shows the eggs were 3 days old.')
             ->call('submit')
             ->assertHasNoErrors()
@@ -207,7 +379,8 @@ describe('correcting a returned CAR', function () {
             ->problem_details->toBe('Updated: dispatch form shows the eggs were 3 days old.')
             ->issued_on->toDateString()->toBe('2026-09-28')
             ->response_due_on->toDateString()->toBe('2026-09-29')
-            ->implementation_due_on->toDateString()->toBe('2026-10-03');
+            ->implementation_due_on->toDateString()->toBe('2026-10-03')
+            ->and($this->returned->fresh()->subcategories->pluck('name')->all())->toBe(['Storage & Handling']);
     });
 
     it('forbids correcting someone else\'s CAR', function () {

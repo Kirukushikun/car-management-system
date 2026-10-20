@@ -1,7 +1,7 @@
 <section>
     <x-page-header title="Notifications" :subtitle="$unreadCount ? $unreadCount.' unread' : 'You are all caught up'">
         @if ($unreadCount)
-            <button type="button" class="btn btn-secondary" wire:click="markAllRead">Mark all as read</button>
+            <button type="button" class="btn btn-secondary" wire:click="markAllRead"><x-icon name="check-double" /> Mark all as read</button>
         @endif
     </x-page-header>
 

@@ -16,6 +16,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -73,10 +74,10 @@ class CarWorkflow
      * Issue a new CAR (Phase I, Steps 1–6): reference number, snapshotted deadlines, round 1,
      * and the first history entry. It starts in "Awaiting Release".
      *
-     * @param  array{farm_id: int, issued_to_unit_id: int, category_id: int, subcategory_id: int, issued_by: string, complainant: string, complaint_type: ComplaintType|string, problem_details: string, complaint_received_on?: ?string}  $details
+     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType|string>, problem_details: string, complaint_received_on?: ?string}  $details
      *
      * @throws AuthorizationException when the user may not file CARs
-     * @throws ValidationException when the unit, category and sub-category do not belong together
+     * @throws ValidationException when the units, sub-categories or complaint types are missing, or the units and categories do not share one business line
      */
     public function submit(User $requestor, array $details): Car
     {
@@ -85,12 +86,12 @@ class CarWorkflow
         }
 
         $car = DB::transaction(function () use ($requestor, $details): Car {
-            [$category] = $this->resolveClassification($details);
+            [$categories, $subcategories, $units] = $this->resolveClassification($details);
             $issuedOn = CarbonImmutable::today();
 
             $car = Car::create([
-                ...$details,
-                ...$this->deadlines->forCategory($category, $issuedOn),
+                ...collect($details)->except(['issued_to_unit_ids', 'subcategory_ids'])->all(),
+                ...$this->deadlines->forCategories($categories, $issuedOn),
                 'reference' => $this->numbers->next($issuedOn),
                 'status' => CarStatus::AwaitingRelease,
                 'current_round' => 1,
@@ -98,6 +99,8 @@ class CarWorkflow
                 'issued_on' => $issuedOn,
             ]);
 
+            $car->issuedToUnits()->sync($units->modelKeys());
+            $car->subcategories()->sync($subcategories->modelKeys());
             $car->rounds()->create(['number' => 1, 'opened_by_action' => CarAction::Submit]);
             $this->record($car, $requestor, CarAction::Submit, null, null);
 
@@ -113,10 +116,10 @@ class CarWorkflow
      * A returned CAR goes back for release with its corrected Phase I details. The issued date
      * stays; deadlines are recalculated from it in case the category changed.
      *
-     * @param  array{farm_id: int, issued_to_unit_id: int, category_id: int, subcategory_id: int, issued_by: string, complainant: string, complaint_type: ComplaintType|string, problem_details: string, complaint_received_on?: ?string}  $details
+     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType|string>, problem_details: string, complaint_received_on?: ?string}  $details
      *
      * @throws AuthorizationException when the user may not resubmit this CAR
-     * @throws ValidationException when the unit, category and sub-category do not belong together
+     * @throws ValidationException when the units, sub-categories or complaint types are missing, or the units and categories do not share one business line
      */
     public function resubmit(Car $car, User $user, array $details): Car
     {
@@ -125,9 +128,12 @@ class CarWorkflow
                 throw new AuthorizationException("You cannot resubmit {$car->reference}.");
             }
 
-            [$category] = $this->resolveClassification($details);
+            [$categories, $subcategories, $units] = $this->resolveClassification($details);
 
-            $car->update([...$details, ...$this->deadlines->forCategory($category, $car->issued_on)]);
+            $car->update([...collect($details)->except(['issued_to_unit_ids', 'subcategory_ids'])->all(), ...$this->deadlines->forCategories($categories, $car->issued_on)]);
+            $car->issuedToUnits()->sync($units->modelKeys());
+            $car->subcategories()->sync($subcategories->modelKeys());
+            $car->unsetRelation('issuedToUnits')->unsetRelation('subcategories');
 
             return $this->apply($car, $user, CarAction::Resubmit);
         });
@@ -318,26 +324,45 @@ class CarWorkflow
     }
 
     /**
-     * Checks that the sub-category belongs to the category and the category to the unit's line.
+     * Checks that there is at least one unit and one sub-category, that all units share one
+     * business line, and that every sub-category's category belongs to that line. Returns the
+     * categories (which set the deadlines), the sub-categories and the units.
      *
      * @param  array<string, mixed>  $details
-     * @return array{0: Category, 1: Subcategory, 2: IssuedToUnit}
+     * @return array{0: EloquentCollection<int, Category>, 1: EloquentCollection<int, Subcategory>, 2: EloquentCollection<int, IssuedToUnit>}
      */
     private function resolveClassification(array $details): array
     {
-        $unit = IssuedToUnit::findOrFail($details['issued_to_unit_id']);
-        $category = Category::findOrFail($details['category_id']);
-        $subcategory = Subcategory::findOrFail($details['subcategory_id']);
+        $unitIds = array_values(array_unique(array_map('intval', $details['issued_to_unit_ids'] ?? [])));
+        $units = IssuedToUnit::whereKey($unitIds)->get();
+        $subcategoryIds = array_values(array_unique(array_map('intval', $details['subcategory_ids'] ?? [])));
+        $subcategories = Subcategory::with('category')->whereKey($subcategoryIds)->get();
 
-        if ($category->business_line_id !== $unit->business_line_id) {
-            throw ValidationException::withMessages(['category_id' => 'The category does not belong to the selected unit\'s business line.']);
+        if ($unitIds === [] || $units->count() !== count($unitIds)) {
+            throw ValidationException::withMessages(['issued_to_unit_ids' => 'Pick at least one unit the CAR is issued to.']);
         }
 
-        if ($subcategory->category_id !== $category->id) {
-            throw ValidationException::withMessages(['subcategory_id' => 'The sub-category does not belong to the selected category.']);
+        if ($units->pluck('business_line_id')->unique()->count() > 1) {
+            throw ValidationException::withMessages(['issued_to_unit_ids' => 'Pick units from one business line only — TABLE EGG or DOP.']);
         }
 
-        return [$category, $subcategory, $unit];
+        $types = array_map(fn (mixed $type): ?ComplaintType => $type instanceof ComplaintType ? $type : ComplaintType::tryFrom((string) $type), (array) ($details['complaint_types'] ?? []));
+
+        if ($types === [] || in_array(null, $types, true)) {
+            throw ValidationException::withMessages(['complaint_types' => 'Pick at least one type of complaint.']);
+        }
+
+        if ($subcategoryIds === [] || $subcategories->count() !== count($subcategoryIds)) {
+            throw ValidationException::withMessages(['subcategory_ids' => 'Pick at least one category and sub-category.']);
+        }
+
+        if ($subcategories->contains(fn (Subcategory $subcategory): bool => $subcategory->category->business_line_id !== $units->first()->business_line_id)) {
+            throw ValidationException::withMessages(['subcategory_ids' => 'Every category must belong to the selected units\' business line.']);
+        }
+
+        $categories = new EloquentCollection($subcategories->pluck('category')->unique('id')->values()->all());
+
+        return [$categories, $subcategories, $units];
     }
 
     private function record(Car $car, User $actor, CarAction $action, ?CarStatus $from, ?string $note, ?int $round = null): void

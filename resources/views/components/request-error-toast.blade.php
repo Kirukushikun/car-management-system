@@ -28,5 +28,5 @@
      class="request-error" role="alert" aria-live="assertive">
     <div class="request-error-title">Not saved</div>
     <div class="request-error-message" x-text="message"></div>
-    <button type="button" class="btn btn-ghost request-error-close" x-on:click="open = false" aria-label="Dismiss">✕</button>
+    <button type="button" class="btn btn-ghost request-error-close" x-on:click="open = false" aria-label="Dismiss"><x-icon name="close" /></button>
 </div>

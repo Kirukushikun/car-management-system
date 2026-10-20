@@ -6,6 +6,7 @@ use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Category;
 use App\Models\Farm;
+use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
 use App\Services\DashboardMetrics;
 use Carbon\CarbonImmutable;
@@ -78,13 +79,33 @@ it('counts CARs issued per month for the last six months', function () {
 it('lists sub-categories issued more than once in the period as repeat offenses', function () {
     $repeat = Subcategory::factory()->create(['name' => 'Internal Quality Defects']);
     $once = Subcategory::factory()->create(['name' => 'Packaging & Labeling']);
-    Car::factory()->count(3)->create(['issued_on' => '2026-09-20', 'category_id' => $repeat->category_id, 'subcategory_id' => $repeat->id]);
-    Car::factory()->create(['issued_on' => '2026-09-20', 'category_id' => $once->category_id, 'subcategory_id' => $once->id]);
-    Car::factory()->create(['issued_on' => '2026-01-05', 'category_id' => $once->category_id, 'subcategory_id' => $once->id]);
+    Car::factory()->count(3)->classifiedAs([$repeat])->create(['issued_on' => '2026-09-20']);
+    Car::factory()->classifiedAs([$once])->create(['issued_on' => '2026-09-20']);
+    Car::factory()->classifiedAs([$once])->create(['issued_on' => '2026-01-05']);
 
     expect(metrics()['repeat_offenses'])->toHaveCount(1)
         ->and(metrics()['repeat_offenses'][0])->toMatchArray(['subcategory' => 'Internal Quality Defects', 'count' => 3])
         ->and(metrics(['days' => null])['repeat_offenses'])->toHaveCount(2);
+});
+
+it('counts a CAR under each of its sub-categories', function () {
+    $category = Category::factory()->create();
+    $shell = Subcategory::factory()->create(['category_id' => $category->id, 'name' => 'Shell Quality Defects']);
+    $internal = Subcategory::factory()->create(['category_id' => $category->id, 'name' => 'Internal Quality Defects']);
+    Car::factory()->classifiedAs([$shell, $internal])->create(['issued_on' => '2026-09-20']);
+    Car::factory()->classifiedAs([$shell])->create(['issued_on' => '2026-09-21']);
+
+    expect(metrics()['repeat_offenses'])->toHaveCount(1)
+        ->and(metrics()['repeat_offenses'][0])->toMatchArray(['subcategory' => 'Shell Quality Defects', 'count' => 2]);
+});
+
+it('counts a CAR under each unit it was issued to', function () {
+    $eggroom = IssuedToUnit::factory()->create(['name' => 'Eggroom']);
+    $grading = IssuedToUnit::factory()->create(['name' => 'Egg Grading', 'business_line_id' => $eggroom->business_line_id]);
+    Car::factory()->issuedTo([$eggroom, $grading])->create(['issued_on' => '2026-09-20']);
+    Car::factory()->issuedTo([$eggroom])->create(['issued_on' => '2026-09-21']);
+
+    expect(metrics()['by_unit'])->toBe([['unit' => 'Eggroom', 'count' => 2], ['unit' => 'Egg Grading', 'count' => 1]]);
 });
 
 it('filters by business line and farm', function () {

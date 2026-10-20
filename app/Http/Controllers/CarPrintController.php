@@ -21,7 +21,7 @@ class CarPrintController extends Controller
         AccessLog::recordAccess('print', $car->reference);
 
         $car->load([
-            'farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'attachments',
+            'farm', 'issuedToUnits.businessLine', 'subcategories.category', 'requestor', 'attachments',
             'events.actor',
             'responses' => fn ($query) => $query->whereNotNull('submitted_at')->with(['round', 'correctiveActions', 'preparer', 'attachments']),
             'rounds' => fn ($query) => $query->with(['evidenceUploader', 'attachments' => fn ($query) => $query->where('collection', Attachment::IMPLEMENTATION_EVIDENCE)]),

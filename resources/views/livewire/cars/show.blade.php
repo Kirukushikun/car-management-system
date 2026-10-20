@@ -1,10 +1,10 @@
 @use('App\Enums\CarAction')
 
 <section>
-    <x-page-header :title="$car->reference.' — '.$car->subcategory->name"
-                   :subtitle="$car->farm->name.' · '.$car->issuedToUnit->name.' · '.$car->issuedToUnit->businessLine->name.' · issued '.$car->issued_on->format('M j, Y')">
+    <x-page-header :title="$car->reference.' — '.$car->subject()"
+                   :subtitle="$car->farm->name.' · '.$car->unitNames().' · '.$car->businessLineName().' · issued '.$car->issued_on->format('M j, Y')">
         <div style="display:flex; gap:8px; align-items:center;">
-            <a href="{{ route('cars.print', $car) }}" target="_blank" class="btn btn-secondary" style="text-decoration:none;">Print form</a>
+            <a href="{{ route('cars.print', $car) }}" target="_blank" class="btn btn-secondary" style="text-decoration:none;"><x-icon name="print" /> Print form</a>
             <x-pill :tone="$car->status->tone()">{{ $car->status->label() }}</x-pill>
             @if ($isOverdue)
                 <x-pill tone="red" style="margin-left:6px;">overdue</x-pill>
@@ -13,7 +13,7 @@
     </x-page-header>
 
     <div class="content">
-        <a href="{{ route('cars.index') }}" wire:navigate class="back-link" style="text-decoration:none;">&larr; All CARs</a>
+        <a href="{{ route('cars.index') }}" wire:navigate class="back-link" style="text-decoration:none;"><x-icon name="arrow-left" /> All CARs</a>
 
         @if (session('status'))
             <div class="flash" style="background:var(--green-bg); color:var(--green); border-color:var(--green-bd);">{{ session('status') }}</div>
@@ -83,14 +83,20 @@
                 </div>
                 <div class="phase-body">
                     <div class="field-grid">
-                        <div class="kv"><span class="k">Issued to</span><span class="v">{{ $car->issuedToUnit->name }} ({{ $car->issuedToUnit->businessLine->name }})</span></div>
+                        <div class="kv"><span class="k">Issued to</span><span class="v">{{ $car->unitNames() }} ({{ $car->businessLineName() }})</span></div>
                         <div class="kv"><span class="k">Responding farm</span><span class="v">{{ $car->farm->name }}</span></div>
                         <div class="kv"><span class="k">Complainant</span><span class="v">{{ $car->complainant }}</span></div>
-                        <div class="kv"><span class="k">Type of complaint</span><span class="v">{{ $car->complaint_type->label() }}</span></div>
-                        <div class="kv"><span class="k">Category</span><span class="v">{{ $car->category->name }}</span></div>
-                        <div class="kv"><span class="k">Sub-category</span><span class="v">{{ $car->subcategory->name }}</span></div>
+                        <div class="kv"><span class="k">Type of complaint</span><span class="v">{{ $car->complaintTypeLabels() }}</span></div>
                         <div class="kv"><span class="k">Issued by</span><span class="v">{{ $car->issued_by }}</span></div>
                         <div class="kv"><span class="k">Complaint received</span><span class="v">{{ $car->complaint_received_on?->format('M j, Y') ?? '—' }}</span></div>
+                    </div>
+                    <div class="kv">
+                        <span class="k">Category / sub-category</span>
+                        @foreach ($car->classification() as $pair)
+                            <span class="v" wire:key="pair-{{ $pair['category']->id }}">
+                                {{ $pair['category']->name }}<span style="font-weight:400; color:var(--text2);"> — {{ $pair['subcategories']->pluck('name')->join(', ') }}</span>
+                            </span>
+                        @endforeach
                     </div>
                     <div class="kv"><span class="k">Details of the problem</span><span class="v" style="white-space:pre-line; font-weight:400;">{{ $car->problem_details }}</span></div>
 
@@ -100,7 +106,7 @@
                             <div style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
                                 @foreach ($car->attachments as $attachment)
                                     <a href="{{ route('attachments.show', $attachment) }}" target="_blank" style="font-size:12px;" wire:key="attachment-{{ $attachment->id }}">
-                                        {{ $attachment->isVideo() ? '🎬' : ($attachment->isImage() ? '🖼' : '📄') }} {{ $attachment->original_name }}
+                                        <x-icon :name="$attachment->isVideo() ? 'video' : ($attachment->isImage() ? 'image' : 'file')" /> {{ $attachment->original_name }}
                                         <span style="color:var(--text3);">· {{ $attachment->humanSize() }}</span>
                                     </a>
                                 @endforeach
@@ -199,7 +205,7 @@
                                         <span class="v" style="font-weight:400; white-space:pre-line; color:var(--text2);">{{ $row['round']->evidence_notes }}</span>
                                     @endif
                                     @foreach ($row['evidence'] as $file)
-                                        <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;">{{ $file->isVideo() ? '🎬' : ($file->isImage() ? '🖼' : '📄') }} {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
+                                        <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;"><x-icon :name="$file->isVideo() ? 'video' : ($file->isImage() ? 'image' : 'file')" /> {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
                                     @endforeach
                                 @else
                                     <span class="v" style="font-weight:400; color:var(--text3);">Not uploaded yet.</span>

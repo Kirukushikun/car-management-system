@@ -25,7 +25,7 @@ class CarExportController extends Controller
         };
 
         $cars = Car::query()
-            ->with(['farm', 'issuedToUnit.businessLine', 'category', 'subcategory', 'requestor', 'events' => fn ($query) => $query->where('action', CarAction::SubmitResponse)])
+            ->with(['farm', 'issuedToUnits.businessLine', 'subcategories.category', 'requestor', 'events' => fn ($query) => $query->where('action', CarAction::SubmitResponse)])
             ->forView($view, $request->user())
             ->orderBy('issued_on')
             ->orderBy('id')
@@ -39,7 +39,7 @@ class CarExportController extends Controller
 
             fputcsv($out, [
                 'Reference', 'Status', 'Owner', 'Overdue', 'Issued on', 'Complaint received', 'Farm', 'Issued to', 'Business line',
-                'Category', 'Sub-category', 'Type of complaint', 'Complainant', 'Requestor', 'Response due', 'Implementation due',
+                'Categories', 'Sub-categories', 'Types of complaint', 'Complainant', 'Requestor', 'Response due', 'Implementation due',
                 'Revised end date', 'Released', 'First response', 'Closed', 'Round',
             ]);
 
@@ -52,11 +52,11 @@ class CarExportController extends Controller
                     $car->issued_on->toDateString(),
                     $car->complaint_received_on?->toDateString() ?? '',
                     $car->farm->name,
-                    $car->issuedToUnit->name,
-                    $car->issuedToUnit->businessLine->name,
-                    $car->category->name,
-                    $car->subcategory->name,
-                    $car->complaint_type->label(),
+                    $car->unitNames(),
+                    $car->businessLineName(),
+                    $car->categoryNames(),
+                    $car->subcategoryNames(),
+                    $car->complaintTypeLabels(),
                     $car->complainant,
                     $car->requestor->name,
                     $car->response_due_on->toDateString(),

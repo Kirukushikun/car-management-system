@@ -18,8 +18,8 @@
                 @endphp
                 <tr class="row-click" wire:key="car-{{ $car->id }}" x-data x-on:click="Livewire.navigate('{{ $url }}')">
                     <td class="tnum"><a href="{{ $url }}" wire:navigate style="color:inherit; text-decoration:none;">{{ $car->reference }}</a></td>
-                    <td>{{ $car->farm->name }}<div style="font-size:10px;color:var(--text3)">{{ $car->issuedToUnit->name }}</div></td>
-                    <td>{{ $car->category->name }}<div style="font-size:10px;color:var(--text3)">{{ $car->subcategory->name }}</div></td>
+                    <td>{{ $car->farm->name }}<div style="font-size:10px;color:var(--text3)">{{ $car->unitNames() }}</div></td>
+                    <td>{{ $car->categoryNames() }}<div style="font-size:10px;color:var(--text3)">{{ $car->subcategoryNames() }}</div></td>
                     <td>
                         <x-pill :tone="$car->status->tone()">{{ $car->status->label() }}</x-pill>
                         @if ($car->isOverdue())

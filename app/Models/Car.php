@@ -10,20 +10,23 @@ use Carbon\CarbonInterface;
 use Database\Factories\CarFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
 use LogicException;
 
 /**
  * A Corrective Action Request. Status changes go through CarWorkflow only.
  */
 #[Fillable([
-    'reference', 'status', 'current_round', 'requestor_id', 'issued_by', 'complainant', 'complaint_type',
-    'problem_details', 'farm_id', 'issued_to_unit_id', 'category_id', 'subcategory_id', 'complaint_received_on',
+    'reference', 'status', 'current_round', 'requestor_id', 'issued_by', 'complainant', 'complaint_types',
+    'problem_details', 'farm_id', 'complaint_received_on',
     'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
     'revised_due_on', 'released_at', 'closed_at', 'voided_at',
 ])]
@@ -38,8 +41,8 @@ class Car extends Model
      * @var list<string>
      */
     public const PHASE_ONE_FIELDS = [
-        'reference', 'requestor_id', 'issued_by', 'complainant', 'complaint_type', 'problem_details',
-        'farm_id', 'issued_to_unit_id', 'category_id', 'subcategory_id', 'complaint_received_on',
+        'reference', 'requestor_id', 'issued_by', 'complainant', 'complaint_types', 'problem_details',
+        'farm_id', 'complaint_received_on',
         'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
     ];
 
@@ -59,7 +62,7 @@ class Car extends Model
     {
         return [
             'status' => CarStatus::class,
-            'complaint_type' => ComplaintType::class,
+            'complaint_types' => AsEnumCollection::of(ComplaintType::class),
             'current_round' => 'integer',
             'response_days' => 'integer',
             'implementation_days' => 'integer',
@@ -93,27 +96,95 @@ class Car extends Model
     }
 
     /**
-     * @return BelongsTo<IssuedToUnit, $this>
+     * The operational units the CAR is issued to ("Issued To" — one or more, all from one
+     * business line, which the CAR's categories belong to as well).
+     *
+     * @return BelongsToMany<IssuedToUnit, $this>
      */
-    public function issuedToUnit(): BelongsTo
+    public function issuedToUnits(): BelongsToMany
     {
-        return $this->belongsTo(IssuedToUnit::class);
+        return $this->belongsToMany(IssuedToUnit::class, 'car_issued_to_unit')->orderBy('issued_to_units.id');
     }
 
     /**
-     * @return BelongsTo<Category, $this>
+     * "Eggroom, Egg Grading" — the units the CAR is issued to.
      */
-    public function category(): BelongsTo
+    public function unitNames(): string
     {
-        return $this->belongsTo(Category::class);
+        return $this->issuedToUnits->pluck('name')->join(', ');
     }
 
     /**
-     * @return BelongsTo<Subcategory, $this>
+     * TABLE EGG or DOP — the line of the units (and of every category) on the CAR.
      */
-    public function subcategory(): BelongsTo
+    public function businessLineName(): ?string
     {
-        return $this->belongsTo(Subcategory::class);
+        $this->loadMissing('issuedToUnits.businessLine');
+
+        return $this->issuedToUnits->first()?->businessLine->name;
+    }
+
+    /**
+     * The sub-categories picked on the CAR. Each belongs to one category, so together they form
+     * the CAR's category / sub-category pairs (see classification()).
+     *
+     * @return BelongsToMany<Subcategory, $this>
+     */
+    public function subcategories(): BelongsToMany
+    {
+        return $this->belongsToMany(Subcategory::class, 'car_subcategory')
+            ->orderBy('subcategories.category_id')
+            ->orderBy('subcategories.id');
+    }
+
+    /**
+     * The category / sub-category pairs: each category once, with its picked sub-categories.
+     *
+     * @return Collection<int, array{category: Category, subcategories: Collection<int, Subcategory>}>
+     */
+    public function classification(): Collection
+    {
+        $this->loadMissing('subcategories.category');
+
+        return $this->subcategories
+            ->toBase()
+            ->groupBy('category_id')
+            ->map(fn (Collection $subcategories): array => ['category' => $subcategories->first()->category, 'subcategories' => $subcategories->values()])
+            ->values();
+    }
+
+    /**
+     * Short subject for headings and emails: the first sub-category, plus how many more.
+     */
+    public function subject(): string
+    {
+        $names = $this->subcategories->pluck('name');
+
+        return $names->first().($names->count() > 1 ? ' +'.($names->count() - 1).' more' : '');
+    }
+
+    /**
+     * "Product Nonconformity, Service Nonconformity".
+     */
+    public function complaintTypeLabels(): string
+    {
+        return ($this->complaint_types ?? collect())->map(fn (ComplaintType $type): string => $type->label())->join(', ');
+    }
+
+    /**
+     * "Production Related, Compliance & Standards".
+     */
+    public function categoryNames(): string
+    {
+        return $this->classification()->map(fn (array $pair): string => $pair['category']->name)->join(', ');
+    }
+
+    /**
+     * "Shell Quality Defects, Storage & Handling".
+     */
+    public function subcategoryNames(): string
+    {
+        return $this->subcategories->pluck('name')->join(', ');
     }
 
     /**

@@ -21,7 +21,7 @@
         <span class="k">Root cause @if ($response->root_cause_responsible) · {{ $response->root_cause_responsible }} @endif</span>
         <span class="v" style="white-space:pre-line; font-weight:400;">{{ $response->root_cause ?? 'See attached file.' }}</span>
         @foreach ($response->attachments->where('collection', Attachment::ROOT_CAUSE) as $file)
-            <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;">📄 {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
+            <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;"><x-icon name="file" /> {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
         @endforeach
     </div>
 
@@ -45,7 +45,7 @@
             </table>
         </div>
         @foreach ($response->attachments->where('collection', Attachment::CORRECTIVE_ACTION) as $file)
-            <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;">📄 {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
+            <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;"><x-icon name="file" /> {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
         @endforeach
     </div>
 
