@@ -140,6 +140,7 @@
                     @if ($car->status->phase() === 2 && $car->ownerLabel())
                         <span class="phase-owner"><x-pill :tone="$car->status->ownerRole()->tone()">{{ $car->ownerLabel() }}</x-pill></span>
                     @endif
+                    <x-guide-button name="phase-two" class="phase-guide" />
                 </div>
                 <div class="phase-body">
                     @if ($canRespond)
@@ -255,6 +256,8 @@
                 @endforelse
             </div>
         </div>
+
+        <x-guides.phase-two />
 
         <div class="card" style="margin-top:14px; padding:16px 18px;" x-data="{ showAll: false }" wire:key="history">
             <div class="section-title">History</div>

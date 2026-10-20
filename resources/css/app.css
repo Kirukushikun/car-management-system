@@ -321,6 +321,10 @@
   .guide-category-head .guide-days{ margin-left:auto; }
   .guide-tabs-main{ margin:14px 0 12px; }
   .guide-tab-small{ padding:3px 10px; font-size:10.5px; }
+  .phase-guide{ padding:3px 10px; font-size:11px; margin-left:auto; }
+  .phase-owner + .phase-guide{ margin-left:0; }
+  .guide-where .guide-item{ padding:10px 12px; border-radius:9px; background:var(--bg2); border:.5px solid var(--border); }
+  .guide-example{ font-style:italic; color:var(--text3) !important; margin-top:4px !important; }
   .guide-flow{ list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:12px; }
   .guide-flow li{ display:flex; gap:10px; align-items:flex-start; }
   .guide-flow strong{ display:block; font-size:12.5px; }

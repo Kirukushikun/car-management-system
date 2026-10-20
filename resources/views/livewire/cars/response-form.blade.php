@@ -11,23 +11,23 @@
     {{-- Step 7 --}}
     <div class="section-title" style="margin:4px 0 0;">Step 7 · Interim containment / immediate actions</div>
     <div class="field">
-        <label for="containmentActions">What was done right away to contain the issue</label>
+        <x-field-label for="containmentActions" tip="Quick actions taken right away so the problem goes no further — before the root cause is known. For example: held the batch, replaced the customer's stock.">What was done right away to contain the issue</x-field-label>
         <textarea id="containmentActions" wire:model="containmentActions" placeholder="e.g. Held the remaining stock from the same batch, replaced the customer's spoiled eggs..."></textarea>
         @error('containmentActions') <div class="error-text">{{ $message }}</div> @enderror
     </div>
     <div class="field-grid" style="grid-template-columns:1fr 1fr 1.4fr;">
         <div class="field">
-            <label for="containmentStartsOn">Date start</label>
+            <x-field-label for="containmentStartsOn" tip="When the containment actions began.">Date start</x-field-label>
             <input id="containmentStartsOn" type="date" wire:model="containmentStartsOn">
             @error('containmentStartsOn') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
-            <label for="containmentEndsOn">Date end</label>
+            <x-field-label for="containmentEndsOn" tip="When containment ended or will end. Corrective actions start from this date.">Date end</x-field-label>
             <input id="containmentEndsOn" type="date" wire:model.live="containmentEndsOn">
             @error('containmentEndsOn') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
-            <label for="containmentResponsible">Responsible person</label>
+            <x-field-label for="containmentResponsible" tip="Who carried out the containment.">Responsible person</x-field-label>
             <input id="containmentResponsible" wire:model="containmentResponsible">
             @error('containmentResponsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
@@ -36,18 +36,18 @@
     {{-- Step 8 --}}
     <div class="section-title" style="margin:10px 0 0;">Step 8 · Root cause</div>
     <div class="field">
-        <label for="rootCause">Root cause findings — type them, attach a file, or both</label>
+        <x-field-label for="rootCause" tip="Why it happened — the underlying cause, not the symptom. Type it, attach your analysis (e.g. a 5-Why or fishbone), or both.">Root cause findings — type them, attach a file, or both</x-field-label>
         <textarea id="rootCause" wire:model="rootCause" placeholder="Identify and define the root cause..."></textarea>
         @error('rootCause') <div class="error-text">{{ $message }}</div> @enderror
     </div>
     <div class="field-grid">
         <div class="field">
-            <label for="rootCauseResponsible">Responsible person</label>
+            <x-field-label for="rootCauseResponsible" tip="Who investigated and identified the root cause.">Responsible person</x-field-label>
             <input id="rootCauseResponsible" wire:model="rootCauseResponsible">
             @error('rootCauseResponsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
-            <label for="rootCauseFiles">Root cause files (optional)</label>
+            <x-field-label for="rootCauseFiles" tip="Optional analysis documents or photos — PDF, Office files or images, up to 50 MB each.">Root cause files (optional)</x-field-label>
             <input id="rootCauseFiles" type="file" wire:model="rootCauseFiles" multiple accept=".{{ implode(',.', \App\Models\Attachment::ALLOWED_EXTENSIONS) }}">
             <div wire:loading wire:target="rootCauseFiles" class="hint">Uploading…</div>
             @error('rootCauseFiles.*') <div class="error-text">{{ $message }}</div> @enderror
@@ -70,23 +70,23 @@
                 @endif
             </div>
             <div class="field">
-                <label for="action-{{ $index }}-description">Corrective action</label>
+                <x-field-label :for="'action-'.$index.'-description'" tip="A lasting fix aimed at the root cause so the problem does not come back. One action per row — use “Add corrective action” for more.">Corrective action</x-field-label>
                 <textarea id="action-{{ $index }}-description" wire:model="correctiveActions.{{ $index }}.description" style="min-height:60px;"></textarea>
                 @error("correctiveActions.{$index}.description") <div class="error-text">{{ $message }}</div> @enderror
             </div>
             <div class="field-grid" style="grid-template-columns:1.4fr 1fr 1fr; margin-top:10px;">
                 <div class="field">
-                    <label for="action-{{ $index }}-responsible">Responsible</label>
+                    <x-field-label :for="'action-'.$index.'-responsible'" tip="Who will carry out this action.">Responsible</x-field-label>
                     <input id="action-{{ $index }}-responsible" wire:model="correctiveActions.{{ $index }}.responsible">
                     @error("correctiveActions.{$index}.responsible") <div class="error-text">{{ $message }}</div> @enderror
                 </div>
                 <div class="field">
-                    <label for="action-{{ $index }}-starts">Date start</label>
+                    <x-field-label :for="'action-'.$index.'-starts'" tip="When this action starts — on or after the containment end date.">Date start</x-field-label>
                     <input id="action-{{ $index }}-starts" type="date" wire:model="correctiveActions.{{ $index }}.starts_on">
                     @error("correctiveActions.{$index}.starts_on") <div class="error-text">{{ $message }}</div> @enderror
                 </div>
                 <div class="field">
-                    <label for="action-{{ $index }}-ends">Date end</label>
+                    <x-field-label :for="'action-'.$index.'-ends'" :tip="'When this action will be done — no later than the implementation deadline, '.$deadline->format('M j, Y').'.'">Date end</x-field-label>
                     <input id="action-{{ $index }}-ends" type="date" wire:model="correctiveActions.{{ $index }}.ends_on" max="{{ $deadline->toDateString() }}">
                     @error("correctiveActions.{$index}.ends_on") <div class="error-text">{{ $message }}</div> @enderror
                 </div>
@@ -97,7 +97,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <button type="button" class="btn btn-secondary" wire:click="addAction"><x-icon name="plus" /> Add corrective action</button>
         <div class="field" style="min-width:260px;">
-            <label for="correctiveActionFiles">Corrective action documents (optional)</label>
+            <x-field-label for="correctiveActionFiles" tip="Optional supporting documents — procedures, checklists, training records. PDF, Office files or images, up to 50 MB each.">Corrective action documents (optional)</x-field-label>
             <input id="correctiveActionFiles" type="file" wire:model="correctiveActionFiles" multiple accept=".{{ implode(',.', \App\Models\Attachment::ALLOWED_EXTENSIONS) }}">
             <div wire:loading wire:target="correctiveActionFiles" class="hint">Uploading…</div>
             @error('correctiveActionFiles.*') <div class="error-text">{{ $message }}</div> @enderror

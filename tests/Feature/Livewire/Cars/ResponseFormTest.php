@@ -250,3 +250,18 @@ describe('when saving fails', function () {
             ->and(Storage::disk('local')->allFiles())->toBe([]);
     });
 });
+
+describe('help', function () {
+    it('puts a short tip at the right of each response field label', function () {
+        Livewire::actingAs($this->responder)
+            ->test(ResponseForm::class, ['car' => $this->car])
+            ->assertSeeInOrder([
+                'What was done right away to contain the issue', 'before the root cause is known',
+                'Date end', 'Corrective actions start from this date.',
+                'Root cause findings', 'the underlying cause, not the symptom',
+                'Corrective action', 'A lasting fix aimed at the root cause',
+                'Date end', 'no later than the implementation deadline, Oct 13, 2026.',
+                'Corrective action documents (optional)', 'procedures, checklists, training records',
+            ]);
+    });
+});

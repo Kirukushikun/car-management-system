@@ -391,3 +391,18 @@ it('shows a message instead of an error page when an action fails to save', func
 
     expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
 });
+
+it('offers a Phase II guide from the Phase II card to everyone viewing the CAR', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeHtml('open-guide')
+        ->assertSeeInOrder([
+            'Response, Root Cause &amp; Action Planning', 'Guide',
+            'Phase II guide',
+            'Overview', 'What goes where',
+            'The Responder writes the response', 'The Responder Approver reviews it', 'If the fix later fails, it comes back here',
+            'Containment — stop it now', 'Root cause — why it happened', 'Corrective action — stop it coming back',
+        ], false);
+});
