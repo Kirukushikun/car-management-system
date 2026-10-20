@@ -392,17 +392,60 @@ it('shows a message instead of an error page when an action fails to save', func
     expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
 });
 
-it('offers a Phase II guide from the Phase II card to everyone viewing the CAR', function () {
+it('shows the status beside the reference and one Guide button in the header, opening on the current phase', function (CarStatus $status, string $guide) {
+    $car = Car::factory()->status($status)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeInOrder([$car->reference, $status->label(), 'Guide', 'Print form', 'Initiation &amp; Submission'], false)
+        ->assertViewHas('guideName', $guide)
+        ->assertSee(['Phase I guide', 'Phase II guide', 'Phase III guide'])
+        ->assertSeeHtml('<span class="guide-phase-now">now</span>');
+})->with([
+    'phase I' => [CarStatus::AwaitingRelease, 'phase-one'],
+    'phase II' => [CarStatus::AwaitingResponder, 'phase-two'],
+    'phase III' => [CarStatus::AwaitingImplementation, 'phase-three'],
+    'closed' => [CarStatus::ClosedAccepted, 'phase-three'],
+]);
+
+it('offers the Phase II guide to everyone viewing the CAR', function () {
     $car = Car::factory()->status(CarStatus::AwaitingResponder)->create();
 
     Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
         ->test(Show::class, ['car' => $car])
         ->assertSeeHtml('open-guide')
         ->assertSeeInOrder([
-            'Response, Root Cause &amp; Action Planning', 'Guide',
             'Phase II guide',
             'Overview', 'What goes where',
             'The Responder writes the response', 'The Responder Approver reviews it', 'If the fix later fails, it comes back here',
             'Containment — stop it now', 'Root cause — why it happened', 'Corrective action — stop it coming back',
         ], false);
+});
+
+it('offers the Phase III guide', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingImplementation)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeInOrder([
+            'Phase III guide', 'Overview', 'Evidence &amp; checks',
+            'The Responder uploads the evidence', 'The Responder Approver checks it worked', 'The Requestor Approver gives final acceptance',
+            'Good evidence', 'Effectiveness check — did it work?', 'Final acceptance — is the customer satisfied?',
+        ], false);
+});
+
+it('explains the remarks and new end date with tips on final acceptance', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSee(['by which the Responder\'s new solution must be implemented', 'Optional when accepting — kept with the closure.']);
+});
+
+it('explains the reason with a tip when sending a CAR back', function () {
+    $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+
+    Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSee('Whoever it goes to sees this reason');
 });

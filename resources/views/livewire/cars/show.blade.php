@@ -3,12 +3,16 @@
 <section>
     <x-page-header :title="$car->reference.' — '.$car->subject()"
                    :subtitle="$car->farm->name.' · '.$car->unitNames().' · '.$car->businessLineName().' · issued '.$car->issued_on->format('M j, Y')">
-        <div style="display:flex; gap:8px; align-items:center;">
-            <a href="{{ route('cars.print', $car) }}" target="_blank" class="btn btn-secondary" style="text-decoration:none;"><x-icon name="print" /> Print form</a>
+        <x-slot:badges>
             <x-pill :tone="$car->status->tone()">{{ $car->status->label() }}</x-pill>
             @if ($isOverdue)
-                <x-pill tone="red" style="margin-left:6px;">overdue</x-pill>
+                <x-pill tone="red">overdue</x-pill>
             @endif
+        </x-slot:badges>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+            <x-guide-button :name="$guideName" />
+            <a href="{{ route('cars.print', $car) }}" target="_blank" class="btn btn-secondary" style="text-decoration:none;"><x-icon name="print" /> Print form</a>
         </div>
     </x-page-header>
 
@@ -37,7 +41,7 @@
 
                 @if ($needsNewDueDate)
                     <div class="field" style="max-width:260px; margin-bottom:10px;">
-                        <label for="newDueOn">New end date (required if not accepted)</label>
+                        <x-field-label for="newDueOn" tip="Only used if you mark it not accepted: the date by which the Responder's new solution must be implemented. It must be after today.">New end date (required if not accepted)</x-field-label>
                         <input type="date" id="newDueOn" wire:model="newDueOn" min="{{ now()->addDay()->toDateString() }}">
                         @error('new_due_on') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -45,7 +49,7 @@
 
                 @if ($needsNote)
                     <div class="field" style="margin-bottom:10px;">
-                        <label for="note">{{ $noteLabel }}</label>
+                        <x-field-label for="note" :tip="$noteTip">{{ $noteLabel }}</x-field-label>
                         <textarea id="note" wire:model="note" style="min-height:60px;"></textarea>
                         @error('note') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -140,7 +144,6 @@
                     @if ($car->status->phase() === 2 && $car->ownerLabel())
                         <span class="phase-owner"><x-pill :tone="$car->status->ownerRole()->tone()">{{ $car->ownerLabel() }}</x-pill></span>
                     @endif
-                    <x-guide-button name="phase-two" class="phase-guide" />
                 </div>
                 <div class="phase-body">
                     @if ($canRespond)
@@ -257,7 +260,9 @@
             </div>
         </div>
 
-        <x-guides.phase-two />
+        <x-guides.phase-one :lines="$guideLines" :current="$car->businessLineName()" :current-phase="$guideName" />
+        <x-guides.phase-two :current-phase="$guideName" />
+        <x-guides.phase-three :current-phase="$guideName" />
 
         <div class="card" style="margin-top:14px; padding:16px 18px;" x-data="{ showAll: false }" wire:key="history">
             <div class="section-title">History</div>

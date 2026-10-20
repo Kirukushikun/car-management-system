@@ -6,7 +6,7 @@
     @error('evidence') <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd); margin-bottom:0;">{{ $message }}</div> @enderror
 
     <div class="field">
-        <label for="evidenceFiles">Files and photos proving the corrective actions were carried out</label>
+        <x-field-label for="evidenceFiles" tip="Proof that each corrective action is in place — photos, videos, checklists, logs, training records. At least one file; up to 10 files, 50 MB each.">Files and photos proving the corrective actions were carried out</x-field-label>
         <label class="dropzone" style="display:block; cursor:pointer; text-transform:none; letter-spacing:0; font-weight:400;">
             <input id="evidenceFiles" type="file" wire:model="files" multiple hidden accept=".{{ implode(',.', \App\Models\Attachment::ALLOWED_EXTENSIONS) }}">
             <span wire:loading.remove wire:target="files">Click to add photos, videos, checklists, logs — up to 10 files, 50 MB each</span>
@@ -33,18 +33,18 @@
 
     <div class="field-grid">
         <div class="field">
-            <label for="evidenceResponsible">Responsible person</label>
+            <x-field-label for="evidenceResponsible" tip="Who carried out the corrective actions or gathered this evidence.">Responsible person</x-field-label>
             <input id="evidenceResponsible" wire:model="responsible">
             @error('responsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
-            <label>Upload date</label>
+            <x-field-label tip="Set automatically to today when you submit.">Upload date</x-field-label>
             <input value="{{ now()->format('M j, Y') }}" disabled>
         </div>
     </div>
 
     <div class="field">
-        <label for="evidenceNotes">Notes (optional)</label>
+        <x-field-label for="evidenceNotes" tip="Optional — what was implemented, where, and how it was checked. Helps the Responder Approver judge whether it worked.">Notes (optional)</x-field-label>
         <textarea id="evidenceNotes" wire:model="notes" style="min-height:60px;" placeholder="What was implemented, where, and how it was checked..."></textarea>
         @error('notes') <div class="error-text">{{ $message }}</div> @enderror
     </div>

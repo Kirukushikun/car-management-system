@@ -1,10 +1,10 @@
-@props(['lines', 'current' => null])
+@props(['lines', 'current' => null, 'currentPhase' => null])
 
 {{--
     The Phase I guide, in two short tabs: how the phase moves, and the category reference.
     Field-level help lives next to each field (the info icon on its label), not here.
 --}}
-<x-guide name="phase-one" title="Phase I guide" subtitle="Initiation & Submission — filing a CAR.">
+<x-guide name="phase-one" :current-phase="$currentPhase" title="Phase I guide" subtitle="Initiation & Submission — filing a CAR.">
     <div x-data="{ tab: 'overview' }">
         <div class="guide-tabs guide-tabs-main" role="tablist">
             <button type="button" role="tab" class="guide-tab" :class="tab === 'overview' && 'is-active'" :aria-selected="tab === 'overview'" x-on:click="tab = 'overview'">Overview</button>

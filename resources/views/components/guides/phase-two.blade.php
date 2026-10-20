@@ -1,9 +1,11 @@
+@props(['currentPhase' => null])
+
 {{--
     The Phase II guide, in two short tabs: how the phase moves, and what belongs in containment,
     root cause and corrective action. Field-level help lives next to each field (the info icon on
     its label), not here.
 --}}
-<x-guide name="phase-two" title="Phase II guide" subtitle="Response, Root Cause & Action Planning — answering a CAR.">
+<x-guide name="phase-two" :current-phase="$currentPhase" title="Phase II guide" subtitle="Response, Root Cause & Action Planning — answering a CAR.">
     <div x-data="{ tab: 'overview' }">
         <div class="guide-tabs guide-tabs-main" role="tablist">
             <button type="button" role="tab" class="guide-tab" :class="tab === 'overview' && 'is-active'" :aria-selected="tab === 'overview'" x-on:click="tab = 'overview'">Overview</button>

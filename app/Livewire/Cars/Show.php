@@ -6,6 +6,7 @@ use App\Enums\CarAction;
 use App\Enums\CarStatus;
 use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
+use App\Models\BusinessLine;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\CarRound;
@@ -98,6 +99,9 @@ class Show extends Component
             'noteLabel' => in_array(CarAction::Accept, $actions, true)
                 ? 'Remarks (optional to accept, required if not accepted)'
                 : 'Reason (required to reject, return, mark not effective or void)',
+            'noteTip' => in_array(CarAction::Accept, $actions, true)
+                ? 'Optional when accepting — kept with the closure. Required when not accepting: say what is still wrong; the Responder sees it.'
+                : 'Required when sending the CAR back or voiding it. Whoever it goes to sees this reason, so say what needs to change.',
             'sentBack' => $this->sentBack(),
             'solutionOutcomes' => $this->solutionOutcomes(),
             'needsNewDueDate' => in_array(CarAction::NotAccept, $actions, true),
@@ -108,6 +112,15 @@ class Show extends Component
             'verificationRounds' => $this->verificationRounds(),
             'isOverdue' => $this->car->isOverdue(),
             'historyVisible' => self::HISTORY_VISIBLE,
+            'guideName' => match ($this->car->status->phase()) {
+                1 => 'phase-one',
+                2 => 'phase-two',
+                default => 'phase-three',
+            },
+            'guideLines' => BusinessLine::with([
+                'categories' => fn ($query) => $query->orderBy('id'),
+                'categories.subcategories' => fn ($query) => $query->orderBy('id'),
+            ])->orderBy('id')->get(),
         ])->title($this->car->reference);
     }
 

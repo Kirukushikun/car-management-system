@@ -108,3 +108,14 @@ it('uploads nothing and keeps the CAR where it was when saving the evidence fail
         ->and(Attachment::count())->toBe(0)
         ->and(Storage::disk('local')->allFiles())->toBe([]);
 });
+
+it('puts a short tip at the right of each evidence field label', function () {
+    Livewire::actingAs($this->responder)
+        ->test(EvidenceForm::class, ['car' => $this->car])
+        ->assertSeeInOrder([
+            'Files and photos proving the corrective actions were carried out', 'Proof that each corrective action is in place',
+            'Responsible person', 'Who carried out the corrective actions',
+            'Upload date', 'Set automatically to today',
+            'Notes (optional)', 'how it was checked',
+        ]);
+});
