@@ -39,3 +39,17 @@ it('falls back to 90 days for an unknown period', function () {
 it('is only for the Monitor', function () {
     $this->actingAs(User::factory()->role(Role::Requestor)->create())->get(route('dashboard'))->assertForbidden();
 });
+
+it('has a Dashboard guide explaining the filters and each figure', function () {
+    Livewire::actingAs($this->monitor)
+        ->test(Index::class)
+        ->assertSeeHtml('open-guide')
+        ->assertSeeInOrder([
+            'Guide', 'Dashboard guide',
+            'Overview', 'Reading the figures',
+            'Pick a period', 'Narrow it down', 'Act on what needs attention',
+            'Open CARs', 'Overdue', 'Avg. response time', 'Avg. resolution time',
+            'Repeat offenses', 'A CAR with several sub-categories counts under each.',
+            'Issued by unit',
+        ]);
+});

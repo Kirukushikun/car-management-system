@@ -1,9 +1,11 @@
 @props(['name', 'title', 'subtitle' => null, 'currentPhase' => null])
 
 {{--
-    A side panel with the guide for one module or form, opened by the guide-button component with
-    the same name (or by dispatching open-guide with that name). Each module puts its own content
-    in the slot — keep it short: an overview tab, plus a reference tab where one helps.
+    A side panel with the guide for any page or module — forms, the CAR page, the dashboard, admin
+    screens. To add one: write its content as a component under components/guides (wrapping it in
+    this component with a unique name), place it on the page, and put the guide-button component
+    with the same name in the page header. Keep it short: an overview tab, plus one reference tab
+    where it helps.
     Field-level help belongs on the field itself (the field-label component's tip), not here.
 --}}
 <div x-data="{ open: false }"
