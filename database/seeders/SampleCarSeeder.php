@@ -133,8 +133,8 @@ class SampleCarSeeder extends Seeder
         }
 
         $workflow = app(CarWorkflow::class);
-        $requestor = User::where('email', 'sales.requestor@car.test')->firstOrFail();
-        $requestorApprover = User::where('email', 'sales.requestor-approver@car.test')->firstOrFail();
+        $requestor = User::where('email', 'john.doe@car.test')->firstOrFail();
+        $requestorApprover = User::where('email', 'richard.roe@car.test')->firstOrFail();
 
         DB::table('car_sequences')->insertOrIgnore(['year' => 2026, 'last_number' => 137]);
 

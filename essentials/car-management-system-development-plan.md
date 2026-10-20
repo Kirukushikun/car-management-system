@@ -20,7 +20,7 @@
 > **Deviations during Phase 0:**
 >
 > - *(actual: users carry `role` + a free-text `scope` column (e.g. `PFC`, `Sales`) instead of `farm_id`; Phase 1 replaces `scope` with the `farms` FK once that table exists.)*
-> - *(actual: `approver_id` is already on `users` and seeded — the two Sales Requestors → the Sales Requestor Approver, the PFC Responder → the PFC Responder Approver — so the Step 10 approver chain can be tested from Phase 1 on.)*
+> - *(actual: `approver_id` is already on `users` and seeded — John Doe and Jane Doe → Richard Roe, Juan Dela Cruz → Maria Clara — so the Step 10 approver chain can be tested from Phase 1 on.)*
 > - *(actual: area access uses gates (`view-dashboard`, `create-cars`, `view-queue`, `view-overdue`, `administer`) — per-CAR rules move to `CarPolicy` in Phase 2.)*
 > - *(actual: Users & Roles lists real accounts; only its add/edit/deactivate buttons are stubs.)*
 > - *(actual: `APP_NAME` is "CAR Management System"; Boost regenerated `CLAUDE.md` / `AGENTS.md` with project guidelines.)*

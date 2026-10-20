@@ -28,10 +28,10 @@ it('carries a CAR from filing to closure through every step and both loops', fun
     Carbon::setTestNow('2026-10-06 08:00:00');
     $this->seed(ReferenceDataSeeder::class);
 
-    $requestor = User::factory()->role(Role::Requestor)->create(['name' => 'Sales Requestor']);
-    $requestorApprover = User::factory()->role(Role::RequestorApprover)->create(['name' => 'Sales Requestor Approver']);
-    $responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'PFC Responder']);
-    $responderApprover = User::factory()->role(Role::ResponderApprover, 'PFC')->create(['name' => 'PFC Responder Approver']);
+    $requestor = User::factory()->role(Role::Requestor)->create(['name' => 'John Doe']);
+    $requestorApprover = User::factory()->role(Role::RequestorApprover)->create(['name' => 'Richard Roe']);
+    $responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'Juan Dela Cruz']);
+    $responderApprover = User::factory()->role(Role::ResponderApprover, 'PFC')->create(['name' => 'Maria Clara']);
     $category = Category::whereRelation('businessLine', 'name', 'TABLE EGG')->where('name', 'Production Related')->sole();
 
     // Phase I — file, release

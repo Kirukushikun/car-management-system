@@ -174,7 +174,7 @@ it('closes the CAR on final acceptance', function () {
 
 it('keeps the Requestor Approver remarks when accepting and shows them in Phase III', function () {
     $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
-    $car->currentRound()->first()->update(['evidence_uploaded_at' => now(), 'evidence_responsible' => 'PFC Responder']);
+    $car->currentRound()->first()->update(['evidence_uploaded_at' => now(), 'evidence_responsible' => 'Juan Dela Cruz']);
 
     Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
         ->test(Show::class, ['car' => $car])
@@ -217,12 +217,12 @@ it('does not accept with a reason and a new end date and sends it back for a new
 
 it('shows the Responder why the solution was not accepted and labels each solution', function () {
     $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->withResponse(submitted: true)->create();
-    app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(['name' => 'Sales Requestor Approver']), CarAction::NotAccept,
+    app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(['name' => 'Richard Roe']), CarAction::NotAccept,
         note: 'Still receiving cracked eggs.', newDueOn: now()->addDays(10));
 
     Livewire::actingAs(User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]))
         ->test(Show::class, ['car' => $car->fresh()])
-        ->assertSee(['Propose solution 2', 'Not accepted', 'Sales Requestor Approver', '“Still receiving cracked eggs.”', 'Propose a new solution — solution 2', 'Earlier solutions', 'Solution 1'])
+        ->assertSee(['Propose solution 2', 'Not accepted', 'Richard Roe', '“Still receiving cracked eggs.”', 'Propose a new solution — solution 2', 'Earlier solutions', 'Solution 1'])
         ->assertSeeLivewire(ResponseForm::class);
 });
 
@@ -244,11 +244,11 @@ it('shows the evidence, effectiveness check and acceptance per round in Phase II
     $workflow = app(CarWorkflow::class);
     $responder = User::factory()->role(Role::Responder)->create(['farm_id' => $car->farm_id]);
     $workflow->apply($car, $responder, CarAction::UploadEvidence);
-    $workflow->apply($car, User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id, 'name' => 'PFC Responder Approver']), CarAction::MarkEffective);
+    $workflow->apply($car, User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $car->farm_id, 'name' => 'Maria Clara']), CarAction::MarkEffective);
 
     Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
         ->test(Show::class, ['car' => $car->fresh()])
-        ->assertSee(['Step 11 · Implementation evidence', 'evidence.jpg', 'Step 12 · Effectiveness check', 'Effective', 'PFC Responder Approver', 'Step 13 · Final acceptance', 'Pending.']);
+        ->assertSee(['Step 11 · Implementation evidence', 'evidence.jpg', 'Step 12 · Effectiveness check', 'Effective', 'Maria Clara', 'Step 13 · Final acceptance', 'Pending.']);
 });
 
 it('shows the responder the response form', function () {

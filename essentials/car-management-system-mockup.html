@@ -519,7 +519,7 @@
 
   const ROLES = {
     requestor: {
-      id:'requestor', name:'Sales Requestor', title:'Requestor', scope:'Sales',
+      id:'requestor', name:'John Doe', title:'Requestor', scope:'Sales',
       blurb:'Files the CAR for the customer or complainant (Phase I) and sends it to the Requestor Approver for release. Fixes anything that comes back.',
       nav:[
         { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
@@ -528,7 +528,7 @@
       ],
     },
     reqapprover: {
-      id:'reqapprover', name:'Sales Requestor Approver', title:'Requestor Approver', scope:'Sales',
+      id:'reqapprover', name:'Richard Roe', title:'Requestor Approver', scope:'Sales',
       blurb:'Approves or rejects a CAR before it is released to the Responder, and gives the final acceptance that closes it.',
       nav:[
         { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
@@ -536,7 +536,7 @@
       ],
     },
     responder: {
-      id:'responder', name:'PFC Responder', title:'Responder', scope:'PFC',
+      id:'responder', name:'Juan Dela Cruz', title:'Responder', scope:'PFC',
       blurb:'Enters the containment, root cause and corrective action (Phase II), then uploads the implementation evidence (Phase III).',
       nav:[
         { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
@@ -544,7 +544,7 @@
       ],
     },
     respapprover: {
-      id:'respapprover', name:'PFC Responder Approver', title:'Responder Approver', scope:'PFC',
+      id:'respapprover', name:'Maria Clara', title:'Responder Approver', scope:'PFC',
       blurb:'Approves the root cause and corrective action, then validates whether the implemented action was effective.',
       nav:[
         { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
@@ -663,9 +663,9 @@
       issued:'2026-08-28', complainant:'QA Sampling Team', status:'Closed — Accepted',
       history:[
         { date:'2026-08-28', who:'QA Sampling Team', what:'CAR issued — Shell Quality Defects', tone:'default' },
-        { date:'2026-08-29', who:'PFC Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
-        { date:'2026-08-30', who:'PFC Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
-        { date:'2026-09-03', who:'PFC Responder', what:'Implementation evidence uploaded.', tone:'default' },
+        { date:'2026-08-29', who:'Juan Dela Cruz', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-08-30', who:'Maria Clara', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-03', who:'Juan Dela Cruz', what:'Implementation evidence uploaded.', tone:'default' },
         { date:'2026-09-04', who:'Responder Approver', what:'Corrective action validated as effective — forwarded to Issuing Department.', tone:'green' },
         { date:'2026-09-05', who:'Requestor Approver', what:'Final acceptance approved — CAR closed.', tone:'green' },
       ]},
@@ -673,9 +673,9 @@
       issued:'2026-09-02', complainant:'SM Hypermarket Distribution Desk', status:'Open — Not Accepted', newEnd:'2026-09-20',
       history:[
         { date:'2026-09-02', who:'SM Hypermarket Distribution Desk', what:'CAR issued — Issuance & Delivery Errors', tone:'default' },
-        { date:'2026-09-02', who:'PFC Responder', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
-        { date:'2026-09-03', who:'PFC Responder Approver', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
-        { date:'2026-09-05', who:'PFC Responder', what:'Implementation evidence uploaded.', tone:'default' },
+        { date:'2026-09-02', who:'Juan Dela Cruz', what:'Interim containment logged; root cause and corrective action submitted for approval.', tone:'default' },
+        { date:'2026-09-03', who:'Maria Clara', what:'Root cause & corrective action approved — routed to Phase III.', tone:'green' },
+        { date:'2026-09-05', who:'Juan Dela Cruz', what:'Implementation evidence uploaded.', tone:'default' },
         { date:'2026-09-06', who:'Responder Approver', what:'Corrective action validated as effective — forwarded to Issuing Department.', tone:'green' },
         { date:'2026-09-07', who:'Requestor Approver', what:'Not accepted — new end date requested, looped back for re-implementation.', tone:'red' },
       ]},
@@ -727,7 +727,7 @@
     { ref:'CAR-2026-0147', farm:'PFC', unit:'PFC Production', line:'TABLE EGG', category:'Production Related', subcategory:'Internal Quality Defects',
       issued:'2026-09-17', complainant:'Rollie Funa (customer)', status:'Awaiting Release',
       history:[
-        { date:'2026-09-17', who:'Sales Requestor — Requestor', what:'CAR issued — Internal Quality Defects (submitted for release by Sales Requestor)', tone:'default' },
+        { date:'2026-09-17', who:'John Doe — Requestor', what:'CAR issued — Internal Quality Defects (submitted for release by John Doe)', tone:'default' },
       ]},
   ];
   let nextRefNum = 148;
@@ -1109,11 +1109,11 @@
   /* ============ ADMIN ============ */
   const USER_SCOPES = ['Sales','PFC','HATCHERY','BROOKDALE','RH/BBGC','BFC','All farms','IT'];
   const USERS = [
-    { name:'Sales Requestor',      role:'requestor',    scope:'Sales',     active:true },
-    { name:'Sales Requestor 2',   role:'requestor',    scope:'Sales',     active:true },
-    { name:'Sales Requestor Approver',   role:'reqapprover',  scope:'Sales',     active:true },
-    { name:'PFC Responder', role:'responder',    scope:'PFC',       active:true },
-    { name:'PFC Responder Approver',   role:'respapprover', scope:'PFC',       active:true },
+    { name:'John Doe',      role:'requestor',    scope:'Sales',     active:true },
+    { name:'Jane Doe',   role:'requestor',    scope:'Sales',     active:true },
+    { name:'Richard Roe',   role:'reqapprover',  scope:'Sales',     active:true },
+    { name:'Juan Dela Cruz', role:'responder',    scope:'PFC',       active:true },
+    { name:'Maria Clara',   role:'respapprover', scope:'PFC',       active:true },
     { name:'QA Monitor',         role:'monitor',      scope:'All farms', active:true },
     { name:'IT Admin',           role:'admin',        scope:'IT',        active:true },
   ];

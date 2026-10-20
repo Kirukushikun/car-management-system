@@ -20,7 +20,7 @@ it('creates sample accounts flagged and signed with the shared sample password',
 
     expect($users)->not->toBeEmpty()
         ->and($users->every(fn (User $user): bool => $user->is_sample))->toBeTrue()
-        ->and(Hash::check(config('login.sample_password'), User::where('email', 'sales.requestor@car.test')->sole()->password))->toBeTrue();
+        ->and(Hash::check(config('login.sample_password'), User::where('email', 'john.doe@car.test')->sole()->password))->toBeTrue();
 });
 
 it('starts with no CARs', function () {
