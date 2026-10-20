@@ -36,7 +36,7 @@
                     <td class="tnum">
                         @if ($dueOn)
                             {{ $dueOn->format('M j, Y') }}
-                            <div style="font-size:10px;color:var(--text3)">{{ $car->status->phase() === 1 ? 'Response deadline' : ($car->revised_due_on ? 'Revised end date' : 'Implementation deadline') }}</div>
+                            <div style="font-size:10px;color:var(--text3)">{{ $car->status->awaitsResponse() ? 'Response deadline' : ($car->revised_due_on ? 'Revised end date' : 'Implementation deadline') }}</div>
                         @else
                             <span style="color:var(--text3)">—</span>
                         @endif

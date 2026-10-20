@@ -283,11 +283,11 @@ class Car extends Model
     public function scopeOverdue(Builder $query, ?CarbonInterface $today = null): void
     {
         $today = ($today ?? CarbonImmutable::today())->toDateString();
-        $phaseOne = array_filter(CarStatus::cases(), fn (CarStatus $status): bool => $status->phase() === 1);
-        $later = array_filter(CarStatus::cases(), fn (CarStatus $status): bool => in_array($status->phase(), [2, 3], true));
+        $awaitingResponse = array_filter(CarStatus::open(), fn (CarStatus $status): bool => $status->awaitsResponse());
+        $later = array_filter(CarStatus::open(), fn (CarStatus $status): bool => ! $status->awaitsResponse());
 
         $query->where(fn (Builder $query) => $query
-            ->where(fn (Builder $query) => $query->whereIn('status', $phaseOne)->where('response_due_on', '<', $today))
+            ->where(fn (Builder $query) => $query->whereIn('status', $awaitingResponse)->where('response_due_on', '<', $today))
             ->orWhere(fn (Builder $query) => $query->whereIn('status', $later)->whereRaw('coalesce(revised_due_on, implementation_due_on) < ?', [$today])));
     }
 
@@ -306,14 +306,14 @@ class Car extends Model
     }
 
     /**
-     * The deadline that matters now: the response deadline in Phase I, then the implementation
-     * deadline — or the revised one after a "not accepted". Null once the CAR is finished.
+     * The deadline that matters now: the response deadline until the farm first responds, then
+     * the implementation deadline — or the revised one after a "not accepted". Null once finished.
      */
     public function activeDueOn(): ?CarbonImmutable
     {
-        return match ($this->status->phase()) {
-            null => null,
-            1 => $this->response_due_on,
+        return match (true) {
+            ! $this->status->isOpen() => null,
+            $this->status->awaitsResponse() => $this->response_due_on,
             default => $this->revised_due_on ?? $this->implementation_due_on,
         };
     }

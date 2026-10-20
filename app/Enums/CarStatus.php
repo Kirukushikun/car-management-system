@@ -50,17 +50,28 @@ enum CarStatus: string
     }
 
     /**
-     * Requirement phase the CAR is in: 1 initiation, 2 response, 3 closure. Null once finished.
+     * Requirement phase the CAR is in: 1 initiation (until released), 2 response, 3 closure.
+     * Null once finished. Which deadline applies is a separate question — see awaitsResponse().
      */
     public function phase(): ?int
     {
         return match ($this) {
-            self::AwaitingRelease, self::ReturnedToRequestor, self::AwaitingResponder => 1,
-            self::AwaitingResponderApproval, self::ReturnedToResponder => 2,
+            self::AwaitingRelease, self::ReturnedToRequestor => 1,
+            self::AwaitingResponder, self::AwaitingResponderApproval, self::ReturnedToResponder => 2,
             self::AwaitingImplementation, self::AwaitingEffectivenessCheck,
             self::AwaitingRequestorApproval, self::OpenNotAccepted => 3,
             self::ClosedAccepted, self::Voided => null,
         };
+    }
+
+    /**
+     * True until the farm submits its first response: the response deadline is the one that
+     * counts (Phase I, and Phase II while the Responder has not answered yet). After that the
+     * implementation deadline does.
+     */
+    public function awaitsResponse(): bool
+    {
+        return in_array($this, [self::AwaitingRelease, self::ReturnedToRequestor, self::AwaitingResponder], true);
     }
 
     /**

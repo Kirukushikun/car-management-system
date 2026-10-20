@@ -26,12 +26,13 @@ function respondedOn(Car $car, string $date): void
 }
 
 it('counts open, overdue and Phase I CARs as they stand today', function () {
+    Car::factory()->status(CarStatus::AwaitingRelease)->create(['response_due_on' => '2026-10-30']);
     Car::factory()->status(CarStatus::AwaitingResponder)->create(['response_due_on' => '2026-10-01']);
     Car::factory()->status(CarStatus::AwaitingImplementation)->create(['implementation_due_on' => '2026-10-20']);
     Car::factory()->status(CarStatus::ClosedAccepted)->create();
 
     expect(metrics())
-        ->open->toBe(2)
+        ->open->toBe(3)
         ->overdue->toBe(1)
         ->phase_one->toBe(1);
 });
