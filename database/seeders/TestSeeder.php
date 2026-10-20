@@ -34,12 +34,12 @@ class TestSeeder extends Seeder
 
         $pfc = Farm::where('name', 'PFC')->firstOrFail();
 
-        $stephanie = $this->person('Stephanie Flores', 'stephanie.flores', Role::RequestorApprover);
-        $reneliza = $this->person('Reneliza M. Yusi', 'reneliza.yusi', Role::ResponderApprover, $pfc);
+        $requestorApprover = $this->person('Sales Requestor Approver', 'sales.requestor-approver', Role::RequestorApprover);
+        $responderApprover = $this->person('PFC Responder Approver', 'pfc.responder-approver', Role::ResponderApprover, $pfc);
 
-        $this->person('Gab Maglalang', 'gab.maglalang', Role::Requestor, approver: $stephanie);
-        $this->person('Alvin G. Fabella', 'alvin.fabella', Role::Requestor, approver: $stephanie);
-        $this->person('Roi Andre D. Capiz', 'roi.capiz', Role::Responder, $pfc, $reneliza);
+        $this->person('Sales Requestor', 'sales.requestor', Role::Requestor, approver: $requestorApprover);
+        $this->person('Sales Requestor 2', 'sales.requestor-2', Role::Requestor, approver: $requestorApprover);
+        $this->person('PFC Responder', 'pfc.responder', Role::Responder, $pfc, $responderApprover);
         $this->person('QA Monitor', 'qa.monitor', Role::Monitor);
         $this->person('IT Admin', 'it.admin', Role::Admin);
 

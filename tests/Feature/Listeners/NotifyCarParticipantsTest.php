@@ -96,7 +96,7 @@ it('skips deactivated users', function () {
 
 it('writes an in-app flag and an email telling the recipient what to do', function () {
     $car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingResponder)->create();
-    $notification = new CarNeedsAction($car->fresh(), CarAction::Release, 'Stephanie Flores');
+    $notification = new CarNeedsAction($car->fresh(), CarAction::Release, 'Sales Requestor Approver');
 
     expect($notification->via($this->pfcResponder))->toBe(['database', 'mail'])
         ->and($notification->toArray($this->pfcResponder))

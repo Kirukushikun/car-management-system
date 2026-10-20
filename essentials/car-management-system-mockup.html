@@ -519,7 +519,7 @@
 
   const ROLES = {
     requestor: {
-      id:'requestor', name:'Gab Maglalang', title:'Requestor', scope:'Sales',
+      id:'requestor', name:'Sales Requestor', title:'Requestor', scope:'Sales',
       blurb:'Files the CAR for the customer or complainant (Phase I) and sends it to the Requestor Approver for release. Fixes anything that comes back.',
       nav:[
         { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
@@ -528,7 +528,7 @@
       ],
     },
     reqapprover: {
-      id:'reqapprover', name:'Stephanie Flores', title:'Requestor Approver', scope:'Sales',
+      id:'reqapprover', name:'Sales Requestor Approver', title:'Requestor Approver', scope:'Sales',
       blurb:'Approves or rejects a CAR before it is released to the Responder, and gives the final acceptance that closes it.',
       nav:[
         { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
@@ -536,7 +536,7 @@
       ],
     },
     responder: {
-      id:'responder', name:'Roi Andre D. Capiz', title:'Responder', scope:'PFC',
+      id:'responder', name:'PFC Responder', title:'Responder', scope:'PFC',
       blurb:'Enters the containment, root cause and corrective action (Phase II), then uploads the implementation evidence (Phase III).',
       nav:[
         { view:'list', label:'My Queue', icon:'inbox', filter:'mine' },
@@ -544,7 +544,7 @@
       ],
     },
     respapprover: {
-      id:'respapprover', name:'Reneliza M. Yusi', title:'Responder Approver', scope:'PFC',
+      id:'respapprover', name:'PFC Responder Approver', title:'Responder Approver', scope:'PFC',
       blurb:'Approves the root cause and corrective action, then validates whether the implemented action was effective.',
       nav:[
         { view:'list', label:'My Approvals', icon:'inbox', filter:'mine' },
@@ -727,7 +727,7 @@
     { ref:'CAR-2026-0147', farm:'PFC', unit:'PFC Production', line:'TABLE EGG', category:'Production Related', subcategory:'Internal Quality Defects',
       issued:'2026-09-17', complainant:'Rollie Funa (customer)', status:'Awaiting Release',
       history:[
-        { date:'2026-09-17', who:'Gab Maglalang — Requestor', what:'CAR issued — Internal Quality Defects (submitted for release by Gab Maglalang)', tone:'default' },
+        { date:'2026-09-17', who:'Sales Requestor — Requestor', what:'CAR issued — Internal Quality Defects (submitted for release by Sales Requestor)', tone:'default' },
       ]},
   ];
   let nextRefNum = 148;
@@ -1109,11 +1109,11 @@
   /* ============ ADMIN ============ */
   const USER_SCOPES = ['Sales','PFC','HATCHERY','BROOKDALE','RH/BBGC','BFC','All farms','IT'];
   const USERS = [
-    { name:'Gab Maglalang',      role:'requestor',    scope:'Sales',     active:true },
-    { name:'Alvin G. Fabella',   role:'requestor',    scope:'Sales',     active:true },
-    { name:'Stephanie Flores',   role:'reqapprover',  scope:'Sales',     active:true },
-    { name:'Roi Andre D. Capiz', role:'responder',    scope:'PFC',       active:true },
-    { name:'Reneliza M. Yusi',   role:'respapprover', scope:'PFC',       active:true },
+    { name:'Sales Requestor',      role:'requestor',    scope:'Sales',     active:true },
+    { name:'Sales Requestor 2',   role:'requestor',    scope:'Sales',     active:true },
+    { name:'Sales Requestor Approver',   role:'reqapprover',  scope:'Sales',     active:true },
+    { name:'PFC Responder', role:'responder',    scope:'PFC',       active:true },
+    { name:'PFC Responder Approver',   role:'respapprover', scope:'PFC',       active:true },
     { name:'QA Monitor',         role:'monitor',      scope:'All farms', active:true },
     { name:'IT Admin',           role:'admin',        scope:'IT',        active:true },
   ];

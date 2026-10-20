@@ -11,7 +11,7 @@ use Livewire\Livewire;
 beforeEach(function () {
     $this->user = User::factory()->role(Role::RequestorApprover)->create();
     $this->car = Car::factory()->create();
-    $this->user->notifyNow(new CarNeedsAction($this->car, CarAction::Submit, 'Gab Maglalang'), ['database']);
+    $this->user->notifyNow(new CarNeedsAction($this->car, CarAction::Submit, 'Sales Requestor'), ['database']);
 });
 
 it('lists the user\'s flags with the unread count in the sidebar', function () {

@@ -16,13 +16,13 @@ use Livewire\Livewire;
 beforeEach(function () {
     Storage::fake('local');
     $this->car = Car::factory()->forFarm('PFC')->status(CarStatus::AwaitingImplementation)->create();
-    $this->responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'Roi Andre D. Capiz']);
+    $this->responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'PFC Responder']);
 });
 
 it('uploads the evidence to the round and sends the CAR to the effectiveness check', function () {
     Livewire::actingAs($this->responder)
         ->test(EvidenceForm::class, ['car' => $this->car])
-        ->assertSet('responsible', 'Roi Andre D. Capiz')
+        ->assertSet('responsible', 'PFC Responder')
         ->set('files', [UploadedFile::fake()->image('cold-room.jpg'), UploadedFile::fake()->create('checklist.pdf', 50, 'application/pdf')])
         ->set('notes', 'Cold room in use since Oct 6.')
         ->call('submit')
@@ -33,7 +33,7 @@ it('uploads the evidence to the round and sends the CAR to the effectiveness che
 
     expect($this->car->fresh()->status)->toBe(CarStatus::AwaitingEffectivenessCheck)
         ->and($round)
-        ->evidence_responsible->toBe('Roi Andre D. Capiz')
+        ->evidence_responsible->toBe('PFC Responder')
         ->evidence_notes->toBe('Cold room in use since Oct 6.')
         ->evidence_uploaded_by->toBe($this->responder->id)
         ->and($round->attachments->pluck('original_name')->all())->toBe(['cold-room.jpg', 'checklist.pdf'])

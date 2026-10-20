@@ -33,12 +33,12 @@ beforeEach(function () {
 it('reads the bare-array response, decrypting ids and joining first and last names', function () {
     Http::fake(['auth.test/api/v1/users' => Http::response([
         directoryRecord(42, 'Maria Christina', 'Santos', 'm.santos@example.org'),
-        directoryRecord(7, 'Andre', 'Capiz', 'a.capiz@example.org'),
+        directoryRecord(7, 'Andre', 'Reyes', 'a.reyes@example.org'),
     ])]);
 
     expect(app(UserDirectory::class)->all())->toBe([
         'users' => [
-            ['id' => 7, 'name' => 'Andre Capiz', 'email' => 'a.capiz@example.org'],
+            ['id' => 7, 'name' => 'Andre Reyes', 'email' => 'a.reyes@example.org'],
             ['id' => 42, 'name' => 'Maria Christina Santos', 'email' => 'm.santos@example.org'],
         ],
         'undecryptable' => 0,

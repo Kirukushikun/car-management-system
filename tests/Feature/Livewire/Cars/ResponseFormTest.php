@@ -21,7 +21,7 @@ beforeEach(function () {
         'issued_on' => '2026-10-03',
         'implementation_due_on' => '2026-10-13',
     ]);
-    $this->responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'Roi Andre D. Capiz']);
+    $this->responder = User::factory()->role(Role::Responder, 'PFC')->create(['name' => 'PFC Responder']);
 });
 
 function completedResponseForm(Car $car, User $responder): Testable
@@ -39,8 +39,8 @@ describe('opening the form', function () {
     it('starts with the responder as the responsible person and one corrective action due by the deadline', function () {
         Livewire::actingAs($this->responder)
             ->test(ResponseForm::class, ['car' => $this->car])
-            ->assertSet('containmentResponsible', 'Roi Andre D. Capiz')
-            ->assertSet('rootCauseResponsible', 'Roi Andre D. Capiz')
+            ->assertSet('containmentResponsible', 'PFC Responder')
+            ->assertSet('rootCauseResponsible', 'PFC Responder')
             ->assertSet('containmentStartsOn', '2026-10-05')
             ->assertCount('correctiveActions', 1)
             ->assertSet('correctiveActions.0.ends_on', '2026-10-13')

@@ -21,7 +21,7 @@ use Livewire\Livewire;
 beforeEach(function () {
     Carbon::setTestNow('2026-10-02 10:00:00');
     $this->seed(ReferenceDataSeeder::class);
-    $this->requestor = User::factory()->role(Role::Requestor)->create(['name' => 'Gab Maglalang']);
+    $this->requestor = User::factory()->role(Role::Requestor)->create(['name' => 'Sales Requestor']);
 });
 
 function unitId(string $name): int
@@ -53,7 +53,7 @@ describe('the form', function () {
     it('prefills the issuer and the first unit, category and sub-category', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
-            ->assertSet('issuedBy', 'Gab Maglalang — Requestor')
+            ->assertSet('issuedBy', 'Sales Requestor — Requestor')
             ->assertSet('complaintType', ComplaintType::Product->value)
             ->assertSet('unitId', unitId('Eggroom'))
             ->assertSet('categoryId', categoryId('TABLE EGG', 'Production Related'))

@@ -15,7 +15,7 @@ use Livewire\Livewire;
  * Central Auth API responses below follow the shapes documented in the Authentication
  * Implementation Guide. Re-check them against a real response before go-live.
  */
-function fakeCentralLogin(int $userId, string $email = 'roi.capiz@bfcgroup.test', int $loginStatus = 200, int $lookupStatus = 200): void
+function fakeCentralLogin(int $userId, string $email = 'pfc.responder@bfcgroup.test', int $loginStatus = 200, int $lookupStatus = 200): void
 {
     Http::fake([
         'auth.test/api/v1/auth/login' => Http::response(
@@ -46,12 +46,12 @@ describe('sample accounts (testing mode)', function () {
     });
 
     it('shows one card per role and tucks the other sample accounts into a collapsed list', function () {
-        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Roi Responder']);
+        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Pat Responder']);
         User::factory()->sample()->role(Role::Responder)->create(['name' => 'Brookdale Responder']);
         User::factory()->sample()->role(Role::Monitor)->create(['name' => 'Quinn Monitor']);
 
         Livewire::test(Login::class)
-            ->assertViewHas('roleCards', fn ($cards): bool => $cards->pluck('name')->sort()->values()->all() === ['Quinn Monitor', 'Roi Responder'])
+            ->assertViewHas('roleCards', fn ($cards): bool => $cards->pluck('name')->sort()->values()->all() === ['Pat Responder', 'Quinn Monitor'])
             ->assertViewHas('moreSampleAccounts', fn ($more): bool => $more->pluck('name')->all() === ['Brookdale Responder'])
             ->assertSee('1 more sample account')
             ->call('useSample', User::where('name', 'Brookdale Responder')->value('email'))
@@ -100,10 +100,10 @@ describe('sample accounts (testing mode)', function () {
 
 describe('central sign-in', function () {
     it('signs in through the Auth API, keeps the token and lands on the role home page', function () {
-        $user = User::factory()->role(Role::Responder)->create(['email' => 'roi.capiz@bfcgroup.test']);
+        $user = User::factory()->role(Role::Responder)->create(['email' => 'pfc.responder@bfcgroup.test']);
         fakeCentralLogin($user->id);
 
-        submitLogin('roi.capiz@bfcgroup.test')
+        submitLogin('pfc.responder@bfcgroup.test')
             ->assertHasNoErrors()
             ->assertRedirect(route('cars.index', ['view' => 'mine']));
 
@@ -113,7 +113,7 @@ describe('central sign-in', function () {
 
         Http::assertSent(fn (Request $request) => $request->url() === 'https://auth.test/api/v1/auth/login'
             && $request->hasHeader('Authorization', 'Bearer test-auth-key')
-            && $request['email'] === 'roi.capiz@bfcgroup.test');
+            && $request['email'] === 'pfc.responder@bfcgroup.test');
         Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://auth.test/api/v1/users/get-user-id')
             && $request->hasHeader('x-api-key', 'test-auth-user-key'));
     });
@@ -137,7 +137,7 @@ describe('central sign-in', function () {
     it('refuses someone the IT Admin has not granted access', function () {
         fakeCentralLogin(999);
 
-        submitLogin('roi.capiz@bfcgroup.test')
+        submitLogin('pfc.responder@bfcgroup.test')
             ->assertHasErrors(['email' => 'You are not authorized to access this system. 2 attempt(s) remaining.']);
 
         $this->assertGuest();
@@ -155,7 +155,7 @@ describe('central sign-in', function () {
     it('reports a failed user lookup without counting it as an attempt', function () {
         fakeCentralLogin(1, lookupStatus: 500);
 
-        submitLogin('roi.capiz@bfcgroup.test')
+        submitLogin('pfc.responder@bfcgroup.test')
             ->assertHasErrors(['email' => 'Failed to retrieve user information from the system.']);
     });
 
@@ -163,7 +163,7 @@ describe('central sign-in', function () {
         Http::fake(fn () => throw new ConnectionException('timed out'));
 
         foreach (range(1, 4) as $attempt) {
-            submitLogin('roi.capiz@bfcgroup.test')
+            submitLogin('pfc.responder@bfcgroup.test')
                 ->assertHasErrors(['email' => 'Authentication service is currently unreachable. Please try again shortly.']);
         }
     });
@@ -186,7 +186,7 @@ describe('central sign-in', function () {
     });
 
     it('clears the failure count after a successful sign-in', function () {
-        $user = User::factory()->create(['email' => 'roi.capiz@bfcgroup.test']);
+        $user = User::factory()->create(['email' => 'pfc.responder@bfcgroup.test']);
         Http::fake([
             'auth.test/api/v1/auth/login' => Http::sequence()
                 ->push(['message' => 'Invalid credentials.'], 401)
@@ -194,14 +194,14 @@ describe('central sign-in', function () {
             'auth.test/api/v1/users/get-user-id*' => Http::response(['id' => $user->id]),
         ]);
 
-        submitLogin('roi.capiz@bfcgroup.test')->assertHasErrors('email');
-        submitLogin('roi.capiz@bfcgroup.test')->assertHasNoErrors();
+        submitLogin('pfc.responder@bfcgroup.test')->assertHasErrors('email');
+        submitLogin('pfc.responder@bfcgroup.test')->assertHasNoErrors();
 
-        expect(app(LoginThrottle::class)->attempts('roi.capiz@bfcgroup.test'))->toBe(0);
+        expect(app(LoginThrottle::class)->attempts('pfc.responder@bfcgroup.test'))->toBe(0);
     });
 
     it('writes every attempt to the access log', function () {
-        $user = User::factory()->create(['email' => 'roi.capiz@bfcgroup.test']);
+        $user = User::factory()->create(['email' => 'pfc.responder@bfcgroup.test']);
         fakeCentralLogin(999, loginStatus: 401);
         submitLogin('nobody@bfcgroup.test');
 
@@ -227,14 +227,14 @@ describe('Cloudflare Turnstile', function () {
     it('stops a failed challenge before the Auth API is called', function () {
         Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => false])]);
 
-        submitLogin('roi.capiz@bfcgroup.test')
+        submitLogin('pfc.responder@bfcgroup.test')
             ->assertHasErrors(['turnstileToken' => 'Human verification failed. Please complete the challenge and try again.']);
 
         Http::assertSentCount(1);
     });
 
     it('continues to the Auth API after a passed challenge', function () {
-        $user = User::factory()->create(['email' => 'roi.capiz@bfcgroup.test']);
+        $user = User::factory()->create(['email' => 'pfc.responder@bfcgroup.test']);
         Http::fake([
             'challenges.cloudflare.com/*' => Http::response(['success' => true]),
             'auth.test/api/v1/auth/login' => Http::response(['token' => 't', 'expires_at' => null, 'email' => $user->email]),

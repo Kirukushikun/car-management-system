@@ -31,7 +31,7 @@ it('prints a closed CAR through all six parts', function () {
             'Part II.', 'Thin and cracked shells',
             'Part III.', 'Held the morning collection', 'Calcium supplement', 'minimum-stock alert',
             'Part V.', 'Evidence uploaded',
-            'Part VI.', 'Verified by: Reneliza M. Yusi', 'Noted by: Stephanie Flores',
+            'Part VI.', 'Verified by: PFC Responder Approver', 'Noted by: Sales Requestor Approver',
         ]);
 });
 

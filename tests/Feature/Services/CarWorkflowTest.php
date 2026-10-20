@@ -100,7 +100,7 @@ function funaDetails(): array
         'issued_to_unit_id' => IssuedToUnit::where('name', 'PFC Production')->value('id'),
         'category_id' => $category->id,
         'subcategory_id' => Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id'),
-        'issued_by' => 'Gab Maglalang — Requestor',
+        'issued_by' => 'Sales Requestor — Requestor',
         'complainant' => 'Rollie Funa',
         'complaint_type' => ComplaintType::Product,
         'problem_details' => '34 trays and 7 pcs of big dirty eggs returned as spoiled.',
