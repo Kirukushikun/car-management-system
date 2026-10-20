@@ -47,8 +47,8 @@ class TestSeeder extends Seeder
             $handle = str($farm->name)->lower()->replace('/', '-');
             $name = ucwords(strtolower($farm->name));
 
-            $approver = $this->person("{$name} Responder Approver", "{$handle}.responder-approver", Role::ResponderApprover, $farm);
-            $this->person("{$name} Responder", "{$handle}.responder", Role::Responder, $farm, $approver);
+            $approver = $this->person("{$name} Concerned Department Approver", "{$handle}.responder-approver", Role::ResponderApprover, $farm);
+            $this->person("{$name} Concerned Department", "{$handle}.responder", Role::Responder, $farm, $approver);
         });
     }
 

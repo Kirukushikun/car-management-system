@@ -39,7 +39,7 @@ class CarExportController extends Controller
 
             fputcsv($out, [
                 'Reference', 'Status', 'Owner', 'Overdue', 'Issued on', 'Complaint received', 'Farm', 'Issued to', 'Business line',
-                'Categories', 'Sub-categories', 'Types of complaint', 'Complainant', 'Requestor', 'Response due', 'Implementation due',
+                'Categories', 'Sub-categories', 'Types of complaint', 'Complainant', 'Filed by', 'Response due', 'Implementation due',
                 'Revised end date', 'Released', 'First response', 'Closed', 'Round',
             ]);
 

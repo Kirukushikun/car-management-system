@@ -51,8 +51,8 @@ enum CarAction: string
     {
         return match ($this) {
             self::Submit => 'CAR issued and submitted for release',
-            self::Release => 'CAR approved and released to the Responder',
-            self::Reject => 'CAR rejected before release — returned to the Requestor',
+            self::Release => 'CAR approved and released to the Concerned Department',
+            self::Reject => 'CAR rejected before release — returned to the Complainant',
             self::Resubmit => 'CAR updated and resubmitted for release',
             self::SubmitResponse => 'Containment, root cause and corrective action submitted for approval',
             self::ApproveResponse => 'Root cause & corrective action approved — routed to Phase III',
@@ -61,7 +61,7 @@ enum CarAction: string
             self::MarkEffective => 'Corrective action validated as effective — forwarded for final acceptance',
             self::MarkNotEffective => 'Corrective action not effective — returned to Phase II',
             self::Accept => 'Final acceptance given — CAR closed',
-            self::NotAccept => 'Not accepted — sent back to the Responder for a new solution',
+            self::NotAccept => 'Not accepted — sent back to the Concerned Department for a new solution',
             self::Void => 'CAR voided',
         };
     }
@@ -72,18 +72,18 @@ enum CarAction: string
     public function confirmation(): string
     {
         return match ($this) {
-            self::Submit => 'The CAR gets its reference number and goes to the Requestor Approver for review.',
+            self::Submit => 'The CAR gets its reference number and goes to the Complainant Approver for review.',
             self::Release => 'The CAR is released to the responding farm and the response deadline starts.',
-            self::Reject => 'The CAR goes back to the Requestor with your reason.',
-            self::Resubmit => 'The corrected CAR goes back to the Requestor Approver for release.',
-            self::SubmitResponse => 'Your containment, root cause and corrective actions go to the Responder Approver. You cannot edit them unless they are returned.',
-            self::ApproveResponse => 'The corrective actions are approved and the Responder moves on to implementation (Phase III).',
-            self::ReturnResponse => 'The response goes back to the Responder for revision with your reason.',
-            self::UploadEvidence => 'The evidence goes to the Responder Approver for the effectiveness check. You cannot add files to this round afterwards.',
-            self::MarkEffective => 'The CAR goes to the Requestor Approver for final acceptance.',
-            self::MarkNotEffective => 'The CAR goes back to Phase II and the Responder must revise the response.',
+            self::Reject => 'The CAR goes back to the Complainant with your reason.',
+            self::Resubmit => 'The corrected CAR goes back to the Complainant Approver for release.',
+            self::SubmitResponse => 'Your containment, root cause and corrective actions go to the Concerned Department Approver. You cannot edit them unless they are returned.',
+            self::ApproveResponse => 'The corrective actions are approved and the Concerned Department moves on to implementation (Phase III).',
+            self::ReturnResponse => 'The response goes back to the Concerned Department for revision with your reason.',
+            self::UploadEvidence => 'The evidence goes to the Concerned Department Approver for the effectiveness check. You cannot add files to this round afterwards.',
+            self::MarkEffective => 'The CAR goes to the Complainant Approver for final acceptance.',
+            self::MarkNotEffective => 'The CAR goes back to Phase II and the Concerned Department must revise the response.',
             self::Accept => 'The CAR is closed with your remarks. This cannot be undone.',
-            self::NotAccept => 'The CAR goes back to the Responder with your reason to propose a new solution by the new end date. The Responder Approver approves it again before it is implemented.',
+            self::NotAccept => 'The CAR goes back to the Concerned Department with your reason to propose a new solution by the new end date. The Concerned Department Approver approves it again before it is implemented.',
             self::Void => 'The CAR is voided and leaves every queue. This cannot be undone.',
         };
     }

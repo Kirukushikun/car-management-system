@@ -15,15 +15,15 @@
             <ol class="guide-flow">
                 <li>
                     <span class="guide-flow-num">1</span>
-                    <div><strong>The Responder uploads the evidence</strong><span>Proof the corrective actions were carried out, by the implementation deadline (Step 11).</span></div>
+                    <div><strong>The Concerned Department uploads the evidence</strong><span>Proof the corrective actions were carried out, by the implementation deadline (Step 11).</span></div>
                 </li>
                 <li>
                     <span class="guide-flow-num">2</span>
-                    <div><strong>The Responder Approver checks it worked</strong><span>Effective goes on to final acceptance; not effective sends it back to Phase II for a new solution (Step 12).</span></div>
+                    <div><strong>The Concerned Department Approver checks it worked</strong><span>Effective goes on to final acceptance; not effective sends it back to Phase II for a new solution (Step 12).</span></div>
                 </li>
                 <li>
                     <span class="guide-flow-num">3</span>
-                    <div><strong>The Requestor Approver gives final acceptance</strong><span>Accept closes the CAR. Not accepted needs a reason and a new end date, and the Responder proposes a new solution (Step 13).</span></div>
+                    <div><strong>The Complainant Approver gives final acceptance</strong><span>Accept closes the CAR. Not accepted needs a reason and a new end date, and the Concerned Department proposes a new solution (Step 13).</span></div>
                 </li>
             </ol>
             <p class="guide-text">Each attempt is numbered — Solution 1, 2, 3 — and earlier ones stay on the CAR with the reason they ended.</p>

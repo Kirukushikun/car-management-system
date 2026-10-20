@@ -65,10 +65,10 @@ it('names who must act next', function (CarStatus $status, ?string $label) {
 
     expect($car->ownerLabel())->toBe($label);
 })->with([
-    [CarStatus::AwaitingRelease, 'Requestor Approver'],
-    [CarStatus::ReturnedToRequestor, 'Requestor'],
-    [CarStatus::AwaitingResponder, 'HATCHERY Responder'],
-    [CarStatus::AwaitingEffectivenessCheck, 'HATCHERY Responder Approver'],
+    [CarStatus::AwaitingRelease, 'Complainant Approver'],
+    [CarStatus::ReturnedToRequestor, 'Complainant'],
+    [CarStatus::AwaitingResponder, 'HATCHERY Concerned Department'],
+    [CarStatus::AwaitingEffectivenessCheck, 'HATCHERY Concerned Department Approver'],
     [CarStatus::ClosedAccepted, null],
 ]);
 

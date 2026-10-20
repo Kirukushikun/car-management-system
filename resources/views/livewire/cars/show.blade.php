@@ -41,7 +41,7 @@
 
                 @if ($needsNewDueDate)
                     <div class="field" style="max-width:260px; margin-bottom:10px;">
-                        <x-field-label for="newDueOn" tip="Only used if you mark it not accepted: the date by which the Responder's new solution must be implemented. It must be after today.">New end date (required if not accepted)</x-field-label>
+                        <x-field-label for="newDueOn" tip="Only used if you mark it not accepted: the date by which the Concerned Department's new solution must be implemented. It must be after today.">New end date (required if not accepted)</x-field-label>
                         <input type="date" id="newDueOn" wire:model="newDueOn" min="{{ now()->addDay()->toDateString() }}">
                         @error('new_due_on') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
@@ -151,7 +151,7 @@
                     @endif
 
                     @if (! $car->released_at)
-                        <div style="color:var(--text3); font-size:11.5px;">Not started — the CAR has not been released to the Responder yet.</div>
+                        <div style="color:var(--text3); font-size:11.5px;">Not started — the CAR has not been released to the Concerned Department yet.</div>
                     @elseif ($submittedResponses->isEmpty())
                         @unless ($canRespond)
                             <div style="color:var(--text3); font-size:11.5px;">Waiting for {{ $car->farm->name }}'s response — interim containment, root cause and corrective actions.</div>
@@ -253,7 +253,7 @@
                 @empty
                     <div style="color:var(--text3); font-size:11.5px;">
                         @if ($car->status->isOpen() && ! $canUploadEvidence)
-                            Starts once the corrective actions are approved — the Responder uploads evidence, the Responder Approver checks effectiveness, and the Requestor Approver gives final acceptance.
+                            Starts once the corrective actions are approved — the Concerned Department uploads evidence, the Concerned Department Approver checks effectiveness, and the Complainant Approver gives final acceptance.
                         @endif
                     </div>
                 @endforelse

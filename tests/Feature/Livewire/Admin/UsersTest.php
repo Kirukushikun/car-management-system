@@ -37,7 +37,7 @@ beforeEach(function () {
 
     fakeDirectory([
         [5120, 'Juan', 'Dela Cruz', 'juan@bfcgroup.test'],
-        [5121, 'Nena', 'Responder', 'nena@bfcgroup.test'],
+        [5121, 'Nena', 'Concerned Department', 'nena@bfcgroup.test'],
         [5122, 'Quinn', 'Assurance', 'qa@bfcgroup.test'],
         [5123, 'Maria Christina', 'Santos', 'm.santos@bfcgroup.test'],
     ]);
@@ -98,7 +98,7 @@ describe('granting access', function () {
             ->set('form.approverId', $approver->id)
             ->call('save')
             ->assertHasNoErrors()
-            ->assertSee('Granted Juan Dela Cruz access as Requestor.')
+            ->assertSee('Granted Juan Dela Cruz access as Complainant.')
             ->assertSet('showForm', false);
 
         expect(User::findOrFail(5120))
@@ -168,7 +168,7 @@ describe('granting access', function () {
             ->set('form.role', Role::Responder->value)
             ->call('save')
             ->assertHasErrors(['form.farmId' => 'required'])
-            ->assertSee('Responders and Responder Approvers must belong to a farm.');
+            ->assertSee('Concerned Departments and Concerned Department Approvers must belong to a farm.');
     });
 
     it('treats the empty farm option as no farm', function () {
@@ -220,7 +220,7 @@ describe('approver chain', function () {
 
         saveResponderWithApprover($this->admin, Farm::factory()->create(), $wrongRole)
             ->assertHasErrors('form.approverId')
-            ->assertSee('The approver of a Responder must be a Responder Approver.');
+            ->assertSee('The approver of a Concerned Department must be a Concerned Department Approver.');
     });
 
     it('rejects an approver from another farm', function () {

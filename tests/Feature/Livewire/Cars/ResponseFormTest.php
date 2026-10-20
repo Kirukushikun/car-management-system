@@ -93,7 +93,7 @@ describe('saving a draft', function () {
 });
 
 describe('submitting for approval', function () {
-    it('saves the response and sends the CAR to the Responder Approver', function () {
+    it('saves the response and sends the CAR to the Concerned Department Approver', function () {
         completedResponseForm($this->car, $this->responder)
             ->call('addAction')
             ->set('correctiveActions.1.description', 'Dispatch first-in, first-out from the dirty-egg rack.')
@@ -172,7 +172,7 @@ describe('submitting for approval', function () {
             ->assertHasErrors('correctiveActions');
     });
 
-    it('lets a Responder Approver prepare the response', function () {
+    it('lets a Concerned Department Approver prepare the response', function () {
         $approver = User::factory()->role(Role::ResponderApprover, 'PFC')->create();
 
         completedResponseForm($this->car, $approver)

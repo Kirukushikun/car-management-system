@@ -74,7 +74,7 @@ class UserForm extends Form
     protected function messages(): array
     {
         return [
-            'farmId.required' => 'Responders and Responder Approvers must belong to a farm.',
+            'farmId.required' => 'Concerned Departments and Concerned Department Approvers must belong to a farm.',
             'approverId.exists' => 'The approver must be an active user.',
             'centralId.required' => 'Pick the person from the central directory.',
             'centralId.unique' => 'That central user already has access to this system.',

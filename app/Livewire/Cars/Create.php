@@ -178,7 +178,7 @@ class Create extends Component
 
         session()->flash('status', $this->car
             ? "{$car->reference} was resubmitted for release."
-            : "{$car->reference} was submitted. The Requestor Approver reviews it before it is released to the Responder.");
+            : "{$car->reference} was submitted. The Complainant Approver reviews it before it is released to the Concerned Department.");
 
         $this->redirectRoute('cars.show', $car, navigate: true);
     }

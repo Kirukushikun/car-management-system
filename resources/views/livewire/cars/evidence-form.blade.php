@@ -44,7 +44,7 @@
     </div>
 
     <div class="field">
-        <x-field-label for="evidenceNotes" tip="Optional — what was implemented, where, and how it was checked. Helps the Responder Approver judge whether it worked.">Notes (optional)</x-field-label>
+        <x-field-label for="evidenceNotes" tip="Optional — what was implemented, where, and how it was checked. Helps the Concerned Department Approver judge whether it worked.">Notes (optional)</x-field-label>
         <textarea id="evidenceNotes" wire:model="notes" style="min-height:60px;" placeholder="What was implemented, where, and how it was checked..."></textarea>
         @error('notes') <div class="error-text">{{ $message }}</div> @enderror
     </div>

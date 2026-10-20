@@ -82,7 +82,7 @@ class CarWorkflow
     public function submit(User $requestor, array $details): Car
     {
         if (! $this->canSubmit($requestor)) {
-            throw new AuthorizationException('Only an active Requestor can file a CAR.');
+            throw new AuthorizationException('Only an active Complainant can file a CAR.');
         }
 
         $car = DB::transaction(function () use ($requestor, $details): Car {

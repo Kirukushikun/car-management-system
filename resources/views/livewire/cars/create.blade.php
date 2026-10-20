@@ -1,6 +1,6 @@
 <section>
     <x-page-header :title="$car ? 'Correct '.$car->reference.' — Phase I' : 'New CAR — Phase I: Initiation & Submission'"
-                   :subtitle="$car ? 'Fix what the Requestor Approver asked for, then resubmit it for release' : 'The reference number is assigned on submit — the Requestor Approver reviews the CAR before it is released to the Responder'">
+                   :subtitle="$car ? 'Fix what the Complainant Approver asked for, then resubmit it for release' : 'The reference number is assigned on submit — the Complainant Approver reviews the CAR before it is released to the Concerned Department'">
         <x-guide-button name="phase-one" />
     </x-page-header>
 
@@ -8,7 +8,7 @@
         <form x-on:submit.prevent class="card" style="padding:20px 22px; max-width:760px;">
             @if ($returnReason)
                 <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd);">
-                    Returned by the Requestor Approver: {{ $returnReason }}
+                    Returned by the Complainant Approver: {{ $returnReason }}
                 </div>
             @endif
 
@@ -19,7 +19,7 @@
 
             <div class="field-grid">
                 <div class="field">
-                    <x-field-label for="farmId" tip="The farm whose Responders must answer this CAR.">Farm / site</x-field-label>
+                    <x-field-label for="farmId" tip="The farm whose Concerned Department must answer this CAR.">Farm / site</x-field-label>
                     <select id="farmId" wire:model="farmId">
                         @foreach ($farms as $farm)
                             <option value="{{ $farm->id }}" wire:key="farm-{{ $farm->id }}">{{ $farm->name }}</option>
@@ -114,7 +114,7 @@
             <div class="hint" style="margin-top:6px; font-size:10.5px; color:var(--text3);">Issued date + the category's timeline{{ count($usedCategoryIds) > 1 ? ' — with several categories, the shortest applies' : '' }}. Fixed once the CAR is issued.</div>
 
             <div class="field" style="margin-top:16px;">
-                <x-field-label for="problem" tip="What was observed, when, where and by whom. Be specific — the Responder works from this.">Details of the problem</x-field-label>
+                <x-field-label for="problem" tip="What was observed, when, where and by whom. Be specific — the Concerned Department works from this.">Details of the problem</x-field-label>
                 <textarea id="problem" wire:model="problem" placeholder="Describe what was observed, when, and by whom..."></textarea>
                 @error('problem') <div class="error-text">{{ $message }}</div> @enderror
             </div>

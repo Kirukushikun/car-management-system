@@ -1,7 +1,7 @@
 <form x-on:submit.prevent id="response-form" class="embedded-form">
     <div class="embedded-form-head">
         <strong>{{ $heading }} — solution {{ $car->current_round }}</strong>
-        <span>Steps 7–9 · submit for Responder Approver sign-off</span>
+        <span>Steps 7–9 · submit for Concerned Department Approver sign-off</span>
     </div>
     @if ($notice)
         <div class="flash" style="margin-bottom:0;">{{ $notice }}</div>

@@ -29,7 +29,7 @@ it('starts with no CARs', function () {
     expect(Car::count())->toBe(0);
 });
 
-it('gives every farm a Responder and a Responder Approver, the Responder reporting to that approver', function () {
+it('gives every farm a Concerned Department and a Concerned Department Approver, the Concerned Department reporting to that approver', function () {
     $this->seed([ReferenceDataSeeder::class, TestSeeder::class]);
 
     Farm::all()->each(function (Farm $farm): void {

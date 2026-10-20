@@ -92,7 +92,7 @@ class CarNeedsAction extends Notification implements ShouldQueue
             return match ($this->action) {
                 CarAction::Accept => 'Your CAR was accepted and closed',
                 CarAction::Void => 'A CAR you filed was voided',
-                CarAction::NotAccept => 'Not accepted — the Responder will propose a new solution',
+                CarAction::NotAccept => 'Not accepted — the Concerned Department will propose a new solution',
                 default => $this->car->status->label(),
             };
         }

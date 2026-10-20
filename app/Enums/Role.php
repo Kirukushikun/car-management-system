@@ -18,10 +18,10 @@ enum Role: string
     public function label(): string
     {
         return match ($this) {
-            self::Requestor => 'Requestor',
-            self::RequestorApprover => 'Requestor Approver',
-            self::Responder => 'Responder',
-            self::ResponderApprover => 'Responder Approver',
+            self::Requestor => 'Complainant',
+            self::RequestorApprover => 'Complainant Approver',
+            self::Responder => 'Concerned Department',
+            self::ResponderApprover => 'Concerned Department Approver',
             self::Monitor => 'Monitor',
             self::Admin => 'IT Admin',
         };
@@ -31,7 +31,7 @@ enum Role: string
     {
         return match ($this) {
             self::Requestor => 'Files the CAR for the customer or complainant (Phase I) and sends it for release. Fixes anything that comes back.',
-            self::RequestorApprover => 'Approves or rejects a CAR before it is released to the Responder, and gives the final acceptance that closes it.',
+            self::RequestorApprover => 'Approves or rejects a CAR before it is released to the Concerned Department, and gives the final acceptance that closes it.',
             self::Responder => 'Enters the containment, root cause and corrective action (Phase II), then uploads the implementation evidence (Phase III).',
             self::ResponderApprover => 'Approves the root cause and corrective action, then validates whether the implemented action was effective.',
             self::Monitor => 'Read-only dashboard — repeat offenses, open/closed, response and resolution time, frequency of CAR issuance.',

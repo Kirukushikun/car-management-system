@@ -63,7 +63,7 @@ it('releases a CAR to the responder', function () {
     Livewire::actingAs($approver)
         ->test(Show::class, ['car' => $car])
         ->call('act', CarAction::Release->value)
-        ->assertSee('CAR approved and released to the Responder.')
+        ->assertSee('CAR approved and released to the Concerned Department.')
         ->assertDontSee('Your action');
 
     expect($car->fresh())
@@ -172,7 +172,7 @@ it('closes the CAR on final acceptance', function () {
         ->and($car->events()->where('action', CarAction::Accept)->value('note'))->toBeNull();
 });
 
-it('keeps the Requestor Approver remarks when accepting and shows them in Phase III', function () {
+it('keeps the Complainant Approver remarks when accepting and shows them in Phase III', function () {
     $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
     $car->currentRound()->first()->update(['evidence_uploaded_at' => now(), 'evidence_responsible' => 'Juan Dela Cruz']);
 
@@ -215,7 +215,7 @@ it('does not accept with a reason and a new end date and sends it back for a new
         ->revised_due_on->toDateString()->toBe($newDueOn);
 });
 
-it('shows the Responder why the solution was not accepted and labels each solution', function () {
+it('shows the Concerned Department why the solution was not accepted and labels each solution', function () {
     $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->withResponse(submitted: true)->create();
     app(CarWorkflow::class)->apply($car, User::factory()->role(Role::RequestorApprover)->create(['name' => 'Richard Roe']), CarAction::NotAccept,
         note: 'Still receiving cracked eggs.', newDueOn: now()->addDays(10));
@@ -417,7 +417,7 @@ it('offers the Phase II guide to everyone viewing the CAR', function () {
         ->assertSeeInOrder([
             'Phase II guide',
             'Overview', 'What goes where',
-            'The Responder writes the response', 'The Responder Approver reviews it', 'If the fix later fails, it comes back here',
+            'The Concerned Department writes the response', 'The Concerned Department Approver reviews it', 'If the fix later fails, it comes back here',
             'Containment — stop it now', 'Root cause — why it happened', 'Corrective action — stop it coming back',
         ], false);
 });
@@ -429,7 +429,7 @@ it('offers the Phase III guide', function () {
         ->test(Show::class, ['car' => $car])
         ->assertSeeInOrder([
             'Phase III guide', 'Overview', 'Evidence &amp; checks',
-            'The Responder uploads the evidence', 'The Responder Approver checks it worked', 'The Requestor Approver gives final acceptance',
+            'The Concerned Department uploads the evidence', 'The Concerned Department Approver checks it worked', 'The Complainant Approver gives final acceptance',
             'Good evidence', 'Effectiveness check — did it work?', 'Final acceptance — is the customer satisfied?',
         ], false);
 });
@@ -439,7 +439,7 @@ it('explains the remarks and new end date with tips on final acceptance', functi
 
     Livewire::actingAs(User::factory()->role(Role::RequestorApprover)->create())
         ->test(Show::class, ['car' => $car])
-        ->assertSee(['by which the Responder\'s new solution must be implemented', 'Optional when accepting — kept with the closure.']);
+        ->assertSee(['by which the Concerned Department\'s new solution must be implemented', 'Optional when accepting — kept with the closure.']);
 });
 
 it('explains the reason with a tip when sending a CAR back', function () {

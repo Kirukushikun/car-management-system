@@ -149,7 +149,7 @@ class SampleCarSeeder extends Seeder
                     'farm_id' => $farm->id,
                     'issued_to_unit_ids' => [IssuedToUnit::where('name', $unitName)->firstOrFail()->id],
                     'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', $subcategoryName)->firstOrFail()->id],
-                    'issued_by' => "{$requestor->name} — Requestor",
+                    'issued_by' => "{$requestor->name} — Complainant",
                     'complainant' => $complainant,
                     'complaint_types' => [ComplaintType::Product],
                     'problem_details' => $problem,

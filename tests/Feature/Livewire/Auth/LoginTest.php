@@ -46,15 +46,15 @@ describe('sample accounts (testing mode)', function () {
     });
 
     it('shows one card per role and tucks the other sample accounts into a collapsed list', function () {
-        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Pat Responder']);
-        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Brookdale Responder']);
+        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Pat Concerned Department']);
+        User::factory()->sample()->role(Role::Responder)->create(['name' => 'Brookdale Concerned Department']);
         User::factory()->sample()->role(Role::Monitor)->create(['name' => 'Quinn Monitor']);
 
         Livewire::test(Login::class)
-            ->assertViewHas('roleCards', fn ($cards): bool => $cards->pluck('name')->sort()->values()->all() === ['Pat Responder', 'Quinn Monitor'])
-            ->assertViewHas('moreSampleAccounts', fn ($more): bool => $more->pluck('name')->all() === ['Brookdale Responder'])
+            ->assertViewHas('roleCards', fn ($cards): bool => $cards->pluck('name')->sort()->values()->all() === ['Pat Concerned Department', 'Quinn Monitor'])
+            ->assertViewHas('moreSampleAccounts', fn ($more): bool => $more->pluck('name')->all() === ['Brookdale Concerned Department'])
             ->assertSee('1 more sample account')
-            ->call('useSample', User::where('name', 'Brookdale Responder')->value('email'))
+            ->call('useSample', User::where('name', 'Brookdale Concerned Department')->value('email'))
             ->assertSet('password', 'password');
     });
 

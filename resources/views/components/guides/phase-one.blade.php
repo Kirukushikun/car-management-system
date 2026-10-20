@@ -19,11 +19,11 @@
                 </li>
                 <li>
                     <span class="guide-flow-num">2</span>
-                    <div><strong>The Requestor Approver reviews it</strong><span>They approve it, or return it with a reason.</span></div>
+                    <div><strong>The Complainant Approver reviews it</strong><span>They approve it, or return it with a reason.</span></div>
                 </li>
                 <li>
                     <span class="guide-flow-num">3</span>
-                    <div><strong>Released to the farm — or back to you</strong><span>Approved CARs go to the farm's Responders (Phase II). Returned ones wait in your queue to correct and resubmit.</span></div>
+                    <div><strong>Released to the farm — or back to you</strong><span>Approved CARs go to the farm's Concerned Department (Phase II). Returned ones wait in your queue to correct and resubmit.</span></div>
                 </li>
             </ol>
             <p class="guide-text">Not sure about a field? Use the <x-icon name="info" /> at the right of its label.</p>

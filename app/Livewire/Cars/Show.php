@@ -100,7 +100,7 @@ class Show extends Component
                 ? 'Remarks (optional to accept, required if not accepted)'
                 : 'Reason (required to reject, return, mark not effective or void)',
             'noteTip' => in_array(CarAction::Accept, $actions, true)
-                ? 'Optional when accepting — kept with the closure. Required when not accepting: say what is still wrong; the Responder sees it.'
+                ? 'Optional when accepting — kept with the closure. Required when not accepting: say what is still wrong; the Concerned Department sees it.'
                 : 'Required when sending the CAR back or voiding it. Whoever it goes to sees this reason, so say what needs to change.',
             'sentBack' => $this->sentBack(),
             'solutionOutcomes' => $this->solutionOutcomes(),
@@ -183,20 +183,20 @@ class Show extends Component
     {
         return match (true) {
             $actions === [CarAction::Void] => 'As IT Admin you can void this CAR — for duplicates or CARs filed in error. A reason is required and kept in the history.',
-            in_array(CarAction::Release, $actions, true) => 'Investigation done? Release this CAR to the Responder, or reject it back to the Requestor for clarity.',
-            in_array(CarAction::Resubmit, $actions, true) => 'The Requestor Approver sent this back. Correct the details, then resubmit it for release.',
+            in_array(CarAction::Release, $actions, true) => 'Investigation done? Release this CAR to the Concerned Department, or reject it back to the Complainant for clarity.',
+            in_array(CarAction::Resubmit, $actions, true) => 'The Complainant Approver sent this back. Correct the details, then resubmit it for release.',
             in_array(CarAction::SubmitResponse, $actions, true) => match ($this->sentBack()?->action) {
-                CarAction::NotAccept => "The Requestor Approver did not accept the solution. Propose solution {$this->car->current_round} below — it starts from the last one — and submit it for approval. It must be implemented by {$this->car->implementationDeadline()->format('M j, Y')}.",
+                CarAction::NotAccept => "The Complainant Approver did not accept the solution. Propose solution {$this->car->current_round} below — it starts from the last one — and submit it for approval. It must be implemented by {$this->car->implementationDeadline()->format('M j, Y')}.",
                 CarAction::MarkNotEffective => "The corrective action was not effective. Propose solution {$this->car->current_round} below — it starts from the last one — and submit it for approval.",
-                CarAction::ReturnResponse => 'The Responder Approver returned the response. Revise it below and submit it again.',
+                CarAction::ReturnResponse => 'The Concerned Department Approver returned the response. Revise it below and submit it again.',
                 default => 'Record the interim containment, root cause and corrective actions below, then submit them for approval.',
             },
             in_array(CarAction::ApproveResponse, $actions, true) => 'Review the root cause and corrective actions in Phase II. Approve to move to implementation, or return them for revision with a reason.',
             in_array(CarAction::UploadEvidence, $actions, true) => $this->car->status === CarStatus::OpenNotAccepted
-                ? "Not accepted by the Requestor Approver — re-implement and upload new evidence by {$this->car->implementationDeadline()->format('M j, Y')}."
+                ? "Not accepted by the Complainant Approver — re-implement and upload new evidence by {$this->car->implementationDeadline()->format('M j, Y')}."
                 : 'Upload files and photos proving the corrective actions were carried out.',
             in_array(CarAction::MarkEffective, $actions, true) => 'Review the implementation evidence in Phase III. Was the corrective action effective?',
-            in_array(CarAction::Accept, $actions, true) => 'The corrective action was validated as effective. Accept to close this CAR (remarks optional), or mark it not accepted with a reason and a new end date — the Responder then proposes a new solution.',
+            in_array(CarAction::Accept, $actions, true) => 'The corrective action was validated as effective. Accept to close this CAR (remarks optional), or mark it not accepted with a reason and a new end date — the Concerned Department then proposes a new solution.',
             default => 'This CAR is waiting on you.',
         };
     }

@@ -16,11 +16,11 @@
             <ol class="guide-flow">
                 <li>
                     <span class="guide-flow-num">1</span>
-                    <div><strong>The Responder writes the response</strong><span>Containment, root cause and corrective actions (Steps 7–9). Save a draft any time; submit by the response deadline.</span></div>
+                    <div><strong>The Concerned Department writes the response</strong><span>Containment, root cause and corrective actions (Steps 7–9). Save a draft any time; submit by the response deadline.</span></div>
                 </li>
                 <li>
                     <span class="guide-flow-num">2</span>
-                    <div><strong>The Responder Approver reviews it</strong><span>They approve it, which starts Phase III, or return it with a reason to revise and resubmit.</span></div>
+                    <div><strong>The Concerned Department Approver reviews it</strong><span>They approve it, which starts Phase III, or return it with a reason to revise and resubmit.</span></div>
                 </li>
                 <li>
                     <span class="guide-flow-num">3</span>

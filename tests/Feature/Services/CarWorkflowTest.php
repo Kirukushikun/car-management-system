@@ -99,7 +99,7 @@ function funaDetails(): array
         'farm_id' => Farm::where('name', 'PFC')->value('id'),
         'issued_to_unit_ids' => [IssuedToUnit::where('name', 'PFC Production')->value('id')],
         'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id')],
-        'issued_by' => 'John Doe — Requestor',
+        'issued_by' => 'John Doe — Complainant',
         'complainant' => 'Rollie Funa',
         'complaint_types' => [ComplaintType::Product],
         'problem_details' => '34 trays and 7 pcs of big dirty eggs returned as spoiled.',
@@ -330,7 +330,7 @@ describe('the transition table', function () {
         $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
 
         expect(fn () => $this->workflow->apply($car, actorFor(Role::Responder, $car), CarAction::Release))
-            ->toThrow(AuthorizationException::class, 'A Responder cannot "Approve & release"');
+            ->toThrow(AuthorizationException::class, 'A Concerned Department cannot "Approve & release"');
 
         expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease)
             ->and(CarEvent::count())->toBe(0);
@@ -425,7 +425,7 @@ describe('Phase II responses', function () {
             ->and($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeTrue();
     });
 
-    it('sends a response prepared by a Responder Approver to that person\'s own approver', function () {
+    it('sends a response prepared by a Concerned Department Approver to that person\'s own approver', function () {
         $senior = User::factory()->role(Role::ResponderApprover)->create();
         $preparer = User::factory()->role(Role::ResponderApprover)->create(['farm_id' => $senior->farm_id, 'approver_id' => $senior->id]);
         $car = Car::factory()->forFarm($senior->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($preparer, submitted: true)->create();
@@ -434,7 +434,7 @@ describe('Phase II responses', function () {
             ->and($this->workflow->can($car, actorFor(Role::ResponderApprover, $car), CarAction::ApproveResponse))->toBeFalse();
     });
 
-    it('lets any Responder Approver on the farm review a Responder\'s response', function () {
+    it('lets any Concerned Department Approver on the farm review a Concerned Department\'s response', function () {
         $responder = User::factory()->role(Role::Responder)->create();
         $car = Car::factory()->forFarm($responder->farm->name)->status(CarStatus::AwaitingResponderApproval)->withResponse($responder, submitted: true)->create();
 

@@ -53,7 +53,7 @@ describe('the form', function () {
     it('prefills the issuer, the first unit and one pair on the first category', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
-            ->assertSet('issuedBy', 'John Doe — Requestor')
+            ->assertSet('issuedBy', 'John Doe — Complainant')
             ->assertSet('complaintTypes', [ComplaintType::Product->value])
             ->assertSet('unitIds', [unitId('Eggroom')])
             ->assertSet('pairs', [['category_id' => categoryId('TABLE EGG', 'Production Related'), 'subcategory_ids' => []]])
@@ -126,7 +126,7 @@ describe('the form', function () {
             ->assertSeeInOrder([
                 'Phase I guide',
                 'Overview', 'Categories',
-                'You file the CAR', 'The Requestor Approver reviews it', 'Released to the farm — or back to you',
+                'You file the CAR', 'The Complainant Approver reviews it', 'Released to the farm — or back to you',
                 'TABLE EGG', 'DOP',
                 'Production Related', '3d to respond · 10d to implement',
                 'Internal Quality Defects', 'Watery/weak albumen',
@@ -140,7 +140,7 @@ describe('the form', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
             ->assertSeeInOrder([
-                'Farm / site', 'The farm whose Responders must answer this CAR.',
+                'Farm / site', 'The farm whose Concerned Department must answer this CAR.',
                 'Issued to (operational units)', 'all from one business line',
                 'Category', 'Each category can be used once',
                 'Sub-category', 'One or more sub-categories of this category.',
@@ -148,7 +148,7 @@ describe('the form', function () {
                 'Complaint received on (optional)', 'Leave blank if it was today.',
                 'Issued by', 'Change it only if you are filing for someone else.',
                 'Complainant', 'a customer, a distributor or internal audit',
-                'Details of the problem', 'the Responder works from this',
+                'Details of the problem', 'the Concerned Department works from this',
                 'File attachments (optional)', 'up to 10 files, 50 MB each',
             ]);
     });
@@ -361,7 +361,7 @@ describe('correcting a returned CAR', function () {
                 'category_id' => categoryId('TABLE EGG', 'Production Related'),
                 'subcategory_ids' => [subcategoryId('TABLE EGG', 'Production Related', 'Shell Quality Defects'), subcategoryId('TABLE EGG', 'Production Related', 'Internal Quality Defects')],
             ]])
-            ->assertSee(['Returned by the Requestor Approver: Attach the dispatch form.', $this->returned->reference, 'Resubmit for release']);
+            ->assertSee(['Returned by the Complainant Approver: Attach the dispatch form.', $this->returned->reference, 'Resubmit for release']);
     });
 
     it('saves the corrections and resubmits for release, keeping the issued date', function () {

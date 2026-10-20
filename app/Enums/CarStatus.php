@@ -24,13 +24,13 @@ enum CarStatus: string
     {
         return match ($this) {
             self::AwaitingRelease => 'Awaiting Release',
-            self::ReturnedToRequestor => 'Returned to Requestor',
-            self::AwaitingResponder => 'Awaiting Responder',
-            self::ReturnedToResponder => 'Returned to Responder',
-            self::AwaitingResponderApproval => 'Awaiting Responder Approval',
+            self::ReturnedToRequestor => 'Returned to Complainant',
+            self::AwaitingResponder => 'Awaiting Concerned Department',
+            self::ReturnedToResponder => 'Returned to Concerned Department',
+            self::AwaitingResponderApproval => 'Awaiting Concerned Department Approval',
             self::AwaitingImplementation => 'Awaiting Implementation',
             self::AwaitingEffectivenessCheck => 'Awaiting Effectiveness Check',
-            self::AwaitingRequestorApproval => 'Awaiting Requestor Approval',
+            self::AwaitingRequestorApproval => 'Awaiting Complainant Approval',
             self::ClosedAccepted => 'Closed — Accepted',
             self::OpenNotAccepted => 'Open — Not Accepted',
             self::Voided => 'Voided',
