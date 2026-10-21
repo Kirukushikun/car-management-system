@@ -108,8 +108,8 @@
                     <tr>
                         <th></th>
                         <th class="num">{{ $comparison['left']['label'] }}<div class="compare-muted">{{ $comparison['left']['filters'] }}</div></th>
-                        <th class="num">Change</th>
                         <th class="num">{{ $comparison['right']['label'] }}<div class="compare-muted">{{ $comparison['right']['filters'] }}</div></th>
+                        <th class="num">Change</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -117,8 +117,8 @@
                         <tr wire:key="row-{{ $row['key'] }}">
                             <td>{{ $row['label'] }}</td>
                             <td class="num tnum">{{ $row['left_text'] }}</td>
-                            <td class="num"><span class="compare-change tone-{{ $row['tone'] }}">{{ $row['change'] ?? '—' }}</span></td>
                             <td class="num tnum">{{ $row['right_text'] }}</td>
+                            <td class="num"><span class="compare-change tone-{{ $row['tone'] }}">{{ $row['change'] ?? '—' }}</span></td>
                         </tr>
                     @endforeach
                 </tbody>

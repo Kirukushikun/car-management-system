@@ -152,3 +152,12 @@ it('opens a saved link on its years', function () {
         ->assertSet('leftYear', 2019)
         ->assertSet('rightYear', 2024);
 });
+
+it('puts the change column last in every table', function () {
+    Car::factory()->create(['issued_on' => '2026-03-01']);
+
+    Livewire::actingAs($this->monitor)
+        ->test(Compare::class)
+        ->assertSeeInOrder(['<th class="num">2025', '<th class="num">2026', '<th class="num">Change</th>'], false)
+        ->assertSeeInOrder(['CARs issued', '0', '1', '▲ 1'], false);
+});
