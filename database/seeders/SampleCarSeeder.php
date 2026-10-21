@@ -3,12 +3,12 @@
 namespace Database\Seeders;
 
 use App\Enums\CarAction;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
@@ -151,7 +151,7 @@ class SampleCarSeeder extends Seeder
                     'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', $subcategoryName)->firstOrFail()->id],
                     'issued_by' => "{$requestor->name} — Complainant",
                     'complainant' => $complainant,
-                    'complaint_types' => [ComplaintType::Product],
+                    'complaint_type_ids' => [ComplaintType::where('name', 'Product Nonconformity')->firstOrFail()->id],
                     'problem_details' => $problem,
                 ]);
 

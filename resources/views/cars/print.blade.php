@@ -1,5 +1,5 @@
 @use('App\Enums\CarAction')
-@use('App\Enums\ComplaintType')
+@use('App\Models\ComplaintType')
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,8 +50,8 @@
                 <td></td>
                 <td rowspan="5" style="width:30%;">
                     <strong>Type of Complaint/Problem</strong><br>
-                    @foreach (ComplaintType::cases() as $type)
-                        <span class="check {{ $car->complaint_types->contains($type) ? 'on' : '' }}"></span>{{ $type->label() }}<br>
+                    @foreach (ComplaintType::offerable($car->complaintTypes->modelKeys())->orderBy('id')->get() as $type)
+                        <span class="check {{ $car->complaintTypes->contains($type) ? 'on' : '' }}"></span>{{ $type->name }}<br>
                     @endforeach
                 </td>
             </tr>

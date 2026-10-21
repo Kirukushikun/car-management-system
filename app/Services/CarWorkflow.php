@@ -4,12 +4,12 @@ namespace App\Services;
 
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Events\CarTransitioned;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
 use App\Models\User;
@@ -31,6 +31,13 @@ use InvalidArgumentException;
  */
 class CarWorkflow
 {
+    /**
+     * Details stored as links (pivots) rather than columns on the CAR.
+     *
+     * @var list<string>
+     */
+    private const LINKED_DETAILS = ['issued_to_unit_ids', 'subcategory_ids', 'complaint_type_ids'];
+
     public function __construct(
         private CarNumberGenerator $numbers,
         private DeadlineCalculator $deadlines,
@@ -75,7 +82,7 @@ class CarWorkflow
      * Issue a new CAR (Phase I, Steps 1–6): reference number, snapshotted deadlines, round 1,
      * and the first history entry. It starts in "Awaiting Release".
      *
-     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType|string>, problem_details: string, complaint_received_on?: ?string}  $details
+     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_type_ids: list<int>, problem_details: string, complaint_received_on?: ?string}  $details
      *
      * @throws AuthorizationException when the user may not file CARs
      * @throws ValidationException when the units, sub-categories or complaint types are missing, or the units and categories do not share one business line
@@ -87,11 +94,11 @@ class CarWorkflow
         }
 
         $car = DB::transaction(function () use ($requestor, $details): Car {
-            [$categories, $subcategories, $units] = $this->resolveClassification($details);
+            [$categories, $subcategories, $units, $types] = $this->resolveClassification($details);
             $issuedOn = CarbonImmutable::today();
 
             $car = Car::create([
-                ...collect($details)->except(['issued_to_unit_ids', 'subcategory_ids'])->all(),
+                ...collect($details)->except(self::LINKED_DETAILS)->all(),
                 ...$this->deadlines->forCategories($categories, $issuedOn),
                 'reference' => $this->numbers->next($issuedOn),
                 'status' => CarStatus::AwaitingRelease,
@@ -102,6 +109,7 @@ class CarWorkflow
 
             $car->issuedToUnits()->sync($units->modelKeys());
             $car->subcategories()->sync($subcategories->modelKeys());
+            $car->complaintTypes()->sync($types->modelKeys());
             $car->rounds()->create(['number' => 1, 'opened_by_action' => CarAction::Submit]);
             $this->record($car, $requestor, CarAction::Submit, null, null);
 
@@ -117,7 +125,7 @@ class CarWorkflow
      * A returned CAR goes back for release with its corrected Phase I details. The issued date
      * stays; deadlines are recalculated from it in case the category changed.
      *
-     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType|string>, problem_details: string, complaint_received_on?: ?string}  $details
+     * @param  array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_type_ids: list<int>, problem_details: string, complaint_received_on?: ?string}  $details
      *
      * @throws AuthorizationException when the user may not resubmit this CAR
      * @throws ValidationException when the units, sub-categories or complaint types are missing, or the units and categories do not share one business line
@@ -129,12 +137,13 @@ class CarWorkflow
                 throw new AuthorizationException("You cannot resubmit {$car->reference}.");
             }
 
-            [$categories, $subcategories, $units] = $this->resolveClassification($details);
+            [$categories, $subcategories, $units, $types] = $this->resolveClassification($details);
 
-            $car->update([...collect($details)->except(['issued_to_unit_ids', 'subcategory_ids'])->all(), ...$this->deadlines->forCategories($categories, $car->issued_on)]);
+            $car->update([...collect($details)->except(self::LINKED_DETAILS)->all(), ...$this->deadlines->forCategories($categories, $car->issued_on)]);
             $car->issuedToUnits()->sync($units->modelKeys());
             $car->subcategories()->sync($subcategories->modelKeys());
-            $car->unsetRelation('issuedToUnits')->unsetRelation('subcategories');
+            $car->complaintTypes()->sync($types->modelKeys());
+            $car->unsetRelation('issuedToUnits')->unsetRelation('subcategories')->unsetRelation('complaintTypes');
 
             return $this->apply($car, $user, CarAction::Resubmit);
         });
@@ -331,10 +340,10 @@ class CarWorkflow
     /**
      * Checks that there is at least one unit and one sub-category, that all units share one
      * business line, and that every sub-category's category belongs to that line. Returns the
-     * categories (which set the deadlines), the sub-categories and the units.
+     * categories (which set the deadlines), the sub-categories, the units and the complaint types.
      *
      * @param  array<string, mixed>  $details
-     * @return array{0: EloquentCollection<int, Category>, 1: EloquentCollection<int, Subcategory>, 2: EloquentCollection<int, IssuedToUnit>}
+     * @return array{0: EloquentCollection<int, Category>, 1: EloquentCollection<int, Subcategory>, 2: EloquentCollection<int, IssuedToUnit>, 3: EloquentCollection<int, ComplaintType>}
      */
     private function resolveClassification(array $details): array
     {
@@ -351,10 +360,11 @@ class CarWorkflow
             throw ValidationException::withMessages(['issued_to_unit_ids' => 'Pick units from one business line only — TABLE EGG or DOP.']);
         }
 
-        $types = array_map(fn (mixed $type): ?ComplaintType => $type instanceof ComplaintType ? $type : ComplaintType::tryFrom((string) $type), (array) ($details['complaint_types'] ?? []));
+        $typeIds = array_values(array_unique(array_map('intval', $details['complaint_type_ids'] ?? [])));
+        $types = ComplaintType::whereKey($typeIds)->get();
 
-        if ($types === [] || in_array(null, $types, true)) {
-            throw ValidationException::withMessages(['complaint_types' => 'Pick at least one type of complaint.']);
+        if ($typeIds === [] || $types->count() !== count($typeIds)) {
+            throw ValidationException::withMessages(['complaint_type_ids' => 'Pick at least one type of complaint.']);
         }
 
         if ($subcategoryIds === [] || $subcategories->count() !== count($subcategoryIds)) {
@@ -367,7 +377,7 @@ class CarWorkflow
 
         $categories = new EloquentCollection($subcategories->pluck('category')->unique('id')->values()->all());
 
-        return [$categories, $subcategories, $units];
+        return [$categories, $subcategories, $units, $types];
     }
 
     private function record(Car $car, User $actor, CarAction $action, ?CarStatus $from, ?string $note, ?int $round = null): void

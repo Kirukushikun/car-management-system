@@ -3,12 +3,12 @@
 namespace App\Livewire\Cars;
 
 use App\Enums\CarAction;
-use App\Enums\ComplaintType;
 use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\BusinessLine;
 use App\Models\Car;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Services\CarWorkflow;
@@ -19,6 +19,7 @@ use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -28,7 +29,8 @@ use Livewire\WithFileUploads;
  * corrects its details and resubmits it for release. Issued To (one or more units, all from one
  * business line) drives the categories. Category and sub-category come in pairs: each pair is one
  * category (used once per CAR) with one or more of its sub-categories, and more pairs can be added.
- * The strictest category sets the auto-calculated deadlines.
+ * The strictest category sets the auto-calculated deadlines. Only active values (see Maintenance)
+ * are offered, plus any a returned CAR already carries.
  */
 class Create extends Component
 {
@@ -54,7 +56,7 @@ class Create extends Component
     public array $pairs = [];
 
     /**
-     * @var list<string>
+     * @var list<int|string>
      */
     public array $complaintTypes = [];
 
@@ -94,10 +96,10 @@ class Create extends Component
         $this->authorize('create', Car::class);
 
         $this->car = null;
-        $this->complaintTypes = [ComplaintType::Product->value];
+        $this->complaintTypes = array_values(array_filter([ComplaintType::active()->orderBy('id')->value('id')]));
         $this->issuedBy = auth()->user()->name.' — '.auth()->user()->role->label();
-        $this->farmId = Farm::orderBy('id')->value('id');
-        $this->unitIds = [IssuedToUnit::orderBy('id')->value('id')];
+        $this->farmId = Farm::active()->orderBy('id')->value('id');
+        $this->unitIds = array_values(array_filter([IssuedToUnit::active()->orderBy('id')->value('id')]));
         $this->resetPairs();
     }
 
@@ -165,7 +167,7 @@ class Create extends Component
             'farm_id' => $this->farmId,
             'issued_to_unit_ids' => array_values(array_map('intval', $this->unitIds)),
             'subcategory_ids' => $this->pickedSubcategoryIds(),
-            'complaint_types' => array_values(array_map(fn (string $type): ComplaintType => ComplaintType::from($type), $this->complaintTypes)),
+            'complaint_type_ids' => array_values(array_map('intval', $this->complaintTypes)),
             'complaint_received_on' => $this->complaintReceivedOn ?: null,
             'issued_by' => $this->issuedBy,
             'complainant' => $this->complainant,
@@ -205,14 +207,14 @@ class Create extends Component
     protected function rules(): array
     {
         $rules = [
-            'farmId' => ['required', Rule::exists('farms', 'id')],
+            'farmId' => ['required', $this->offerable('farms', 'farms')],
             'unitIds' => ['required', 'array', 'min:1', $this->unitsShareOneLine(...)],
-            'unitIds.*' => ['distinct', Rule::exists('issued_to_units', 'id')],
+            'unitIds.*' => ['distinct', $this->offerable('issued_to_units', 'units')],
             'pairs' => ['required', 'array', 'min:1'],
-            'pairs.*.category_id' => ['required', 'distinct', Rule::exists('categories', 'id')->where('business_line_id', $this->lineId())],
+            'pairs.*.category_id' => ['required', 'distinct', $this->offerable('categories', 'categories')->where('business_line_id', $this->lineId())],
             'pairs.*.subcategory_ids' => ['required', 'array', 'min:1'],
             'complaintTypes' => ['required', 'array', 'min:1'],
-            'complaintTypes.*' => ['distinct', Rule::enum(ComplaintType::class)],
+            'complaintTypes.*' => ['distinct', $this->offerable('complaint_types', 'complaintTypes')],
             'complaintReceivedOn' => ['nullable', 'date', 'before_or_equal:today'],
             'issuedBy' => ['required', 'string', 'max:'.TextLimits::SHORT],
             'complainant' => ['required', 'string', 'max:'.TextLimits::SHORT],
@@ -226,7 +228,7 @@ class Create extends Component
         ];
 
         foreach ($this->pairs as $index => $pair) {
-            $rules["pairs.{$index}.subcategory_ids.*"] = ['distinct', Rule::exists('subcategories', 'id')->where('category_id', (int) $pair['category_id'])];
+            $rules["pairs.{$index}.subcategory_ids.*"] = ['distinct', $this->offerable('subcategories', 'subcategories')->where('category_id', (int) $pair['category_id'])];
         }
 
         return $rules;
@@ -242,6 +244,9 @@ class Create extends Component
             'complaintTypes.required' => 'Pick at least one type of complaint.',
             'pairs.*.category_id.required' => 'Pick a category.',
             'pairs.*.category_id.distinct' => 'This category is already in another pair — add its sub-categories there.',
+            'farmId.exists' => 'Pick an active farm.',
+            'unitIds.*.exists' => 'Pick active units.',
+            'complaintTypes.*.exists' => 'Pick active types of complaint.',
             'pairs.*.category_id.exists' => 'Pick a category that belongs to the selected units\' business line.',
             'pairs.*.subcategory_ids.required' => 'Pick at least one sub-category.',
             'pairs.*.subcategory_ids.*.exists' => 'Pick sub-categories that belong to this pair\'s category.',
@@ -262,18 +267,20 @@ class Create extends Component
         $picked = $categories->whereIn('id', $this->usedCategoryIds());
 
         return view('livewire.cars.create', [
-            'farms' => Farm::orderBy('id')->get(),
-            'unitOptions' => IssuedToUnit::with('businessLine')->orderBy('business_line_id')->orderBy('id')->get()
+            'farms' => Farm::offerable($this->kept('farms'))->orderBy('id')->get(),
+            'unitOptions' => IssuedToUnit::offerable($this->kept('units'))->with('businessLine')->orderBy('business_line_id')->orderBy('id')->get()
                 ->map(fn (IssuedToUnit $unit): array => ['value' => $unit->id, 'label' => $unit->name, 'group' => $unit->businessLine->name])
                 ->all(),
             'line' => BusinessLine::find($this->lineId())?->name,
             'categories' => $categories,
             'guideLines' => BusinessLine::with([
-                'categories' => fn ($query) => $query->orderBy('id'),
-                'categories.subcategories' => fn ($query) => $query->orderBy('id'),
+                'categories' => fn ($query) => $query->active()->orderBy('id'),
+                'categories.subcategories' => fn ($query) => $query->active()->orderBy('id'),
             ])->orderBy('id')->get(),
             'usedCategoryIds' => $this->usedCategoryIds(),
-            'complaintTypeOptions' => array_map(fn (ComplaintType $type): array => ['value' => $type->value, 'label' => $type->label(), 'group' => null], ComplaintType::cases()),
+            'complaintTypeOptions' => ComplaintType::offerable($this->kept('complaintTypes'))->orderBy('id')->get()
+                ->map(fn (ComplaintType $type): array => ['value' => $type->id, 'label' => $type->name, 'group' => null])
+                ->all(),
             'issuedOn' => $issuedOn,
             'deadline' => $picked->isNotEmpty() ? $deadlines->forCategories($picked, $issuedOn) : null,
             'existingAttachments' => $this->car?->attachments ?? new Collection,
@@ -288,7 +295,7 @@ class Create extends Component
         $this->pairs = $car->classification()
             ->map(fn (array $pair): array => ['category_id' => $pair['category']->id, 'subcategory_ids' => $pair['subcategories']->pluck('id')->all()])
             ->all();
-        $this->complaintTypes = $car->complaint_types->map(fn (ComplaintType $type): string => $type->value)->all();
+        $this->complaintTypes = $car->complaintTypes->modelKeys();
         $this->complaintReceivedOn = $car->complaint_received_on?->toDateString();
         $this->issuedBy = $car->issued_by;
         $this->complainant = $car->complainant;
@@ -339,13 +346,49 @@ class Create extends Component
     }
 
     /**
-     * Categories of the selected units' business line, with their sub-categories.
+     * Ids of the values the returned CAR already carries, which stay valid even if deactivated
+     * since. Nothing is kept on a new CAR.
+     *
+     * @param  'farms'|'units'|'categories'|'subcategories'|'complaintTypes'  $kind
+     * @return list<int>
+     */
+    private function kept(string $kind): array
+    {
+        if ($this->car === null) {
+            return [];
+        }
+
+        return match ($kind) {
+            'farms' => [$this->car->farm_id],
+            'units' => $this->car->issuedToUnits->modelKeys(),
+            'categories' => $this->car->subcategories->pluck('category_id')->unique()->values()->all(),
+            'subcategories' => $this->car->subcategories->modelKeys(),
+            'complaintTypes' => $this->car->complaintTypes->modelKeys(),
+        };
+    }
+
+    /**
+     * An "exists" rule that accepts active values and the ones the CAR already carries.
+     *
+     * @param  'farms'|'units'|'categories'|'subcategories'|'complaintTypes'  $kind
+     */
+    private function offerable(string $table, string $kind): Exists
+    {
+        $kept = $this->kept($kind);
+
+        return Rule::exists($table, 'id')->where(fn ($query) => $query->where('is_active', true)->when($kept !== [], fn ($query) => $query->orWhereIn('id', $kept)));
+    }
+
+    /**
+     * Categories of the selected units' business line, with their sub-categories — the active
+     * ones, plus any the returned CAR already carries.
      *
      * @return Collection<int, Category>
      */
     private function categories(): Collection
     {
-        return Category::with(['subcategories' => fn ($query) => $query->orderBy('id')])
+        return Category::offerable($this->kept('categories'))
+            ->with(['subcategories' => fn ($query) => $query->offerable($this->kept('subcategories'))->orderBy('id')])
             ->where('business_line_id', $this->lineId())
             ->orderBy('id')
             ->get();

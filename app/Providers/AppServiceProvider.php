@@ -6,6 +6,9 @@ use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\CarRound;
 use App\Models\Category;
+use App\Models\ComplaintType;
+use App\Models\Farm;
+use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -27,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Relation::enforceMorphMap(['car' => Car::class, 'car_response' => CarResponse::class, 'car_round' => CarRound::class, 'category' => Category::class, 'subcategory' => Subcategory::class, 'user' => User::class]);
+        Relation::enforceMorphMap(['car' => Car::class, 'car_response' => CarResponse::class, 'car_round' => CarRound::class, 'category' => Category::class, 'complaint_type' => ComplaintType::class, 'farm' => Farm::class, 'issued_to_unit' => IssuedToUnit::class, 'subcategory' => Subcategory::class, 'user' => User::class]);
 
         $this->defineRoleGates();
     }

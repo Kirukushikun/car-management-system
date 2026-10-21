@@ -76,7 +76,7 @@
 
             <div class="field-grid" style="margin-top:14px;">
                 <div class="field">
-                    <x-field-label tip="Product Nonconformity, Service Nonconformity or Others — pick all that apply.">Type of complaint</x-field-label>
+                    <x-field-label tip="What kind of problem it is — pick all that apply. The list is kept by the IT Admin.">Type of complaint</x-field-label>
                     <x-multi-select model="complaintTypes" :options="$complaintTypeOptions" placeholder="Select one or more types" />
                     @error('complaintTypes') <div class="error-text">{{ $message }}</div> @enderror
                     @error('complaintTypes.*') <div class="error-text">{{ $message }}</div> @enderror

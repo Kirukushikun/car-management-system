@@ -1,12 +1,13 @@
 <?php
 
 use App\Enums\CarStatus;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Livewire\Cars\Create;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\Category;
+use App\Models\ComplaintType;
+use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
 use App\Models\User;
@@ -23,6 +24,11 @@ beforeEach(function () {
     $this->seed(ReferenceDataSeeder::class);
     $this->requestor = User::factory()->role(Role::Requestor)->create(['name' => 'John Doe']);
 });
+
+function complaintTypeId(string $name): int
+{
+    return ComplaintType::where('name', $name)->value('id');
+}
 
 function unitId(string $name): int
 {
@@ -54,7 +60,7 @@ describe('the form', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class)
             ->assertSet('issuedBy', 'John Doe — Complainant')
-            ->assertSet('complaintTypes', [ComplaintType::Product->value])
+            ->assertSet('complaintTypes', [complaintTypeId('Product Nonconformity')])
             ->assertSet('unitIds', [unitId('Eggroom')])
             ->assertSet('pairs', [['category_id' => categoryId('TABLE EGG', 'Production Related'), 'subcategory_ids' => []]])
             ->assertSee(['Business line: TABLE EGG', 'assigned on submit', 'Shell Quality Defects']);
@@ -279,12 +285,43 @@ describe('submitting', function () {
 
     it('files several complaint types', function () {
         filledCreateForm($this->requestor)
-            ->set('complaintTypes', [ComplaintType::Product->value, ComplaintType::Other->value])
+            ->set('complaintTypes', [complaintTypeId('Product Nonconformity'), complaintTypeId('Others')])
             ->call('submit')
             ->assertHasNoErrors();
 
-        expect(Car::sole()->complaint_types->all())->toBe([ComplaintType::Product, ComplaintType::Other])
+        expect(Car::sole()->complaintTypes->pluck('name')->all())->toBe(['Product Nonconformity', 'Others'])
             ->and(Car::sole()->complaintTypeLabels())->toBe('Product Nonconformity, Others');
+    });
+
+    it('offers only active values and refuses inactive ones', function () {
+        Farm::where('name', 'BFC')->update(['is_active' => false]);
+        IssuedToUnit::where('name', 'Egg Grading')->update(['is_active' => false]);
+        Subcategory::where('name', 'Shell Quality Defects')->update(['is_active' => false]);
+        ComplaintType::where('name', 'Others')->update(['is_active' => false]);
+
+        filledCreateForm($this->requestor)
+            ->assertDontSee(['BFC', 'Egg Grading', 'Shell Quality Defects', 'Others'])
+            ->set('farmId', Farm::where('name', 'BFC')->value('id'))
+            ->set('complaintTypes', [complaintTypeId('Others')])
+            ->call('submit')
+            ->assertHasErrors(['farmId' => 'exists', 'complaintTypes.0' => 'exists']);
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('keeps a deactivated value on a returned CAR being corrected', function () {
+        filledCreateForm($this->requestor)->set('complaintTypes', [complaintTypeId('Others')])->call('submit');
+        $car = Car::sole();
+        $car->update(['status' => CarStatus::ReturnedToRequestor]);
+        ComplaintType::where('name', 'Others')->update(['is_active' => false]);
+
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class, ['car' => $car])
+            ->assertSee('Others')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        expect($car->fresh()->complaintTypeLabels())->toBe('Others');
     });
 
     it('requires at least one complaint type', function () {

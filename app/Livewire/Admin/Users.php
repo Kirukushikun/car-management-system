@@ -156,7 +156,7 @@ class Users extends Component
             'undecryptable' => $listing['undecryptable'],
             'localById' => $users->keyBy('id'),
             'roles' => Role::cases(),
-            'farms' => Farm::orderBy('name')->get(),
+            'farms' => Farm::offerable([$this->form->user?->farm_id])->orderBy('name')->get(),
             'approverOptions' => $this->approverOptions(),
             'selectedRole' => $this->form->selectedRole(),
         ]);

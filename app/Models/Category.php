@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CanBeDeactivated;
 use App\Observers\AuditObserver;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,11 +17,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * response and for implementing the corrective action, both counted from the issued date.
  */
 #[ObservedBy(AuditObserver::class)]
-#[Fillable(['business_line_id', 'name', 'response_days', 'implementation_days'])]
+#[Fillable(['business_line_id', 'name', 'is_active', 'response_days', 'implementation_days'])]
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
-    use HasFactory;
+    use CanBeDeactivated, HasFactory;
 
     /**
      * @return array<string, string>

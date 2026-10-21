@@ -1,5 +1,5 @@
 <section>
-    <x-page-header title="Audit Log" subtitle="Every change to users, roles, categories and sub-categories — who made it and what changed" />
+    <x-page-header title="Audit Log" subtitle="Every change to users, roles and the maintained values (farms, units, categories, sub-categories, complaint types) — who made it and what changed" />
 
     <div class="content">
         <div class="card">
@@ -15,11 +15,16 @@
                                 <td>{{ $audit->user?->name ?? 'System' }}</td>
                                 <td>
                                     {{ str($audit->auditable_type)->headline() }}
-                                    <div style="font-size:10.5px; color:var(--text3);">{{ $audit->auditable?->name ?? '#'.$audit->auditable_id }}</div>
+                                    <div style="font-size:10.5px; color:var(--text3);">{{ $audit->auditable?->name ?? $audit->old_values['name'] ?? '#'.$audit->auditable_id }}</div>
                                 </td>
                                 <td>
-                                    <x-pill :tone="$audit->event === 'created' ? 'green' : 'blue'">{{ $audit->event }}</x-pill>
+                                    <x-pill :tone="match ($audit->event) { 'created' => 'green', 'deleted' => 'red', default => 'blue' }">{{ $audit->event }}</x-pill>
                                     <div style="font-size:11px; margin-top:4px; display:flex; flex-direction:column; gap:2px;">
+                                        @if ($audit->event === 'deleted')
+                                            @foreach ($audit->old_values ?? [] as $field => $value)
+                                                <span style="color:var(--text3);">{{ str($field)->headline() }}: <span style="text-decoration:line-through;">{{ is_scalar($value) ? ($value === true ? 'yes' : ($value === false ? 'no' : $value)) : json_encode($value) }}</span></span>
+                                            @endforeach
+                                        @endif
                                         @foreach ($audit->new_values ?? [] as $field => $value)
                                             <span>
                                                 <span style="color:var(--text3);">{{ str($field)->headline() }}:</span>

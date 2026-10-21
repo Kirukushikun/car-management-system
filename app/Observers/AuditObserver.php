@@ -7,8 +7,8 @@ use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Records every create and update of the models it observes (users, categories, sub-categories)
- * in the audit log. Passwords and tokens are never stored — only that they changed.
+ * Records every create, update and delete of the models it observes (users, and the values the
+ * IT Admin maintains: farms, units, categories, sub-categories, complaint types) in the audit log. Passwords and tokens are never stored — only that they changed.
  */
 class AuditObserver
 {
@@ -40,6 +40,11 @@ class AuditObserver
         }
 
         $this->record($model, 'updated', array_intersect_key($this->clean($model->getOriginal()), $changes), $changes);
+    }
+
+    public function deleted(Model $model): void
+    {
+        $this->record($model, 'deleted', $this->clean($model->getAttributes()), []);
     }
 
     /**

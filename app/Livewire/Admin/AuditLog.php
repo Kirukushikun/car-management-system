@@ -10,7 +10,8 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * Who changed which user, category or sub-category, and what changed. CAR changes are in each
+ * Who changed which user or maintained value (farm, unit, category, sub-category, complaint
+ * type), and what changed. CAR changes are in each
  * CAR's own history.
  */
 #[Title('Audit Log')]

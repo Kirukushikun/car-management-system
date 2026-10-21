@@ -3,13 +3,13 @@
 namespace Database\Seeders;
 
 use App\Enums\CarAction;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Models\Attachment;
 use App\Models\BusinessLine;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\User;
@@ -118,12 +118,13 @@ class DemoDataSeeder extends Seeder
      * What to file and when: a few CARs every month, a little busier this year, sorted by issue date
      * so reference numbers run in order.
      *
-     * @return Collection<int, array{issued: CarbonImmutable, farm: Farm, units: Collection<int, IssuedToUnit>, subcategories: Collection<int, mixed>, types: list<ComplaintType>, complainant: string, requestor: User, category: string}>
+     * @return Collection<int, array{issued: CarbonImmutable, farm: Farm, units: Collection<int, IssuedToUnit>, subcategories: Collection<int, mixed>, types: list<int>, complainant: string, requestor: User, category: string}>
      */
     private function plans(): Collection
     {
         $lines = BusinessLine::with(['issuedToUnits', 'categories.subcategories'])->get()->keyBy('name');
         $farms = Farm::all()->keyBy('name');
+        $types = ComplaintType::pluck('id', 'name');
         $plans = collect();
 
         for ($month = $this->now->subYear()->startOfYear(); $month->lte($this->now); $month = $month->addMonth()) {
@@ -152,7 +153,7 @@ class DemoDataSeeder extends Seeder
                     'units' => collect($this->random->pickArrayKeys($line->issuedToUnits->values()->all(), $this->chance(0.2) ? 2 : 1))
                         ->map(fn (int $index): IssuedToUnit => $line->issuedToUnits->values()[$index]),
                     'subcategories' => $subcategories,
-                    'types' => $this->chance(0.15) ? [ComplaintType::Product, ComplaintType::Service] : [$this->chance(0.8) ? ComplaintType::Product : ComplaintType::Service],
+                    'types' => $this->chance(0.15) ? [$types['Product Nonconformity'], $types['Service Nonconformity']] : [$this->chance(0.8) ? $types['Product Nonconformity'] : $types['Service Nonconformity']],
                     'complainant' => self::COMPLAINANTS[$this->random->getInt(0, count(self::COMPLAINANTS) - 1)],
                     'requestor' => $this->requestors[$this->random->getInt(0, $this->requestors->count() - 1)],
                     'category' => $category->name,
@@ -166,7 +167,7 @@ class DemoDataSeeder extends Seeder
     /**
      * File one CAR and move it along its life, stopping at the first step that would be in the future.
      *
-     * @param  array{issued: CarbonImmutable, farm: Farm, units: Collection<int, IssuedToUnit>, subcategories: Collection<int, mixed>, types: list<ComplaintType>, complainant: string, requestor: User, category: string}  $plan
+     * @param  array{issued: CarbonImmutable, farm: Farm, units: Collection<int, IssuedToUnit>, subcategories: Collection<int, mixed>, types: list<int>, complainant: string, requestor: User, category: string}  $plan
      */
     private function play(array $plan): void
     {
@@ -177,7 +178,7 @@ class DemoDataSeeder extends Seeder
             'farm_id' => $plan['farm']->id,
             'issued_to_unit_ids' => $plan['units']->pluck('id')->all(),
             'subcategory_ids' => $plan['subcategories']->pluck('id')->unique()->values()->all(),
-            'complaint_types' => $plan['types'],
+            'complaint_type_ids' => $plan['types'],
             'issued_by' => "{$plan['requestor']->name} — Complainant",
             'complainant' => $plan['complainant'],
             'problem_details' => sprintf($this->words($plan['category'], 'problems'), $this->random->getInt(3, 48)),

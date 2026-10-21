@@ -4,13 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\BusinessLine;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
- * Farms, business lines, Issued To units and the Table Egg / DOP CAR matrices, taken from
+ * Farms, business lines, Issued To units, complaint types and the Table Egg / DOP CAR matrices, taken from
  * "CAR_DIGITALIZATION REQUEST REQUIREMENT 8.19.26.pdf".
  *
  * Safe to run in production and to re-run: rows are only created when missing, so day
@@ -24,6 +25,13 @@ class ReferenceDataSeeder extends Seeder
      * @var list<string>
      */
     public const FARMS = ['PFC', 'HATCHERY', 'BROOKDALE', 'RH/BBGC', 'BFC'];
+
+    /**
+     * "Type of Complaint/Problem" from Part I of the paper CAR form.
+     *
+     * @var list<string>
+     */
+    public const COMPLAINT_TYPES = ['Product Nonconformity', 'Service Nonconformity', 'Others'];
 
     /**
      * Issued To units per business line, from the requirements flowchart.
@@ -86,6 +94,10 @@ class ReferenceDataSeeder extends Seeder
     {
         foreach (self::FARMS as $farm) {
             Farm::firstOrCreate(['name' => $farm]);
+        }
+
+        foreach (self::COMPLAINT_TYPES as $type) {
+            ComplaintType::firstOrCreate(['name' => $type]);
         }
 
         foreach (self::MATRIX as $lineName => $categories) {

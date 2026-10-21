@@ -3,14 +3,12 @@
 namespace App\Models;
 
 use App\Enums\CarStatus;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\CarFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,7 +23,7 @@ use LogicException;
  * A Corrective Action Request. Status changes go through CarWorkflow only.
  */
 #[Fillable([
-    'reference', 'status', 'current_round', 'requestor_id', 'issued_by', 'complainant', 'complaint_types',
+    'reference', 'status', 'current_round', 'requestor_id', 'issued_by', 'complainant',
     'problem_details', 'initial_action', 'initial_action_starts_on', 'initial_action_ends_on', 'initial_action_responsible',
     'farm_id', 'complaint_received_on',
     'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
@@ -42,7 +40,7 @@ class Car extends Model
      * @var list<string>
      */
     public const PHASE_ONE_FIELDS = [
-        'reference', 'requestor_id', 'issued_by', 'complainant', 'complaint_types', 'problem_details',
+        'reference', 'requestor_id', 'issued_by', 'complainant', 'problem_details',
         'initial_action', 'initial_action_starts_on', 'initial_action_ends_on', 'initial_action_responsible',
         'farm_id', 'complaint_received_on',
         'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
@@ -64,7 +62,6 @@ class Car extends Model
     {
         return [
             'status' => CarStatus::class,
-            'complaint_types' => AsEnumCollection::of(ComplaintType::class),
             'current_round' => 'integer',
             'response_days' => 'integer',
             'implementation_days' => 'integer',
@@ -108,6 +105,16 @@ class Car extends Model
     public function issuedToUnits(): BelongsToMany
     {
         return $this->belongsToMany(IssuedToUnit::class, 'car_issued_to_unit')->orderBy('issued_to_units.id');
+    }
+
+    /**
+     * "Type of Complaint/Problem" — one or more.
+     *
+     * @return BelongsToMany<ComplaintType, $this>
+     */
+    public function complaintTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(ComplaintType::class, 'car_complaint_type')->orderBy('complaint_types.id');
     }
 
     /**
@@ -172,7 +179,7 @@ class Car extends Model
      */
     public function complaintTypeLabels(): string
     {
-        return ($this->complaint_types ?? collect())->map(fn (ComplaintType $type): string => $type->label())->join(', ');
+        return $this->complaintTypes->pluck('name')->join(', ');
     }
 
     /**

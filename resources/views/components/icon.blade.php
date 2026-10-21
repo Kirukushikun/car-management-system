@@ -13,6 +13,7 @@
         'inbox' => 'fa-solid fa-inbox',
         'users' => 'fa-solid fa-users',
         'sliders' => 'fa-solid fa-sliders',
+        'maintenance' => 'fa-solid fa-screwdriver-wrench',
         'logout' => 'fa-solid fa-right-from-bracket',
         'bell' => 'fa-regular fa-bell',
         'check' => 'fa-regular fa-circle-check',

@@ -35,7 +35,7 @@ enum Role: string
             self::Responder => 'Enters the containment, root cause and corrective action (Phase II), then uploads the implementation evidence (Phase III).',
             self::ResponderApprover => 'Approves the root cause and corrective action, then validates whether the implemented action was effective.',
             self::Monitor => 'Read-only dashboard — repeat offenses, open/closed, response and resolution time, frequency of CAR issuance.',
-            self::Admin => 'Maintains users, roles and the category / deadline matrix. Read-only access to every CAR for support.',
+            self::Admin => 'Maintains users, roles, the values offered in the CAR form and the category / deadline matrix. Read-only access to every CAR for support.',
         };
     }
 
@@ -115,6 +115,7 @@ enum Role: string
         $create = ['label' => 'New CAR', 'route' => 'cars.create', 'params' => [], 'icon' => 'plus', 'count' => null];
         $dashboard = ['label' => 'Dashboard', 'route' => 'dashboard', 'params' => [], 'icon' => 'dashboard', 'count' => null];
         $users = ['label' => 'Users & Roles', 'route' => 'admin.users', 'params' => [], 'icon' => 'users', 'count' => null];
+        $maintenance = ['label' => 'Maintenance', 'route' => 'admin.maintenance', 'params' => [], 'icon' => 'maintenance', 'count' => null];
         $matrix = ['label' => 'Category Matrix', 'route' => 'admin.matrix', 'params' => [], 'icon' => 'sliders', 'count' => null];
         $audit = ['label' => 'Audit Log', 'route' => 'admin.audit', 'params' => [], 'icon' => 'list', 'count' => null];
 
@@ -123,7 +124,7 @@ enum Role: string
             self::RequestorApprover, self::Responder => [$queue, $all],
             self::ResponderApprover => [$queue, $all, $overdue],
             self::Monitor => [$dashboard, $all, $overdue],
-            self::Admin => [$users, $matrix, $audit, $all, $overdue],
+            self::Admin => [$users, $maintenance, $matrix, $audit, $all, $overdue],
         };
     }
 

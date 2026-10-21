@@ -2,13 +2,13 @@
 
 use App\Enums\CarAction;
 use App\Enums\CarStatus;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Events\CarTransitioned;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\CarResponse;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
@@ -88,7 +88,7 @@ function expectedTransitions(): array
 }
 
 /**
- * @return array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_types: list<ComplaintType>, problem_details: string}
+ * @return array{farm_id: int, issued_to_unit_ids: list<int>, subcategory_ids: list<int>, issued_by: string, complainant: string, complaint_type_ids: list<int>, problem_details: string}
  */
 function funaDetails(): array
 {
@@ -101,7 +101,7 @@ function funaDetails(): array
         'subcategory_ids' => [Subcategory::where('category_id', $category->id)->where('name', 'Internal Quality Defects')->value('id')],
         'issued_by' => 'John Doe — Complainant',
         'complainant' => 'Rollie Funa',
-        'complaint_types' => [ComplaintType::Product],
+        'complaint_type_ids' => [ComplaintType::where('name', 'Product Nonconformity')->value('id')],
         'problem_details' => '34 trays and 7 pcs of big dirty eggs returned as spoiled.',
     ];
 }
@@ -176,13 +176,14 @@ describe('submitting a CAR', function () {
     });
 
     it('records every complaint type picked', function () {
-        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complaint_types' => [ComplaintType::Product, 'service']]);
+        $details = funaDetails();
+        $car = $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...$details, 'complaint_type_ids' => ComplaintType::whereIn('name', ['Product Nonconformity', 'Service Nonconformity'])->pluck('id')->all()]);
 
-        expect($car->fresh()->complaint_types->all())->toBe([ComplaintType::Product, ComplaintType::Service]);
+        expect($car->fresh()->complaintTypeLabels())->toBe('Product Nonconformity, Service Nonconformity');
     });
 
     it('needs at least one complaint type', function () {
-        expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complaint_types' => []]))
+        expect(fn () => $this->workflow->submit(User::factory()->role(Role::Requestor)->create(), [...funaDetails(), 'complaint_type_ids' => []]))
             ->toThrow(ValidationException::class, 'Pick at least one type of complaint.');
     });
 

@@ -47,6 +47,7 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 
     Route::prefix('admin')->name('admin.')->middleware('can:administer')->group(function () {
         Route::livewire('/users', Admin\Users::class)->name('users');
+        Route::livewire('/maintenance', Admin\Maintenance::class)->name('maintenance');
         Route::livewire('/matrix', Admin\Matrix::class)->name('matrix');
         Route::livewire('/audit', Admin\AuditLog::class)->name('audit');
 

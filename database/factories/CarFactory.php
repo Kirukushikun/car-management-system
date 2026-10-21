@@ -3,12 +3,12 @@
 namespace Database\Factories;
 
 use App\Enums\CarStatus;
-use App\Enums\ComplaintType;
 use App\Enums\Role;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Models\Category;
+use App\Models\ComplaintType;
 use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
@@ -40,7 +40,6 @@ class CarFactory extends Factory
             'requestor_id' => fn (): int => User::factory()->role(Role::Requestor)->create()->id,
             'issued_by' => fake()->name(),
             'complainant' => fake()->company(),
-            'complaint_types' => [ComplaintType::Product],
             'problem_details' => fake()->paragraph(),
             'farm_id' => fn (): int => Farm::firstOrCreate(['name' => 'PFC'])->id,
             'issued_on' => $issuedOn,
@@ -57,6 +56,7 @@ class CarFactory extends Factory
             $category = Category::factory()->create(['response_days' => 3, 'implementation_days' => 10]);
             $car->subcategories()->attach(Subcategory::factory()->create(['category_id' => $category->id]));
             $car->issuedToUnits()->attach(IssuedToUnit::factory()->create(['business_line_id' => $category->business_line_id]));
+            $car->complaintTypes()->attach(ComplaintType::firstOrCreate(['name' => 'Product Nonconformity']));
 
             foreach (range(1, $car->current_round) as $number) {
                 $car->rounds()->firstOrCreate(['number' => $number], ['opened_by_action' => $number === 1 ? 'submit' : 'mark_not_effective']);
