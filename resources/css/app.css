@@ -430,3 +430,61 @@
   .divider{ display:flex; align-items:center; gap:10px; margin:26px 0 14px; font-size:10px; font-weight:700;
     text-transform:uppercase; letter-spacing:.08em; color:var(--text3); }
   .divider::before, .divider::after{ content:''; flex:1; border-top:.5px solid var(--border2); }
+
+  /* ============ PERIOD COMPARISON ============ */
+  .print-only{ display:none; }
+  .compare-controls{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px; }
+  @media (max-width:900px){ .compare-controls{ grid-template-columns:1fr; } }
+  .compare-side{ padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .compare-side-title{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); }
+  .compare-side-title span{ color:var(--text); text-transform:none; letter-spacing:0; }
+  .compare-side-fields{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+  .compare-range{ font-size:11px; color:var(--text3); }
+  .compare-switches{ display:flex; flex-wrap:wrap; gap:8px 22px; margin:12px 0 4px; font-size:12px; }
+  .compare-switch, .compare-switch-row{ display:inline-flex; align-items:center; gap:7px; cursor:pointer; }
+  .compare-switch input{ accent-color:var(--accent); }
+  .compare-clear{ margin-left:auto; padding:4px 10px; font-size:11.5px; }
+  .compare-note{ font-size:11.5px; color:var(--text2); background:var(--bg2); border:.5px solid var(--border); border-radius:8px; padding:7px 10px; margin-top:8px; }
+  .compare-highlights{ padding:14px 18px; margin-top:14px; }
+  .compare-highlights ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; font-size:12.5px; }
+  .compare-card{ padding:14px 18px; margin-top:14px; }
+  .compare-card-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .compare-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .compare-table th{ text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text2); padding:6px 8px; border-bottom:.5px solid var(--border2); }
+  .compare-table td{ padding:8px; border-bottom:.5px solid var(--border); }
+  .compare-table tr:last-child td{ border-bottom:0; }
+  .compare-table .num{ text-align:right; }
+  .compare-table.compact{ font-size:11.5px; }
+  .compare-table.compact td{ padding:6px 8px; }
+  .compare-muted{ font-size:10.5px; font-weight:400; color:var(--text3); text-transform:none; letter-spacing:0; }
+  .compare-change{ display:inline-block; font-size:11px; font-weight:600; padding:1px 8px; border-radius:999px; white-space:nowrap; }
+  .compare-change.tone-better{ background:var(--green-bg); color:var(--green); }
+  .compare-change.tone-worse{ background:var(--red-bg); color:var(--red); }
+  .compare-change.tone-neutral{ color:var(--text3); }
+  .compare-legend{ display:flex; gap:14px; font-size:11px; color:var(--text2); }
+  .legend-dot{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+  .legend-dot.is-left, .compare-bar.is-left{ background:var(--text3); }
+  .legend-dot.is-right, .compare-bar.is-right{ background:var(--accent); }
+  .compare-chart{ display:flex; align-items:flex-end; gap:8px; height:150px; }
+  .compare-chart-col{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
+  .compare-chart-bars{ flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; }
+  .compare-bar{ width:42%; max-width:22px; border-radius:4px 4px 1px 1px; position:relative; opacity:.85; }
+  .compare-bar span{ position:absolute; top:-15px; left:50%; transform:translateX(-50%); font-size:9.5px; color:var(--text2); }
+  .compare-chart-label{ font-size:10px; color:var(--text3); }
+  .compare-breakdowns{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  @media (max-width:900px){ .compare-breakdowns{ grid-template-columns:1fr; } }
+
+  /* Printing the comparison: A4 landscape, no navigation or controls, a header saying what is compared. */
+  @page compare{ size:A4 landscape; margin:12mm; }
+  @media print{
+    .sidebar, .scaffold-banner, .no-print, .request-error, .guide-backdrop{ display:none !important; }
+    .print-only{ display:block !important; }
+    .shell{ display:block; min-height:0; }
+    .main, .content, body{ background:#fff !important; }
+    .compare-page{ page:compare; }
+    .compare-page .topbar{ border:0; padding:0 0 6px; }
+    .compare-page .content{ padding:0; }
+    .compare-print-head{ font-size:12px; line-height:1.5; margin-bottom:10px; }
+    .compare-page .card{ break-inside:avoid; box-shadow:none; }
+    .compare-change, .compare-bar, .legend-dot{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }

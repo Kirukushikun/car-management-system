@@ -26,6 +26,7 @@
                 </li>
             </ol>
             <p class="guide-text"><strong>Open</strong> and <strong>Overdue</strong> always show today's position; the rest covers the chosen period.</p>
+            <p class="guide-text" style="margin-top:8px;">To put two years, halves, quarters or months side by side, use <strong>Compare periods</strong>.</p>
         </div>
 
         <div x-show="tab === 'figures'" x-cloak role="tabpanel">

@@ -2,6 +2,7 @@
     <x-page-header title="Dashboard" subtitle="Repeat offenses, response & resolution time, open/closed status and frequency of CAR issuance">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <x-guide-button name="dashboard" />
+            <a href="{{ route('dashboard.compare') }}" wire:navigate class="btn btn-secondary" style="text-decoration:none;"><x-icon name="compare" /> Compare periods</a>
             <div class="field">
                 <select wire:model.live="period" aria-label="Period" style="min-height:30px; padding:4px 8px;">
                     @foreach ($periods as $value => $label)

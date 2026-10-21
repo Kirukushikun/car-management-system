@@ -27,8 +27,80 @@ class DashboardMetrics
         private ?int $businessLineId = null,
         private ?int $farmId = null,
         private ?CarbonImmutable $today = null,
+        private ?CarbonImmutable $from = null,
+        private ?CarbonImmutable $to = null,
     ) {
         $this->today ??= CarbonImmutable::today();
+    }
+
+    /**
+     * Figures for CARs issued between two dates (inclusive) — the period comparison uses this, with
+     * the same definitions as the dashboard.
+     */
+    public static function forRange(CarbonImmutable $from, CarbonImmutable $to, ?int $businessLineId = null, ?int $farmId = null, ?CarbonImmutable $today = null): self
+    {
+        return new self(days: null, businessLineId: $businessLineId, farmId: $farmId, today: $today, from: $from->startOfDay(), to: $to->startOfDay());
+    }
+
+    /**
+     * Everything about the CARs issued in the range, for side-by-side comparison. Breakdowns list
+     * every value (a CAR counts under each of its sub-categories, categories and units).
+     *
+     * @return array{
+     *     issued: int, closed: int, voided: int, still_open: int, closure_rate: ?int,
+     *     avg_response_days: ?float, on_time_response_rate: ?int, avg_resolution_days: ?float,
+     *     months: list<array{label: string, count: int}>,
+     *     subcategories: array<int, array{subcategory: string, category: string, line: string, count: int}>,
+     *     categories: array<string, int>, units: array<string, int>, farms: array<string, int>
+     * }
+     */
+    public function periodFigures(): array
+    {
+        $issued = $this->issuedInPeriod();
+        $closed = $issued->where('status', CarStatus::ClosedAccepted)->count();
+        $voided = $issued->where('status', CarStatus::Voided)->count();
+        $counted = $issued->count() - $voided;
+
+        return [
+            'issued' => $issued->count(),
+            'closed' => $closed,
+            'voided' => $voided,
+            'still_open' => $issued->filter(fn (Car $car): bool => $car->status->isOpen())->count(),
+            'closure_rate' => $counted > 0 ? (int) round($closed / $counted * 100) : null,
+            ...$this->responseTimes($issued),
+            'avg_resolution_days' => $this->averageResolutionDays($issued),
+            'months' => $this->monthsInRange($issued),
+            'subcategories' => $issued->flatMap(fn (Car $car) => $car->subcategories)->toBase()
+                ->groupBy('id')
+                ->map(fn (BaseCollection $group): array => [
+                    'subcategory' => $group->first()->name,
+                    'category' => $group->first()->category->name,
+                    'line' => $group->first()->category->businessLine->name,
+                    'count' => $group->count(),
+                ])
+                ->all(),
+            'categories' => $issued->flatMap(fn (Car $car) => $car->subcategories->pluck('category.name')->unique())->countBy()->all(),
+            'units' => $issued->flatMap(fn (Car $car) => $car->issuedToUnits->pluck('name'))->countBy()->all(),
+            'farms' => $issued->countBy(fn (Car $car): string => $car->farm->name)->all(),
+        ];
+    }
+
+    /**
+     * CARs issued per calendar month across the range, in order.
+     *
+     * @param  Collection<int, Car>  $cars
+     * @return list<array{label: string, count: int}>
+     */
+    private function monthsInRange(Collection $cars): array
+    {
+        $counts = $cars->countBy(fn (Car $car): string => $car->issued_on->format('Y-m'));
+        $months = [];
+
+        for ($month = $this->from->startOfMonth(); $month->lte($this->to); $month = $month->addMonth()) {
+            $months[] = ['label' => $month->format('M Y'), 'count' => $counts[$month->format('Y-m')] ?? 0];
+        }
+
+        return $months;
     }
 
     /**
@@ -156,8 +228,9 @@ class DashboardMetrics
     {
         return $this->scoped(Car::query())
             ->when($this->days !== null, fn (Builder $query) => $query->where('issued_on', '>=', $this->today->subDays($this->days)->toDateString()))
+            ->when($this->from !== null, fn (Builder $query) => $query->whereBetween('issued_on', [$this->from->toDateString(), $this->to->toDateString()]))
             ->with([
-                'subcategories.category.businessLine', 'issuedToUnits',
+                'farm', 'subcategories.category.businessLine', 'issuedToUnits',
                 'events' => fn ($query) => $query->where('action', CarAction::SubmitResponse),
             ])
             ->get();

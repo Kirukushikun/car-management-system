@@ -31,6 +31,8 @@
         'video' => 'fa-solid fa-film',
         'eye' => 'fa-regular fa-eye',
         'eye-slash' => 'fa-regular fa-eye-slash',
+        'compare' => 'fa-solid fa-code-compare',
+        'reset' => 'fa-solid fa-rotate-left',
     ];
 @endphp
 

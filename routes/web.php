@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AppLoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\CarExportController;
 use App\Http\Controllers\CarPrintController;
+use App\Http\Controllers\CompareExportController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Livewire\Admin;
 use App\Livewire\Auth\Login;
@@ -30,6 +31,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', LogoutController::class)->name('logout');
 
     Route::livewire('/dashboard', Dashboard\Index::class)->middleware('can:view-dashboard')->name('dashboard');
+    Route::livewire('/dashboard/compare', Dashboard\Compare::class)->middleware('can:view-dashboard')->name('dashboard.compare');
+    Route::get('/dashboard/compare/export', CompareExportController::class)->middleware('can:view-dashboard')->name('dashboard.compare.export');
 
     Route::livewire('/cars', Cars\Index::class)->name('cars.index');
     Route::livewire('/cars/create', Cars\Create::class)->middleware('can:create-cars')->name('cars.create');

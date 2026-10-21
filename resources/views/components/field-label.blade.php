@@ -9,11 +9,7 @@
     <span class="field-label-end">
         {{ $actions ?? '' }}
         @if ($tip)
-            <span class="field-tip" x-data="{ open: false }" x-on:mouseenter="open = true" x-on:mouseleave="open = false" x-on:click.outside="open = false">
-                <button type="button" class="field-tip-button" x-on:click="open = ! open" x-on:focus="open = true" x-on:blur="open = false"
-                        :aria-expanded="open" aria-label="About this field"><x-icon name="info" /></button>
-                <span class="field-tip-bubble" role="tooltip" x-show="open" x-cloak x-transition.opacity>{{ $tip }}</span>
-            </span>
+            <x-tip :text="$tip" label="About this field" />
         @endif
     </span>
 </div>
