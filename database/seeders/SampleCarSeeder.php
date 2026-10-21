@@ -236,7 +236,7 @@ class SampleCarSeeder extends Seeder
         $responder = $this->farmUser($car->farm, Role::Responder);
         $path = "car_rounds/{$round->id}/".Str::uuid().'.pdf';
 
-        Storage::disk('local')->put($path, $this->evidencePdf("Implementation evidence - {$car->reference}"));
+        Storage::disk('local')->put($path, self::evidencePdf("Implementation evidence - {$car->reference}"));
 
         $round->update(['evidence_responsible' => $responder->name, 'evidence_notes' => 'Corrective actions carried out as planned; checklist attached.']);
         $round->attachments()->create([
@@ -253,7 +253,7 @@ class SampleCarSeeder extends Seeder
     /**
      * A minimal valid one-page PDF showing a single line of text.
      */
-    private function evidencePdf(string $text): string
+    public static function evidencePdf(string $text): string
     {
         $stream = "BT /F1 18 Tf 72 720 Td ({$text}) Tj ET";
         $objects = [
