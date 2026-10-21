@@ -71,3 +71,16 @@ it('pages the overdue table, 10 at a time, and starts again when a filter change
         ->assertSet('paginators.overduePage', 1)
         ->assertSee('1–12');
 });
+
+it('fills the monthly chart and status cards with a summary, the closure split and where the open CARs are', function () {
+    Car::factory()->status(CarStatus::ClosedAccepted)->count(3)->create(['issued_on' => now()->subDays(5)->toDateString()]);
+    Car::factory()->status(CarStatus::AwaitingRelease)->create(['issued_on' => now()->subDays(3)->toDateString()]);
+    Car::factory()->status(CarStatus::AwaitingImplementation)->create(['issued_on' => now()->subDays(3)->toDateString(), 'implementation_due_on' => now()->subDay()->toDateString()]);
+    Car::factory()->status(CarStatus::Voided)->create(['issued_on' => now()->subDays(2)->toDateString()]);
+
+    Livewire::actingAs($this->monitor)
+        ->test(Index::class)
+        ->assertSee(['Total', 'Monthly average', 'Busiest month', 'This month so far'])
+        ->assertSee(['Voided', 'Closed 50%', 'Open 33%', 'Voided 17%'])
+        ->assertSeeInOrder(['Where the open ones are', 'Phase I — being filed or reviewed', '1', 'Phase III — implementation and closure', '1', 'Overdue among them', '1']);
+});

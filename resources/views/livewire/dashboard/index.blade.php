@@ -54,16 +54,39 @@
         </div>
 
         <div class="detail-grid" style="margin-top:14px;">
-            <div class="card" style="padding:16px 18px;">
+            @php
+                $months = $stats['months'];
+                $monthTotal = array_sum($months);
+                $busiest = $monthTotal > 0 ? array_search(max($months), $months, true) : null;
+                $thisMonth = end($months);
+                $lastMonth = prev($months);
+            @endphp
+            <div class="card dash-card">
                 <div class="section-title">CARs issued, last 6 months</div>
-                <div class="bar-chart">
-                    @foreach ($stats['months'] as $month => $count)
-                        <div class="bar-col" wire:key="month-{{ $month }}">
-                            <div class="bar-num tnum">{{ $count }}</div>
-                            <div class="bar" style="height:{{ max(2, round($count / $maxMonth * 100)) }}%"></div>
-                            <div class="bar-lbl">{{ $month }}</div>
+                <div class="month-chart">
+                    <div class="month-guides" aria-hidden="true"><span></span><span></span><span></span></div>
+                    @foreach ($months as $month => $count)
+                        <div class="month-col" wire:key="month-{{ $month }}" title="{{ $month }}: {{ $count }} {{ str('CAR')->plural($count) }}">
+                            <div class="month-num tnum">{{ $count }}</div>
+                            <div class="month-track">
+                                <div @class(['month-bar', 'is-current' => $loop->last]) style="height:{{ max(2, round($count / $maxMonth * 100)) }}%"></div>
+                            </div>
+                            <div class="month-lbl">{{ $month }}</div>
                         </div>
                     @endforeach
+                </div>
+                <div class="dash-summary">
+                    <div><span class="k">Total</span><span class="v tnum">{{ $monthTotal }}</span></div>
+                    <div><span class="k">Monthly average</span><span class="v tnum">{{ round($monthTotal / max(1, count($months)), 1) }}</span></div>
+                    <div><span class="k">Busiest month</span><span class="v">{{ $busiest ? $busiest.' · '.$months[$busiest] : '—' }}</span></div>
+                    <div>
+                        <span class="k">This month so far</span>
+                        <span class="v tnum">{{ $thisMonth }}
+                            @if ($thisMonth !== $lastMonth)
+                                <span @class(['dash-delta', 'is-up' => $thisMonth > $lastMonth, 'is-down' => $thisMonth < $lastMonth])>{{ $thisMonth > $lastMonth ? '▲' : '▼' }} {{ abs($thisMonth - $lastMonth) }} vs last month</span>
+                            @endif
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -88,12 +111,42 @@
         </div>
 
         <div class="detail-grid" style="margin-top:14px;">
-            <div class="card" style="padding:16px 18px;">
+            @php
+                $stillOpen = $stats['issued'] - $stats['closed'] - $stats['voided'];
+                $share = fn (int $n): float => $stats['issued'] > 0 ? round($n / $stats['issued'] * 100, 1) : 0;
+            @endphp
+            <div class="card dash-card">
                 <div class="section-title">Status of CARs issued — {{ strtolower($periods[$period]) }}</div>
-                <div class="field-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="field-grid" style="grid-template-columns:repeat(4,1fr);">
                     <div class="kv"><span class="k">Issued</span><span class="v tnum" style="font-size:20px;">{{ $stats['issued'] }}</span></div>
                     <div class="kv"><span class="k">Closed</span><span class="v tnum" style="font-size:20px; color:var(--green);">{{ $stats['closed'] }}</span></div>
-                    <div class="kv"><span class="k">Still open</span><span class="v tnum" style="font-size:20px;">{{ $stats['issued'] - $stats['closed'] - $stats['voided'] }}</span></div>
+                    <div class="kv"><span class="k">Still open</span><span class="v tnum" style="font-size:20px;">{{ $stillOpen }}</span></div>
+                    <div class="kv"><span class="k">Voided</span><span class="v tnum" style="font-size:20px; color:var(--text3);">{{ $stats['voided'] }}</span></div>
+                </div>
+
+                <div class="status-split" role="img" aria-label="{{ $share($stats['closed']) }}% closed, {{ $share($stillOpen) }}% open, {{ $share($stats['voided']) }}% voided">
+                    <span class="is-closed" style="width:{{ $share($stats['closed']) }}%"></span>
+                    <span class="is-open" style="width:{{ $share($stillOpen) }}%"></span>
+                    <span class="is-voided" style="width:{{ $share($stats['voided']) }}%"></span>
+                </div>
+                <div class="status-legend">
+                    <span><i class="is-closed"></i>Closed {{ round($share($stats['closed'])) }}%</span>
+                    <span><i class="is-open"></i>Open {{ round($share($stillOpen)) }}%</span>
+                    <span><i class="is-voided"></i>Voided {{ round($share($stats['voided'])) }}%</span>
+                </div>
+
+                <div class="status-phases">
+                    <div class="status-phases-title">Where the open ones are</div>
+                    @foreach ([1 => 'Phase I — being filed or reviewed', 2 => 'Phase II — response and approval', 3 => 'Phase III — implementation and closure'] as $phase => $label)
+                        <div class="status-phase" wire:key="open-phase-{{ $phase }}">
+                            <span>{{ $label }}</span>
+                            <span class="tnum">{{ $stats['issued_open_by_phase'][$phase] ?? 0 }}</span>
+                        </div>
+                    @endforeach
+                    <div @class(['status-phase', 'is-overdue' => $stats['issued_overdue'] > 0])>
+                        <span>Overdue among them</span>
+                        <span class="tnum">{{ $stats['issued_overdue'] }}</span>
+                    </div>
                 </div>
             </div>
             <div class="card" style="padding:16px 18px;">

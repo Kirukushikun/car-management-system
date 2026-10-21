@@ -106,6 +106,7 @@ class DashboardMetrics
     /**
      * @return array{
      *     open: int, overdue: int, phase_one: int, issued: int, closed: int, voided: int,
+     *     issued_open_by_phase: array<int, int>, issued_overdue: int,
      *     avg_response_days: ?float, on_time_response_rate: ?int, avg_resolution_days: ?float,
      *     months: array<string, int>,
      *     repeat_offenses: list<array{category: string, subcategory: string, line: string, count: int}>,
@@ -124,6 +125,10 @@ class DashboardMetrics
             'issued' => $issued->count(),
             'closed' => $issued->where('status', CarStatus::ClosedAccepted)->count(),
             'voided' => $issued->where('status', CarStatus::Voided)->count(),
+            'issued_open_by_phase' => collect([1, 2, 3])->mapWithKeys(fn (int $phase): array => [
+                $phase => $issued->filter(fn (Car $car): bool => $car->status->phase() === $phase)->count(),
+            ])->all(),
+            'issued_overdue' => $issued->filter(fn (Car $car): bool => $car->isOverdue($this->today))->count(),
             ...$this->responseTimes($issued),
             'avg_resolution_days' => $this->averageResolutionDays($issued),
             'months' => $this->monthlyFrequency(),
