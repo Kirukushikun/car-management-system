@@ -119,6 +119,7 @@
             <div class="table-scroll">
                 <x-car-table :cars="$attention" empty="Nothing overdue." />
             </div>
+            <x-table-footer :paginator="$attention" label="overdue CARs" />
         </div>
     </div>
 

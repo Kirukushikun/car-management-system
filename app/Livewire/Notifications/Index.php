@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Notifications;
 
+use App\Livewire\Concerns\FlexiblePagination;
 use App\Models\Car;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 /**
  * The in-app flags: every CAR hand-off and deadline reminder addressed to the signed-in user.
@@ -14,7 +15,10 @@ use Livewire\WithPagination;
 #[Title('Notifications')]
 class Index extends Component
 {
-    use WithPagination;
+    use FlexiblePagination;
+
+    #[Url]
+    public int $perPage = 25;
 
     /**
      * Mark the flag read and jump to its CAR.
@@ -39,7 +43,7 @@ class Index extends Component
     public function render(): View
     {
         return view('livewire.notifications.index', [
-            'notifications' => auth()->user()->notifications()->latest()->paginate(25),
+            'notifications' => auth()->user()->notifications()->latest()->paginate($this->rowsPerPage()),
             'unreadCount' => auth()->user()->unreadNotifications()->count(),
         ]);
     }

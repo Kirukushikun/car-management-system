@@ -40,7 +40,7 @@
             </div>
         </div>
 
-        <div style="margin-top:12px;">{{ $audits->links() }}</div>
+        <x-table-footer :paginator="$audits" label="changes" style="margin-top:12px;" />
 
         <footer class="note">Backups run nightly at 01:00 (php artisan app:backup) into storage/app/backups and are kept 14 days — copy that folder off the server with the server's own backup routine.</footer>
     </div>

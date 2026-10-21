@@ -53,3 +53,21 @@ it('has a Dashboard guide explaining the filters and each figure', function () {
             'Issued by unit',
         ]);
 });
+
+it('pages the overdue table, 10 at a time, and starts again when a filter changes', function () {
+    foreach (range(1, 12) as $i) {
+        Car::factory()->status(CarStatus::AwaitingResponder)->create(['response_due_on' => now()->subDays($i)->toDateString()]);
+    }
+
+    Livewire::actingAs($this->monitor)
+        ->test(Index::class)
+        ->assertSee(['1–10', 'of', '12', 'overdue CARs'])
+        ->call('nextPage', 'overduePage')
+        ->assertSee('11–12')
+        ->set('period', '30')
+        ->assertSee('1–10')
+        ->call('nextPage', 'overduePage')
+        ->set('perPage', 25)
+        ->assertSet('paginators.overduePage', 1)
+        ->assertSee('1–12');
+});

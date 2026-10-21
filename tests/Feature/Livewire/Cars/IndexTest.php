@@ -114,3 +114,41 @@ it('routes an approver-prepared response only to that person\'s approver', funct
     expect(Car::waitingOn($senior)->pluck('id')->all())->toContain($car->id)
         ->and(Car::waitingOn($other)->pluck('id')->all())->not->toContain($car->id);
 });
+
+describe('pagination', function () {
+    beforeEach(function () {
+        $this->monitor = User::factory()->role(Role::Monitor)->create();
+        foreach (range(1, 30) as $day) {
+            Car::factory()->create(['issued_on' => now()->subDays($day)->toDateString(), 'reference' => sprintf('CAR-2026-%04d', 100 + $day)]);
+        }
+    });
+
+    it('shows 25 CARs a page with a footer saying which ones', function () {
+        Livewire::actingAs($this->monitor)
+            ->test(Index::class)
+            ->assertSee(['CAR-2026-0101', 'CAR-2026-0125', 'Showing', '1–25', 'of', '30', 'Rows per page'])
+            ->assertDontSee('CAR-2026-0126')
+            ->call('nextPage')
+            ->assertSee(['CAR-2026-0126', 'CAR-2026-0130', '26–30'])
+            ->assertDontSee('CAR-2026-0101');
+    });
+
+    it('changes the rows per page and starts again from the first page', function () {
+        Livewire::actingAs($this->monitor)
+            ->test(Index::class)
+            ->call('gotoPage', 2)
+            ->set('perPage', 10)
+            ->assertSet('paginators.page', 1)
+            ->assertSee(['1–10', 'CAR-2026-0110'])
+            ->assertDontSee('CAR-2026-0111')
+            ->set('perPage', 100)
+            ->assertSee(['1–30', 'CAR-2026-0130']);
+    });
+
+    it('falls back to 25 rows for a size it does not offer', function () {
+        Livewire::withQueryParams(['perPage' => 7])
+            ->actingAs($this->monitor)
+            ->test(Index::class)
+            ->assertSee('1–25');
+    });
+});

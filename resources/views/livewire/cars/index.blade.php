@@ -13,6 +13,7 @@
             <div class="table-scroll">
                 <x-car-table :cars="$cars" />
             </div>
+            <x-table-footer :paginator="$cars" />
         </div>
     </div>
 </section>

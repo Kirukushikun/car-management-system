@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\FlexiblePagination;
 use App\Models\BusinessLine;
 use App\Models\Car;
 use App\Models\Farm;
@@ -18,6 +19,14 @@ use Livewire\Component;
 #[Title('Dashboard')]
 class Index extends Component
 {
+    use FlexiblePagination;
+
+    /**
+     * Rows per page in the "Needs attention" table.
+     */
+    #[Url]
+    public int $perPage = 10;
+
     /**
      * Look-back period in days, or "all".
      */
@@ -47,6 +56,16 @@ class Index extends Component
         return ['30' => 'Last 30 days', '90' => 'Last 90 days', '180' => 'Last 6 months', '365' => 'Last 12 months', 'all' => 'All time'];
     }
 
+    /**
+     * New filters start the overdue table from its first page.
+     */
+    public function updated(string $property): void
+    {
+        if (in_array($property, ['period', 'line', 'farm'], true)) {
+            $this->resetPage('overduePage');
+        }
+    }
+
     public function render(): View
     {
         $stats = (new DashboardMetrics(
@@ -68,7 +87,7 @@ class Index extends Component
                 ->when($this->farm, fn ($query) => $query->where('farm_id', $this->farm))
                 ->with(['farm', 'issuedToUnits', 'subcategories.category'])
                 ->orderBy('issued_on')
-                ->get(),
+                ->paginate($this->rowsPerPage(), pageName: 'overduePage'),
         ]);
     }
 }

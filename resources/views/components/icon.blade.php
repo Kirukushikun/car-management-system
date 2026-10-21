@@ -33,6 +33,10 @@
         'eye-slash' => 'fa-regular fa-eye-slash',
         'compare' => 'fa-solid fa-code-compare',
         'reset' => 'fa-solid fa-rotate-left',
+        'first' => 'fa-solid fa-angles-left',
+        'previous' => 'fa-solid fa-angle-left',
+        'next' => 'fa-solid fa-angle-right',
+        'last' => 'fa-solid fa-angles-right',
     ];
 @endphp
 

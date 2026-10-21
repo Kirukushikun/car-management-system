@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Admin;
 
+use App\Livewire\Concerns\FlexiblePagination;
 use App\Models\Audit;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 /**
  * Who changed which user, category or sub-category, and what changed. CAR changes are in each
@@ -15,7 +16,10 @@ use Livewire\WithPagination;
 #[Title('Audit Log')]
 class AuditLog extends Component
 {
-    use WithPagination;
+    use FlexiblePagination;
+
+    #[Url]
+    public int $perPage = 25;
 
     public function mount(): void
     {
@@ -25,7 +29,7 @@ class AuditLog extends Component
     public function render(): View
     {
         return view('livewire.admin.audit-log', [
-            'audits' => Audit::with(['user', 'auditable'])->latest('id')->paginate(30),
+            'audits' => Audit::with(['user', 'auditable'])->latest('id')->paginate($this->rowsPerPage()),
         ]);
     }
 }

@@ -27,6 +27,6 @@
             @endforelse
         </div>
 
-        <div style="margin-top:12px;">{{ $notifications->links() }}</div>
+        <x-table-footer :paginator="$notifications" label="notifications" style="margin-top:12px;" />
     </div>
 </section>
