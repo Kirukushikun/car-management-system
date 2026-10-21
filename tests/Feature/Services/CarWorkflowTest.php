@@ -552,6 +552,14 @@ describe('required input', function () {
         [CarStatus::AwaitingResponder, CarAction::Void, Role::Admin],
     ]);
 
+    it('keeps the reason within the limit', function () {
+        $car = Car::factory()->status(CarStatus::AwaitingRelease)->create();
+
+        expect(fn () => $this->workflow->apply($car, actorFor(Role::RequestorApprover, $car), CarAction::Reject, note: str_repeat('x', 1001)))
+            ->toThrow(ValidationException::class, 'Keep the reason to 1,000 characters or fewer.');
+        expect($car->fresh()->status)->toBe(CarStatus::AwaitingRelease);
+    });
+
     it('requires a new end date after today when not accepting', function (?string $newDueOn) {
         $car = Car::factory()->status(CarStatus::AwaitingRequestorApproval)->create();
 

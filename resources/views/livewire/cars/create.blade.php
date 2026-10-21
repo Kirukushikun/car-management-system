@@ -8,7 +8,7 @@
         <form x-on:submit.prevent class="card" style="padding:20px 22px; max-width:760px;">
             @if ($returnReason)
                 <div class="flash" style="background:var(--red-bg); color:var(--red); border-color:var(--red-bd);">
-                    Returned by the Complainant Approver: {{ $returnReason }}
+                    Returned by the Complainant Approver: {{ \App\Support\RichText::toPlain($returnReason) }}
                 </div>
             @endif
 
@@ -91,12 +91,14 @@
             <div class="field-grid" style="margin-top:14px;">
                 <div class="field">
                     <x-field-label for="issuedBy" tip="Filled in with your name and role. Change it only if you are filing for someone else.">Issued by</x-field-label>
-                    <input id="issuedBy" wire:model="issuedBy">
+                    <input id="issuedBy" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="issuedBy">
+                    <x-char-count />
                     @error('issuedBy') <div class="error-text">{{ $message }}</div> @enderror
                 </div>
                 <div class="field">
                     <x-field-label for="complainant" tip="Who raised the problem — for example a customer, a distributor or internal audit.">Complainant</x-field-label>
-                    <input id="complainant" wire:model="complainant" placeholder="e.g. customer name, distributor, internal audit">
+                    <input id="complainant" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="complainant" placeholder="e.g. customer name, distributor, internal audit">
+                    <x-char-count />
                     @error('complainant') <div class="error-text">{{ $message }}</div> @enderror
                 </div>
             </div>
@@ -115,7 +117,9 @@
 
             <div class="field" style="margin-top:16px;">
                 <x-field-label for="problem" tip="What was observed, when, where and by whom. Be specific — the Concerned Department works from this.">Details of the problem</x-field-label>
-                <textarea id="problem" wire:model="problem" placeholder="Describe what was observed, when, and by whom..."></textarea>
+                <x-format-toolbar />
+                <textarea id="problem" maxlength="{{ \App\Support\TextLimits::PROBLEM }}" wire:model="problem" placeholder="Describe what was observed, when, and by whom..."></textarea>
+                <x-char-count />
                 @error('problem') <div class="error-text">{{ $message }}</div> @enderror
             </div>
 
@@ -129,7 +133,9 @@
                 <div class="optional-group-body">
                     <div class="field">
                         <x-field-label for="initialAction" tip="What your side already did before filing — e.g. pulled the affected stock, replaced the customer's order. Leave this section empty if nothing was done yet.">Action taken</x-field-label>
-                        <textarea id="initialAction" wire:model="initialAction" style="min-height:60px;" placeholder="e.g. Pulled the remaining trays from the outlet and replaced the customer's order..."></textarea>
+                        <x-format-toolbar />
+                        <textarea id="initialAction" maxlength="{{ \App\Support\TextLimits::LONG }}" wire:model="initialAction" style="min-height:60px;" placeholder="e.g. Pulled the remaining trays from the outlet and replaced the customer's order..."></textarea>
+                        <x-char-count />
                         @error('initialAction') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
                     <div class="field-grid" style="grid-template-columns:1fr 1fr 1.4fr;">
@@ -145,7 +151,8 @@
                         </div>
                         <div class="field">
                             <x-field-label for="initialActionResponsible" tip="Who carried out the action.">Responsible person</x-field-label>
-                            <input id="initialActionResponsible" wire:model="initialActionResponsible">
+                            <input id="initialActionResponsible" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="initialActionResponsible">
+                            <x-char-count />
                             @error('initialActionResponsible') <div class="error-text">{{ $message }}</div> @enderror
                         </div>
                     </div>

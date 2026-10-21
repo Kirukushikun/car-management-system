@@ -9,7 +9,7 @@
         <x-pill tone="red">{{ $outcome->action === CarAction::NotAccept ? 'Not accepted' : 'Not effective' }}</x-pill>
         <span class="solution-meta">{{ $outcome->actor?->name }} · {{ $outcome->created_at->format('M j, Y') }}</span>
         @if ($outcome->note)
-            <span class="solution-reason">“{{ $outcome->note }}”</span>
+            <span class="solution-reason rich-text">“{{ \App\Support\RichText::toHtml($outcome->note) }}”</span>
         @endif
     @endif
 </div>

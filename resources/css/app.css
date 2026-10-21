@@ -378,6 +378,27 @@
   .optional-group[open] .optional-group-chevron{ transform:rotate(90deg); }
   .optional-group-note{ font-size:10.5px; color:var(--text3); }
   .optional-group-body{ display:flex; flex-direction:column; gap:12px; padding:0 14px 14px; }
+  .rich-editor ~ textarea{ display:none !important; }
+  .format-toolbar{ display:flex; align-items:center; gap:2px; padding:3px; border:.5px solid var(--border2); border-bottom:0; border-radius:8px 8px 0 0; background:var(--bg2); }
+  .format-button{ border:0; background:transparent; color:var(--text2); cursor:pointer; padding:4px 8px; border-radius:5px; font-size:11px; line-height:1; }
+  .format-button:hover, .format-button:focus-visible{ background:var(--bg); color:var(--text); outline:none; }
+  .format-divider{ width:1px; height:14px; background:var(--border2); margin:0 4px; }
+  .rich-box{
+    min-height:80px; max-height:340px; overflow:auto; resize:vertical; padding:8px 10px; line-height:1.55; cursor:text;
+    border:.5px solid var(--border2); border-radius:0 0 8px 8px; background:var(--bg); color:var(--text); font-size:12.5px; white-space:pre-wrap; overflow-wrap:anywhere;
+  }
+  .rich-box:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg); }
+  .rich-box:empty::before{ content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
+  .rich-box ul, .rich-box ol{ margin:2px 0; padding-left:20px; }
+  .rich-box ul{ list-style:disc; }
+  .rich-box ol{ list-style:decimal; }
+  .rich-text strong{ font-weight:700; }
+  .rich-text .rt-list{ margin:2px 0; padding-left:18px; }
+  .rich-text ol.rt-list{ list-style:decimal; }
+  .rich-text ul.rt-list{ list-style:disc; }
+  .char-count{ margin-top:4px; text-align:right; font-size:10px; color:var(--text3); font-variant-numeric:tabular-nums; }
+  .char-count.is-near{ color:var(--amber); }
+  .char-count.is-full{ color:var(--red); font-weight:600; }
   .multi-select{ position:relative; }
   .multi-select-control{
     display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:34px; padding:4px 28px 4px 8px; cursor:pointer;

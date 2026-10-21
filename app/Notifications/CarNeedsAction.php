@@ -7,6 +7,7 @@ use App\Enums\CarStatus;
 use App\Enums\Role;
 use App\Models\Car;
 use App\Models\User;
+use App\Support\RichText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -51,7 +52,7 @@ class CarNeedsAction extends Notification implements ShouldQueue
             ->greeting("Hello {$notifiable->name},")
             ->line("{$this->car->reference} — {$this->car->subject()} ({$this->car->farm->name}, {$this->car->unitNames()})")
             ->line("{$this->action->pastTense()} by {$this->actorName}.")
-            ->when($this->note(), fn (MailMessage $mail, string $note) => $mail->line("Remarks: “{$note}”"))
+            ->when($this->note(), fn (MailMessage $mail, string $note) => $mail->line('Remarks: “'.RichText::toPlain($note).'”'))
             ->line("Status: {$this->car->status->label()}.")
             ->action('Open the CAR', route('cars.show', $this->car));
     }

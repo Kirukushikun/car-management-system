@@ -1,3 +1,7 @@
+import { richEditor } from './rich-text';
+
+document.addEventListener('alpine:init', () => window.Alpine.data('richEditor', richEditor));
+
 /**
  * The browser-side fence: when a Livewire request fails outright — the server crashed (500),
  * Cloudflare could not reach it (502/504), the upload was too big for the server (413) or the

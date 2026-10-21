@@ -13,6 +13,7 @@ use App\Models\Farm;
 use App\Models\IssuedToUnit;
 use App\Services\CarWorkflow;
 use App\Services\DeadlineCalculator;
+use App\Support\TextLimits;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -213,13 +214,13 @@ class Create extends Component
             'complaintTypes' => ['required', 'array', 'min:1'],
             'complaintTypes.*' => ['distinct', Rule::enum(ComplaintType::class)],
             'complaintReceivedOn' => ['nullable', 'date', 'before_or_equal:today'],
-            'issuedBy' => ['required', 'string', 'max:255'],
-            'complainant' => ['required', 'string', 'max:255'],
-            'problem' => ['required', 'string', 'min:10'],
-            'initialAction' => ['nullable', 'string', 'max:5000', 'required_with:initialActionStartsOn,initialActionEndsOn,initialActionResponsible'],
+            'issuedBy' => ['required', 'string', 'max:'.TextLimits::SHORT],
+            'complainant' => ['required', 'string', 'max:'.TextLimits::SHORT],
+            'problem' => ['required', 'string', 'min:10', 'max:'.TextLimits::PROBLEM],
+            'initialAction' => ['nullable', 'string', 'max:'.TextLimits::LONG, 'required_with:initialActionStartsOn,initialActionEndsOn,initialActionResponsible'],
             'initialActionStartsOn' => ['nullable', 'date', 'before_or_equal:today'],
             'initialActionEndsOn' => ['nullable', 'date', 'after_or_equal:initialActionStartsOn'],
-            'initialActionResponsible' => ['nullable', 'string', 'max:255'],
+            'initialActionResponsible' => ['nullable', 'string', 'max:'.TextLimits::SHORT],
             'attachments' => ['array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES, 'extensions:'.implode(',', Attachment::ALLOWED_EXTENSIONS)],
         ];

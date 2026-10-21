@@ -7,6 +7,7 @@ use App\Livewire\Concerns\GuardsSubmissions;
 use App\Models\Attachment;
 use App\Models\Car;
 use App\Services\CarWorkflow;
+use App\Support\TextLimits;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -57,8 +58,8 @@ class EvidenceForm extends Component
         $this->validate([
             'files' => [$round->hasEvidence() ? 'nullable' : 'required', 'array', 'max:10'],
             'files.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES, 'extensions:'.implode(',', Attachment::ALLOWED_EXTENSIONS)],
-            'responsible' => ['required', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'responsible' => ['required', 'string', 'max:'.TextLimits::SHORT],
+            'notes' => ['nullable', 'string', 'max:'.TextLimits::LONG],
         ], [
             'files.required' => 'Attach at least one file or photo proving the corrective actions were carried out.',
             'files.*.extensions' => 'Use photos, videos (mp4, mov), PDF or Office files.',

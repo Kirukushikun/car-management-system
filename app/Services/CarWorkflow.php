@@ -13,6 +13,7 @@ use App\Models\Category;
 use App\Models\IssuedToUnit;
 use App\Models\Subcategory;
 use App\Models\User;
+use App\Support\TextLimits;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -316,6 +317,10 @@ class CarWorkflow
     {
         if ($action->requiresNote() && ($note === null || $note === '')) {
             throw ValidationException::withMessages(['note' => "Give a reason for \"{$action->label()}\"."]);
+        }
+
+        if ($note !== null && mb_strlen($note) > TextLimits::REASON) {
+            throw ValidationException::withMessages(['note' => 'Keep the reason to '.number_format(TextLimits::REASON).' characters or fewer.']);
         }
 
         if ($action->requiresNewDueDate() && ($newDueOn === null || ! $newDueOn->isAfter(CarbonImmutable::today()))) {

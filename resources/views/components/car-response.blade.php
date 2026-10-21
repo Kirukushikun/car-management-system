@@ -14,12 +14,12 @@
             @endif
             @if ($response->containment_responsible) · {{ $response->containment_responsible }} @endif
         </span>
-        <span class="v" style="white-space:pre-line; font-weight:400;">{{ $response->containment_actions ?? '—' }}</span>
+        <span class="v rich-text" style="font-weight:400;">{{ $response->containment_actions ? \App\Support\RichText::toHtml($response->containment_actions) : '—' }}</span>
     </div>
 
     <div class="kv">
         <span class="k">Root cause @if ($response->root_cause_responsible) · {{ $response->root_cause_responsible }} @endif</span>
-        <span class="v" style="white-space:pre-line; font-weight:400;">{{ $response->root_cause ?? 'See attached file.' }}</span>
+        <span class="v rich-text" style="font-weight:400;">{{ $response->root_cause ? \App\Support\RichText::toHtml($response->root_cause) : 'See attached file.' }}</span>
         @foreach ($response->attachments->where('collection', Attachment::ROOT_CAUSE) as $file)
             <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;"><x-icon name="file" /> {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
         @endforeach
@@ -33,7 +33,7 @@
                 <tbody>
                     @forelse ($response->correctiveActions as $action)
                         <tr>
-                            <td style="white-space:pre-line;">{{ $action->description }}</td>
+                            <td class="rich-text">{{ \App\Support\RichText::toHtml($action->description) }}</td>
                             <td>{{ $action->responsible ?? '—' }}</td>
                             <td class="tnum">{{ $action->starts_on?->format('M j, Y') ?? '—' }}</td>
                             <td class="tnum">{{ $action->ends_on?->format('M j, Y') ?? '—' }}</td>

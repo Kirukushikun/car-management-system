@@ -503,3 +503,25 @@ describe('when saving fails', function () {
             ->and(Storage::disk('local')->allFiles())->toBe([]);
     });
 });
+
+describe('character limits', function () {
+    it('caps each text field and shows a counter', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->assertSeeHtml('id="complainant" maxlength="150"')
+            ->assertSeeHtml('id="problem" maxlength="3000"')
+            ->assertSeeHtml('id="initialAction" maxlength="2000"')
+            ->assertSeeHtml('class="char-count"')
+            ->assertSeeHtml('aria-label="Text formatting"');
+    });
+
+    it('rejects text over the limit even if the browser limit is bypassed', function () {
+        filledCreateForm($this->requestor)
+            ->set('complainant', str_repeat('a', 151))
+            ->set('problem', str_repeat('b', 3001))
+            ->call('submit')
+            ->assertHasErrors(['complainant' => 'max', 'problem' => 'max']);
+
+        expect(Car::count())->toBe(0);
+    });
+});

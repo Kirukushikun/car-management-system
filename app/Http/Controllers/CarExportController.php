@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\CarAction;
 use App\Models\Car;
+use App\Support\RichText;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -58,7 +59,7 @@ class CarExportController extends Controller
                     $car->subcategoryNames(),
                     $car->complaintTypeLabels(),
                     $car->complainant,
-                    $car->initial_action ?? '',
+                    RichText::toPlain($car->initial_action),
                     $car->requestor->name,
                     $car->response_due_on->toDateString(),
                     $car->implementation_due_on->toDateString(),

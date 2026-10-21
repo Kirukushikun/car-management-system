@@ -8,6 +8,7 @@ use App\Models\Attachment;
 use App\Models\Car;
 use App\Models\CarResponse;
 use App\Services\CarWorkflow;
+use App\Support\TextLimits;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -153,15 +154,15 @@ class ResponseForm extends Component
         $deadline = $this->car->implementationDeadline()->toDateString();
 
         return [
-            'containmentActions' => [$required, 'string', 'max:5000'],
+            'containmentActions' => [$required, 'string', 'max:'.TextLimits::LONG],
             'containmentStartsOn' => [$required, 'date'],
             'containmentEndsOn' => [$required, 'date', 'after_or_equal:containmentStartsOn'],
-            'containmentResponsible' => [$required, 'string', 'max:255'],
-            'rootCause' => [$complete && ! $hasRootCauseFile ? 'required' : 'nullable', 'string', 'max:5000'],
-            'rootCauseResponsible' => [$required, 'string', 'max:255'],
+            'containmentResponsible' => [$required, 'string', 'max:'.TextLimits::SHORT],
+            'rootCause' => [$complete && ! $hasRootCauseFile ? 'required' : 'nullable', 'string', 'max:'.TextLimits::LONG],
+            'rootCauseResponsible' => [$required, 'string', 'max:'.TextLimits::SHORT],
             'correctiveActions' => [$complete ? 'required' : 'nullable', 'array', $complete ? 'min:1' : 'min:0', 'max:20'],
-            'correctiveActions.*.description' => [$required, 'string', 'max:2000'],
-            'correctiveActions.*.responsible' => [$required, 'string', 'max:255'],
+            'correctiveActions.*.description' => [$required, 'string', 'max:'.TextLimits::LONG],
+            'correctiveActions.*.responsible' => [$required, 'string', 'max:'.TextLimits::SHORT],
             'correctiveActions.*.starts_on' => [$required, 'date'],
             'correctiveActions.*.ends_on' => [$required, 'date', 'after_or_equal:correctiveActions.*.starts_on', 'before_or_equal:'.$deadline],
             'rootCauseFiles' => ['array', 'max:10'],

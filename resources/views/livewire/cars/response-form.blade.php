@@ -12,7 +12,9 @@
     <div class="section-title" style="margin:4px 0 0;">Step 7 · Interim containment / immediate actions</div>
     <div class="field">
         <x-field-label for="containmentActions" tip="Quick actions taken right away so the problem goes no further — before the root cause is known. For example: held the batch, replaced the customer's stock.">What was done right away to contain the issue</x-field-label>
-        <textarea id="containmentActions" wire:model="containmentActions" placeholder="e.g. Held the remaining stock from the same batch, replaced the customer's spoiled eggs..."></textarea>
+        <x-format-toolbar />
+        <textarea id="containmentActions" maxlength="{{ \App\Support\TextLimits::LONG }}" wire:model="containmentActions" placeholder="e.g. Held the remaining stock from the same batch, replaced the customer's spoiled eggs..."></textarea>
+        <x-char-count />
         @error('containmentActions') <div class="error-text">{{ $message }}</div> @enderror
     </div>
     <div class="field-grid" style="grid-template-columns:1fr 1fr 1.4fr;">
@@ -28,7 +30,8 @@
         </div>
         <div class="field">
             <x-field-label for="containmentResponsible" tip="Who carried out the containment.">Responsible person</x-field-label>
-            <input id="containmentResponsible" wire:model="containmentResponsible">
+            <input id="containmentResponsible" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="containmentResponsible">
+            <x-char-count />
             @error('containmentResponsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
     </div>
@@ -37,13 +40,16 @@
     <div class="section-title" style="margin:10px 0 0;">Step 8 · Root cause</div>
     <div class="field">
         <x-field-label for="rootCause" tip="Why it happened — the underlying cause, not the symptom. Type it, attach your analysis (e.g. a 5-Why or fishbone), or both.">Root cause findings — type them, attach a file, or both</x-field-label>
-        <textarea id="rootCause" wire:model="rootCause" placeholder="Identify and define the root cause..."></textarea>
+        <x-format-toolbar />
+        <textarea id="rootCause" maxlength="{{ \App\Support\TextLimits::LONG }}" wire:model="rootCause" placeholder="Identify and define the root cause..."></textarea>
+        <x-char-count />
         @error('rootCause') <div class="error-text">{{ $message }}</div> @enderror
     </div>
     <div class="field-grid">
         <div class="field">
             <x-field-label for="rootCauseResponsible" tip="Who investigated and identified the root cause.">Responsible person</x-field-label>
-            <input id="rootCauseResponsible" wire:model="rootCauseResponsible">
+            <input id="rootCauseResponsible" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="rootCauseResponsible">
+            <x-char-count />
             @error('rootCauseResponsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
@@ -71,13 +77,16 @@
             </div>
             <div class="field">
                 <x-field-label :for="'action-'.$index.'-description'" tip="A lasting fix aimed at the root cause so the problem does not come back. One action per row — use “Add corrective action” for more.">Corrective action</x-field-label>
-                <textarea id="action-{{ $index }}-description" wire:model="correctiveActions.{{ $index }}.description" style="min-height:60px;"></textarea>
+                <x-format-toolbar />
+                <textarea id="action-{{ $index }}-description" maxlength="{{ \App\Support\TextLimits::LONG }}" wire:model="correctiveActions.{{ $index }}.description" style="min-height:60px;"></textarea>
+                <x-char-count />
                 @error("correctiveActions.{$index}.description") <div class="error-text">{{ $message }}</div> @enderror
             </div>
             <div class="field-grid" style="grid-template-columns:1.4fr 1fr 1fr; margin-top:10px;">
                 <div class="field">
                     <x-field-label :for="'action-'.$index.'-responsible'" tip="Who will carry out this action.">Responsible</x-field-label>
-                    <input id="action-{{ $index }}-responsible" wire:model="correctiveActions.{{ $index }}.responsible">
+                    <input id="action-{{ $index }}-responsible" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="correctiveActions.{{ $index }}.responsible">
+                    <x-char-count />
                     @error("correctiveActions.{$index}.responsible") <div class="error-text">{{ $message }}</div> @enderror
                 </div>
                 <div class="field">

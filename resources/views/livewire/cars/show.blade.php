@@ -33,7 +33,7 @@
                 @if ($sentBack)
                     <div class="sent-back">
                         <strong>{{ $sentBack->action->label() }}</strong> by {{ $sentBack->actor?->name }} · {{ $sentBack->created_at->format('M j, Y') }}
-                        <div>“{{ $sentBack->note }}”</div>
+                        <div class="rich-text">“{{ \App\Support\RichText::toHtml($sentBack->note) }}”</div>
                     </div>
                 @endif
 
@@ -50,7 +50,9 @@
                 @if ($needsNote)
                     <div class="field" style="margin-bottom:10px;">
                         <x-field-label for="note" :tip="$noteTip">{{ $noteLabel }}</x-field-label>
-                        <textarea id="note" wire:model="note" style="min-height:60px;"></textarea>
+                        <x-format-toolbar />
+                        <textarea id="note" maxlength="{{ \App\Support\TextLimits::REASON }}" wire:model="note" style="min-height:60px;"></textarea>
+                        <x-char-count />
                         @error('note') <div class="error-text">{{ $message }}</div> @enderror
                     </div>
                 @endif
@@ -102,7 +104,7 @@
                             </span>
                         @endforeach
                     </div>
-                    <div class="kv"><span class="k">Details of the problem</span><span class="v" style="white-space:pre-line; font-weight:400;">{{ $car->problem_details }}</span></div>
+                    <div class="kv"><span class="k">Details of the problem</span><span class="v" style="font-weight:400;" class="rich-text">{{ \App\Support\RichText::toHtml($car->problem_details) }}</span></div>
                     @if ($car->initial_action)
                         <div class="kv">
                             <span class="k">Initial action already taken
@@ -111,7 +113,7 @@
                                 @endif
                                 @if ($car->initial_action_responsible) · {{ $car->initial_action_responsible }} @endif
                             </span>
-                            <span class="v" style="white-space:pre-line; font-weight:400;">{{ $car->initial_action }}</span>
+                            <span class="v rich-text" style="font-weight:400;">{{ \App\Support\RichText::toHtml($car->initial_action) }}</span>
                         </div>
                     @endif
 
@@ -217,7 +219,7 @@
                                         {{ $row['round']->evidence_responsible }} · uploaded {{ $row['round']->evidence_uploaded_at->format('M j, Y') }}
                                     </span>
                                     @if ($row['round']->evidence_notes)
-                                        <span class="v" style="font-weight:400; white-space:pre-line; color:var(--text2);">{{ $row['round']->evidence_notes }}</span>
+                                        <span class="v rich-text" style="font-weight:400; color:var(--text2);">{{ \App\Support\RichText::toHtml($row['round']->evidence_notes) }}</span>
                                     @endif
                                     @foreach ($row['evidence'] as $file)
                                         <a href="{{ route('attachments.show', $file) }}" target="_blank" style="font-size:11.5px;"><x-icon :name="$file->isVideo() ? 'video' : ($file->isImage() ? 'image' : 'file')" /> {{ $file->original_name }} <span style="color:var(--text3);">· {{ $file->humanSize() }}</span></a>
@@ -235,7 +237,7 @@
                                             <span style="font-weight:400; font-size:11.5px;">{{ $row['verification']->actor?->name }} · {{ $row['verification']->created_at->format('M j, Y') }}</span>
                                         </span>
                                         @if ($row['verification']->note)
-                                            <span class="v" style="font-weight:400; color:var(--text2);">“{{ $row['verification']->note }}”</span>
+                                            <span class="v rich-text" style="font-weight:400; color:var(--text2);">“{{ \App\Support\RichText::toHtml($row['verification']->note) }}”</span>
                                         @endif
                                     @else
                                         <span class="v" style="font-weight:400; color:var(--text3);">Pending.</span>
@@ -249,7 +251,7 @@
                                             <span style="font-weight:400; font-size:11.5px;">{{ $row['acceptance']->actor?->name }} · {{ $row['acceptance']->created_at->format('M j, Y') }}</span>
                                         </span>
                                         @if ($row['acceptance']->note)
-                                            <span class="v" style="font-weight:400; color:var(--text2);">“{{ $row['acceptance']->note }}”</span>
+                                            <span class="v rich-text" style="font-weight:400; color:var(--text2);">“{{ \App\Support\RichText::toHtml($row['acceptance']->note) }}”</span>
                                         @endif
                                         @if ($row['acceptance']->action === CarAction::NotAccept)
                                             <span class="v" style="font-weight:400; color:var(--text2);">New end date: {{ $car->rounds->firstWhere('number', $row['round']->number + 1)?->due_on?->format('M j, Y') ?? '—' }}</span>
@@ -304,7 +306,7 @@
                             @endif
                         </div>
                         @if ($event->note)
-                            <div class="tl-body" style="color:var(--text);">“{{ $event->note }}”</div>
+                            <div class="tl-body rich-text" style="color:var(--text);">“{{ \App\Support\RichText::toHtml($event->note) }}”</div>
                         @endif
                     </div>
                 @endforeach

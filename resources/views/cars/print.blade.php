@@ -67,10 +67,10 @@
         <div class="section">
             <table><tr><td class="part">Part II.</td><td><strong>Problem Information</strong></td></tr></table>
             <div class="box"><strong>Details of Problem:</strong>
-{{ $car->problem_details }}</div>
+{{ \App\Support\RichText::toHtml($car->problem_details) }}</div>
             @if ($car->initial_action)
                 <div class="box" style="margin-top:4px;"><strong>Initial Action Already Taken:</strong>
-{{ $car->initial_action }}@if ($car->initial_action_starts_on || $car->initial_action_responsible)
+{{ \App\Support\RichText::toHtml($car->initial_action) }}@if ($car->initial_action_starts_on || $car->initial_action_responsible)
 <span class="muted">{{ $car->initial_action_starts_on?->format('M j, Y') }}{{ $car->initial_action_ends_on ? ' – '.$car->initial_action_ends_on->format('M j, Y') : '' }}{{ $car->initial_action_responsible ? ' · '.$car->initial_action_responsible : '' }}</span>@endif</div>
             @endif
             @if ($car->attachments->isNotEmpty())
@@ -86,12 +86,12 @@
         <div class="section">
             <table><tr><td class="part">Part III.</td><td><strong>Correction</strong></td></tr></table>
             <div class="box"><strong>Interim Containment/Immediate Action/s:</strong>
-{{ $response?->containment_actions ?? '' }}@if ($response?->containment_starts_on)
+{{ \App\Support\RichText::toHtml($response?->containment_actions) }}@if ($response?->containment_starts_on)
 
 <span class="muted">{{ $response->containment_starts_on->format('M j, Y') }} – {{ $response->containment_ends_on?->format('M j, Y') }} · Responsible: {{ $response->containment_responsible }}</span>@endif</div>
             <table style="margin-top:6px;"><tr><td class="part" style="background:#111;">Root Cause</td><td></td></tr></table>
             <div class="box"><strong>Identify and Define the Root Cause</strong>
-{{ $response?->root_cause ?? '' }}@if ($response?->root_cause_responsible)
+{{ \App\Support\RichText::toHtml($response?->root_cause) }}@if ($response?->root_cause_responsible)
 
 <span class="muted">Responsible: {{ $response->root_cause_responsible }}</span>@endif</div>
 
@@ -100,7 +100,7 @@
                 <tr><th>Corrective Action</th><th style="width:22%;">Responsible</th><th style="width:20%;">Target Date</th></tr>
                 @forelse ($response?->correctiveActions ?? [] as $action)
                     <tr>
-                        <td style="white-space:pre-line;">{{ $action->description }}</td>
+                        <td>{{ \App\Support\RichText::toHtml($action->description) }}</td>
                         <td>{{ $action->responsible }}</td>
                         <td>{{ $action->starts_on?->format('M j') }} – {{ $action->ends_on?->format('M j, Y') }}</td>
                     </tr>
@@ -132,7 +132,7 @@
                     @php $row = $verifications->get($index); @endphp
                     <div>
                         <strong>{{ $index === 0 ? '1st' : '2nd' }} Verification</strong>
-                        <div style="min-height:28px; white-space:pre-line;">{{ ($row['check'] ?? null)?->note ?? ($row && ($row['check'] ?? null)?->action === CarAction::MarkEffective ? 'Corrective action validated as effective.' : '') }}</div>
+                        <div style="min-height:28px; white-space:pre-line;">{{ ($row['check'] ?? null)?->note ? \App\Support\RichText::toHtml($row['check']->note) : ($row && ($row['check'] ?? null)?->action === CarAction::MarkEffective ? 'Corrective action validated as effective.' : '') }}</div>
                         <div>
                             Status:
                             <span class="check {{ $row && ($row['acceptance'] ?? null)?->action === CarAction::Accept ? 'on' : '' }}"></span>Close

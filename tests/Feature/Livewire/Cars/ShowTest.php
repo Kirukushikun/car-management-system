@@ -467,3 +467,14 @@ it('shows the initial action already taken in the Phase I card when there is one
         ->test(Show::class, ['car' => $plain])
         ->assertDontSee('Initial action already taken');
 });
+
+it('shows formatted text safely on the CAR page', function () {
+    $car = Car::factory()->create(['problem_details' => 'Spoiled **34 trays**
+- big dirty eggs
+<script>alert(1)</script>']);
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeHtml('Spoiled <strong>34 trays</strong><ul class="rt-list"><li>big dirty eggs</li></ul>&lt;script&gt;')
+        ->assertDontSeeHtml('<script>alert(1)</script>');
+});

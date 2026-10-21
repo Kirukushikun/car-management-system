@@ -34,7 +34,8 @@
     <div class="field-grid">
         <div class="field">
             <x-field-label for="evidenceResponsible" tip="Who carried out the corrective actions or gathered this evidence.">Responsible person</x-field-label>
-            <input id="evidenceResponsible" wire:model="responsible">
+            <input id="evidenceResponsible" maxlength="{{ \App\Support\TextLimits::SHORT }}" wire:model="responsible">
+            <x-char-count />
             @error('responsible') <div class="error-text">{{ $message }}</div> @enderror
         </div>
         <div class="field">
@@ -45,7 +46,9 @@
 
     <div class="field">
         <x-field-label for="evidenceNotes" tip="Optional — what was implemented, where, and how it was checked. Helps the Concerned Department Approver judge whether it worked.">Notes (optional)</x-field-label>
-        <textarea id="evidenceNotes" wire:model="notes" style="min-height:60px;" placeholder="What was implemented, where, and how it was checked..."></textarea>
+        <x-format-toolbar />
+        <textarea id="evidenceNotes" maxlength="{{ \App\Support\TextLimits::LONG }}" wire:model="notes" style="min-height:60px;" placeholder="What was implemented, where, and how it was checked..."></textarea>
+        <x-char-count />
         @error('notes') <div class="error-text">{{ $message }}</div> @enderror
     </div>
 
