@@ -26,7 +26,8 @@ use LogicException;
  */
 #[Fillable([
     'reference', 'status', 'current_round', 'requestor_id', 'issued_by', 'complainant', 'complaint_types',
-    'problem_details', 'farm_id', 'complaint_received_on',
+    'problem_details', 'initial_action', 'initial_action_starts_on', 'initial_action_ends_on', 'initial_action_responsible',
+    'farm_id', 'complaint_received_on',
     'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
     'revised_due_on', 'released_at', 'closed_at', 'voided_at',
 ])]
@@ -42,6 +43,7 @@ class Car extends Model
      */
     public const PHASE_ONE_FIELDS = [
         'reference', 'requestor_id', 'issued_by', 'complainant', 'complaint_types', 'problem_details',
+        'initial_action', 'initial_action_starts_on', 'initial_action_ends_on', 'initial_action_responsible',
         'farm_id', 'complaint_received_on',
         'issued_on', 'response_days', 'implementation_days', 'response_due_on', 'implementation_due_on',
     ];
@@ -67,6 +69,8 @@ class Car extends Model
             'response_days' => 'integer',
             'implementation_days' => 'integer',
             'complaint_received_on' => 'immutable_date',
+            'initial_action_starts_on' => 'immutable_date',
+            'initial_action_ends_on' => 'immutable_date',
             'issued_on' => 'immutable_date',
             'response_due_on' => 'immutable_date',
             'implementation_due_on' => 'immutable_date',

@@ -371,6 +371,13 @@
     background:var(--bg); border:.5px solid var(--border2); box-shadow:0 8px 24px rgba(0,0,0,.14);
   }
   .pair-remove{ padding:0 4px; font-size:10.5px; }
+  .optional-group{ padding:0; }
+  .optional-group > summary{ list-style:none; cursor:pointer; display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px; padding:11px 14px; font-size:12.5px; }
+  .optional-group > summary::-webkit-details-marker{ display:none; }
+  .optional-group-chevron{ color:var(--text3); font-size:9px; transition:transform .15s; }
+  .optional-group[open] .optional-group-chevron{ transform:rotate(90deg); }
+  .optional-group-note{ font-size:10.5px; color:var(--text3); }
+  .optional-group-body{ display:flex; flex-direction:column; gap:12px; padding:0 14px 14px; }
   .multi-select{ position:relative; }
   .multi-select-control{
     display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:34px; padding:4px 28px 4px 8px; cursor:pointer;

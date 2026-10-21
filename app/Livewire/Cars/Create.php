@@ -66,6 +66,17 @@ class Create extends Component
     public string $problem = '';
 
     /**
+     * Optional: an initial action the Complainant's side already took before filing.
+     */
+    public string $initialAction = '';
+
+    public ?string $initialActionStartsOn = null;
+
+    public ?string $initialActionEndsOn = null;
+
+    public string $initialActionResponsible = '';
+
+    /**
      * @var array<int, TemporaryUploadedFile>
      */
     public array $attachments = [];
@@ -158,6 +169,10 @@ class Create extends Component
             'issued_by' => $this->issuedBy,
             'complainant' => $this->complainant,
             'problem_details' => $this->problem,
+            'initial_action' => trim($this->initialAction) ?: null,
+            'initial_action_starts_on' => $this->initialActionStartsOn ?: null,
+            'initial_action_ends_on' => $this->initialActionEndsOn ?: null,
+            'initial_action_responsible' => trim($this->initialActionResponsible) ?: null,
         ];
 
         $car = $this->guardSubmission(function () use ($workflow, $details): Car {
@@ -201,6 +216,10 @@ class Create extends Component
             'issuedBy' => ['required', 'string', 'max:255'],
             'complainant' => ['required', 'string', 'max:255'],
             'problem' => ['required', 'string', 'min:10'],
+            'initialAction' => ['nullable', 'string', 'max:5000', 'required_with:initialActionStartsOn,initialActionEndsOn,initialActionResponsible'],
+            'initialActionStartsOn' => ['nullable', 'date', 'before_or_equal:today'],
+            'initialActionEndsOn' => ['nullable', 'date', 'after_or_equal:initialActionStartsOn'],
+            'initialActionResponsible' => ['nullable', 'string', 'max:255'],
             'attachments' => ['array', 'max:10'],
             'attachments.*' => ['file', 'max:'.Attachment::MAX_KILOBYTES, 'extensions:'.implode(',', Attachment::ALLOWED_EXTENSIONS)],
         ];
@@ -226,6 +245,9 @@ class Create extends Component
             'pairs.*.subcategory_ids.required' => 'Pick at least one sub-category.',
             'pairs.*.subcategory_ids.*.exists' => 'Pick sub-categories that belong to this pair\'s category.',
             'complaintReceivedOn.before_or_equal' => 'The complaint cannot have been received in the future.',
+            'initialAction.required_with' => 'Describe the action taken, or clear its dates and responsible person.',
+            'initialActionStartsOn.before_or_equal' => 'An action already taken cannot start in the future.',
+            'initialActionEndsOn.after_or_equal' => 'The end date cannot be before the start date.',
             'attachments.max' => 'Attach at most 10 files.',
             'attachments.*.max' => 'Each file must be 50 MB or smaller.',
             'attachments.*.extensions' => 'Use photos, videos (mp4, mov), PDF or Office files.',
@@ -270,6 +292,10 @@ class Create extends Component
         $this->issuedBy = $car->issued_by;
         $this->complainant = $car->complainant;
         $this->problem = $car->problem_details;
+        $this->initialAction = (string) $car->initial_action;
+        $this->initialActionStartsOn = $car->initial_action_starts_on?->toDateString();
+        $this->initialActionEndsOn = $car->initial_action_ends_on?->toDateString();
+        $this->initialActionResponsible = (string) $car->initial_action_responsible;
     }
 
     private function resetPairs(): void

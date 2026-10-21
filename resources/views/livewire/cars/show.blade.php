@@ -103,6 +103,17 @@
                         @endforeach
                     </div>
                     <div class="kv"><span class="k">Details of the problem</span><span class="v" style="white-space:pre-line; font-weight:400;">{{ $car->problem_details }}</span></div>
+                    @if ($car->initial_action)
+                        <div class="kv">
+                            <span class="k">Initial action already taken
+                                @if ($car->initial_action_starts_on)
+                                    · {{ $car->initial_action_starts_on->format('M j') }}{{ $car->initial_action_ends_on ? ' – '.$car->initial_action_ends_on->format('M j, Y') : '' }}
+                                @endif
+                                @if ($car->initial_action_responsible) · {{ $car->initial_action_responsible }} @endif
+                            </span>
+                            <span class="v" style="white-space:pre-line; font-weight:400;">{{ $car->initial_action }}</span>
+                        </div>
+                    @endif
 
                     @if ($car->attachments->isNotEmpty())
                         <div class="kv">

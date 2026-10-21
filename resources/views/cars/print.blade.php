@@ -68,6 +68,11 @@
             <table><tr><td class="part">Part II.</td><td><strong>Problem Information</strong></td></tr></table>
             <div class="box"><strong>Details of Problem:</strong>
 {{ $car->problem_details }}</div>
+            @if ($car->initial_action)
+                <div class="box" style="margin-top:4px;"><strong>Initial Action Already Taken:</strong>
+{{ $car->initial_action }}@if ($car->initial_action_starts_on || $car->initial_action_responsible)
+<span class="muted">{{ $car->initial_action_starts_on?->format('M j, Y') }}{{ $car->initial_action_ends_on ? ' – '.$car->initial_action_ends_on->format('M j, Y') : '' }}{{ $car->initial_action_responsible ? ' · '.$car->initial_action_responsible : '' }}</span>@endif</div>
+            @endif
             @if ($car->attachments->isNotEmpty())
                 <div class="muted" style="margin-top:4px;">Attachments: {{ $car->attachments->pluck('original_name')->implode(', ') }}</div>
             @endif

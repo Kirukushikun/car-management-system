@@ -337,6 +337,67 @@ describe('submitting', function () {
     });
 });
 
+describe('initial action already taken', function () {
+    it('is optional and stays empty when nothing was done yet', function () {
+        filledCreateForm($this->requestor)->call('submit')->assertHasNoErrors();
+
+        expect(Car::sole())
+            ->initial_action->toBeNull()
+            ->initial_action_starts_on->toBeNull()
+            ->initial_action_responsible->toBeNull();
+    });
+
+    it('records the action, its dates and who did it', function () {
+        filledCreateForm($this->requestor)
+            ->set('initialAction', 'Pulled the remaining trays and replaced the customer order.')
+            ->set('initialActionStartsOn', '2026-10-01')
+            ->set('initialActionEndsOn', '2026-10-04')
+            ->set('initialActionResponsible', 'Store supervisor')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        expect(Car::sole())
+            ->initial_action->toBe('Pulled the remaining trays and replaced the customer order.')
+            ->initial_action_starts_on->toDateString()->toBe('2026-10-01')
+            ->initial_action_ends_on->toDateString()->toBe('2026-10-04')
+            ->initial_action_responsible->toBe('Store supervisor');
+    });
+
+    it('needs the action itself when a date or person is filled in', function () {
+        filledCreateForm($this->requestor)
+            ->set('initialActionResponsible', 'Store supervisor')
+            ->call('submit')
+            ->assertHasErrors(['initialAction' => 'required_with'])
+            ->assertSee('Describe the action taken, or clear its dates and responsible person.');
+
+        expect(Car::count())->toBe(0);
+    });
+
+    it('rejects a start in the future and an end before the start', function () {
+        filledCreateForm($this->requestor)
+            ->set('initialAction', 'Held the stock.')
+            ->set('initialActionStartsOn', '2026-10-03')
+            ->call('submit')
+            ->assertHasErrors(['initialActionStartsOn' => 'before_or_equal'])
+            ->set('initialActionStartsOn', '2026-10-01')
+            ->set('initialActionEndsOn', '2026-09-30')
+            ->call('submit')
+            ->assertHasErrors(['initialActionEndsOn' => 'after_or_equal']);
+    });
+
+    it('has a tip on each of its fields', function () {
+        Livewire::actingAs($this->requestor)
+            ->test(Create::class)
+            ->assertSeeInOrder([
+                'Initial action already taken', 'optional',
+                'Action taken', 'What your side already did before filing',
+                'Date start', 'It cannot be in the future.',
+                'Date end', 'still ongoing',
+                'Responsible person', 'Who carried out the action.',
+            ]);
+    });
+});
+
 describe('correcting a returned CAR', function () {
     beforeEach(function () {
         $this->returned = Car::factory()->status(CarStatus::ReturnedToRequestor)
@@ -356,6 +417,7 @@ describe('correcting a returned CAR', function () {
         Livewire::actingAs($this->requestor)
             ->test(Create::class, ['car' => $this->returned])
             ->assertSet('complainant', $this->returned->complainant)
+            ->assertSet('initialAction', '')
             ->assertSet('unitIds', [unitId('Eggroom'), unitId('PFC Production')])
             ->assertSet('pairs', [[
                 'category_id' => categoryId('TABLE EGG', 'Production Related'),

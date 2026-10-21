@@ -39,7 +39,7 @@ class CarExportController extends Controller
 
             fputcsv($out, [
                 'Reference', 'Status', 'Owner', 'Overdue', 'Issued on', 'Complaint received', 'Farm', 'Issued to', 'Business line',
-                'Categories', 'Sub-categories', 'Types of complaint', 'Complainant', 'Filed by', 'Response due', 'Implementation due',
+                'Categories', 'Sub-categories', 'Types of complaint', 'Complainant', 'Initial action taken', 'Filed by', 'Response due', 'Implementation due',
                 'Revised end date', 'Released', 'First response', 'Closed', 'Round',
             ]);
 
@@ -58,6 +58,7 @@ class CarExportController extends Controller
                     $car->subcategoryNames(),
                     $car->complaintTypeLabels(),
                     $car->complainant,
+                    $car->initial_action ?? '',
                     $car->requestor->name,
                     $car->response_due_on->toDateString(),
                     $car->implementation_due_on->toDateString(),

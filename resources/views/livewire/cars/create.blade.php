@@ -119,6 +119,39 @@
                 @error('problem') <div class="error-text">{{ $message }}</div> @enderror
             </div>
 
+            @php($hasInitialAction = filled($initialAction) || filled($initialActionStartsOn) || filled($initialActionEndsOn) || filled($initialActionResponsible) || $errors->hasAny(['initialAction', 'initialActionStartsOn', 'initialActionEndsOn', 'initialActionResponsible']))
+            <details class="surface optional-group" style="margin-top:14px;" @if ($hasInitialAction) open @endif>
+                <summary>
+                    <x-icon name="chevron-right" class="optional-group-chevron" />
+                    <strong>Initial action already taken</strong>
+                    <span class="optional-group-note">optional — only if something was already done before filing</span>
+                </summary>
+                <div class="optional-group-body">
+                    <div class="field">
+                        <x-field-label for="initialAction" tip="What your side already did before filing — e.g. pulled the affected stock, replaced the customer's order. Leave this section empty if nothing was done yet.">Action taken</x-field-label>
+                        <textarea id="initialAction" wire:model="initialAction" style="min-height:60px;" placeholder="e.g. Pulled the remaining trays from the outlet and replaced the customer's order..."></textarea>
+                        @error('initialAction') <div class="error-text">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="field-grid" style="grid-template-columns:1fr 1fr 1.4fr;">
+                        <div class="field">
+                            <x-field-label for="initialActionStartsOn" tip="When the action started. It cannot be in the future.">Date start</x-field-label>
+                            <input id="initialActionStartsOn" type="date" wire:model="initialActionStartsOn" max="{{ now()->toDateString() }}">
+                            @error('initialActionStartsOn') <div class="error-text">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="field">
+                            <x-field-label for="initialActionEndsOn" tip="When it ended, or will end if it is still ongoing.">Date end</x-field-label>
+                            <input id="initialActionEndsOn" type="date" wire:model="initialActionEndsOn">
+                            @error('initialActionEndsOn') <div class="error-text">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="field">
+                            <x-field-label for="initialActionResponsible" tip="Who carried out the action.">Responsible person</x-field-label>
+                            <input id="initialActionResponsible" wire:model="initialActionResponsible">
+                            @error('initialActionResponsible') <div class="error-text">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </div>
+            </details>
+
             <div class="field" style="margin-top:14px;">
                 <x-field-label for="attachments" tip="Optional proof: photos, videos (mp4, mov), PDF or Office files — up to 10 files, 50 MB each.">File attachments (optional)</x-field-label>
                 @if ($existingAttachments->isNotEmpty())

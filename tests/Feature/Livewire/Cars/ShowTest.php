@@ -449,3 +449,21 @@ it('explains the reason with a tip when sending a CAR back', function () {
         ->test(Show::class, ['car' => $car])
         ->assertSee('Whoever it goes to sees this reason');
 });
+
+it('shows the initial action already taken in the Phase I card when there is one', function () {
+    $car = Car::factory()->create([
+        'initial_action' => 'Pulled the remaining trays.',
+        'initial_action_starts_on' => '2026-10-01',
+        'initial_action_ends_on' => '2026-10-02',
+        'initial_action_responsible' => 'Store supervisor',
+    ]);
+    $plain = Car::factory()->create();
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $car])
+        ->assertSeeInOrder(['Details of the problem', 'Initial action already taken', 'Oct 1', 'Oct 2, 2026', 'Store supervisor', 'Pulled the remaining trays.']);
+
+    Livewire::actingAs(User::factory()->role(Role::Monitor)->create())
+        ->test(Show::class, ['car' => $plain])
+        ->assertDontSee('Initial action already taken');
+});
